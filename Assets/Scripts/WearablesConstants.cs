@@ -48,21 +48,14 @@ public static class WearablesConstants
     {
         Categories.HANDS,
     };
-
-    public static readonly IReadOnlyList<string> FACIAL_FEATURES = new List<string>
+    
+    public static readonly HashSet<string> FACIAL_FEATURES = new()
     {
         Categories.EYEBROWS,
         Categories.EYES,
         Categories.MOUTH,
     };
-
-    public static readonly IReadOnlyList<string> COLOR_PICKER_CATEGORIES = new List<string>
-    {
-        Categories.EYES,
-        Categories.HAIR,
-        Categories.BODY_SHAPE
-    };
-
+    
     public static Dictionary<string, string> READABLE_CATEGORIES = new Dictionary<string, string>
     {
         {Categories.BODY_SHAPE, "Body shape"},

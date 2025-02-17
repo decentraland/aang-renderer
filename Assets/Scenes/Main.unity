@@ -406,6 +406,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e728655e1094da6b32a22c8adcc8fb4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  avatarRoot: {fileID: 1088246592}
+  baseMat: {fileID: 2100000, guid: 406504d4e46794b17941d2039cfd49c4, type: 2}
+  animatorController: {fileID: 9100000, guid: 911503823286fbb45adb70692446da43, type: 2}
+  wearablePreviewRotator: {fileID: 1088246591}
 --- !u!4 &983774208
 Transform:
   m_ObjectHideFlags: 0
@@ -431,6 +435,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1088246590}
   - component: {fileID: 1088246591}
+  - component: {fileID: 1088246592}
   m_Layer: 0
   m_Name: AvatarRoot
   m_TagString: Untagged
@@ -470,6 +475,18 @@ MonoBehaviour:
   dragSensitivity: 0.2
   rotationResumeDelay: 1
   resetSpeed: 2
+--- !u!114 &1088246592
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1088246589}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4d8f8f38a504e9daded315b2ca9ab7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1101889418
 GameObject:
   m_ObjectHideFlags: 0
@@ -535,7 +552,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   uiDocument: {fileID: 1101889419}
-  avatarRoot: {fileID: 1088246590}
+  avatarRoot: {fileID: 1088246592}
   baseMat: {fileID: 2100000, guid: 406504d4e46794b17941d2039cfd49c4, type: 2}
   animatorController: {fileID: 9100000, guid: 911503823286fbb45adb70692446da43, type: 2}
   wearablePreviewRotator: {fileID: 1088246591}

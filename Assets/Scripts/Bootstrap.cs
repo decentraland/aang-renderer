@@ -1,12 +1,69 @@
 using UnityEngine;
 
-namespace DefaultNamespace
+public class Bootstrap : MonoBehaviour
 {
-    public class Bootstrap: MonoBehaviour
+    [SerializeField] private Camera mainCamera;
+    [SerializeField] private AvatarRoot avatarRoot;
+    [SerializeField] private Material baseMat;
+    [SerializeField] private RuntimeAnimatorController animatorController;
+    [SerializeField] private WearablePreviewRotator wearablePreviewRotator;
+
+    private void Start()
     {
-        private void Awake()
+        // Common assets TODO: Improve maybe
+        CommonAssets.AvatarMaterial = baseMat;
+        CommonAssets.AvatarRoot = avatarRoot;
+
+        // Autoload avatar / wearable from parameters
+        var parameters = URLParameters.ParseDefault();
+        // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0xbebb268219a67a80fe85fc6af9f0ad0ec0dca98c:0");
+        // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0x0d2f515ba568042a6756561ae552090b0ae5c586&item=0");
+        // var parameters = URLParameters.Parse("https://example.com/?contract=0x0d2f515ba568042a6756561ae552090b0ae5c586&item=0");
+
+        if (parameters == null) return;
+
+        mainCamera.backgroundColor = parameters.Background;
+
+        _ = LoadFromParameters(parameters);
+    }
+
+    private async Awaitable LoadFromParameters(URLParameters parameters)
+    {
+        // If we have an URN we load directly
+        if (parameters.Urn != null)
         {
-            URLParser.Initialize(Application.absoluteURL);
+            // We have the urn, can load directly
+            _ = LoadAvatar(parameters.Profile, parameters.Urn);
+            return;
+        }
+
+        // If we have a contract and item id or token id we need to fetch the urn first
+        if (parameters.Contract != null && (parameters.ItemID != null || parameters.TokenID != null))
+        {
+            var urn = parameters.ItemID != null
+                ? (await APIService.GetMarketplaceItemFromID(parameters.Contract, parameters.ItemID)).data[0].urn
+                : (await APIService.GetMarketplaceItemFromToken(parameters.Contract, parameters.TokenID)).data[0].nft
+                .urn;
+
+            // We have the contract and item id, can load directly
+            _ = LoadAvatar(parameters.Profile, urn);
+        }
+    }
+
+    private async Awaitable LoadAvatar(string profileID, string wearableID)
+    {
+        // Clear previous avatar
+        avatarRoot.Clear();
+
+        await AvatarLoader.LoadAvatar(profileID, wearableID);
+
+        wearablePreviewRotator.Restart();
+
+        // Animation
+        var animators = avatarRoot.GetComponentsInChildren<Animator>();
+        foreach (var animator in animators)
+        {
+            animator.runtimeAnimatorController = animatorController;
         }
     }
 }

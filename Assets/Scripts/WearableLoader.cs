@@ -4,9 +4,9 @@ using GLTFast;
 using GLTFast.Logging;
 using UnityEngine;
 
-public static class GLBLoader
+public static class WearableLoader
 {
-    public static async Awaitable<GameObject> LoadWearable(string category, string mainFile,
+    public static async Awaitable<GameObject> LoadGLB(string category, string mainFile,
         Dictionary<string, string> files, AvatarColors avatarColors)
     { 
         var importer = new GltfImport(
@@ -29,7 +29,6 @@ public static class GLBLoader
         if (success)
         {
             var root = new GameObject(category);
-            CommonAssets.AvatarRoot.Attach(category, root);
 
             await importer.InstantiateMainSceneAsync(root.transform);
 

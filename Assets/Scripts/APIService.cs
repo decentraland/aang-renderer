@@ -1,6 +1,5 @@
 using System;
 using Data;
-using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -13,9 +12,9 @@ public static class APIService
     private const string API_MARKETPLACE_ITEM_ID = "https://marketplace-api.decentraland.org/v1/items?contractAddress={0}&itemId={1}";
     private const string API_MARKETPLACE_TOKEN_ID = "https://marketplace-api.decentraland.org/v1/nfts?contractAddress={0}&tokenId={1}";
 
-    public static async Awaitable<ProfileResponse.Avatar.AvatarData> GetAvatar(string userID)
+    public static async Awaitable<ProfileResponse.Avatar.AvatarData> GetAvatar(string profileID)
     {
-        var profile = await GetProfile(userID);
+        var profile = await GetProfile(profileID);
         
         var avatar = profile.avatars[0].avatar;
         

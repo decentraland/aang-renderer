@@ -13,7 +13,7 @@ public class WearablePreviewRotator : MonoBehaviour
     private Vector3 _previousMousePos;
     private Vector3 _combinedCenter;
 
-    void Start()
+    private void Start()
     {
         Restart(); // Ensure we calculate the center on start
     }
@@ -38,7 +38,7 @@ public class WearablePreviewRotator : MonoBehaviour
         }
     }
 
-    void Update()
+    private void Update()
     {
         HandleDrag();
         if (!_isDragging)

@@ -2,14 +2,15 @@ using System.Collections.Generic;
 using System.Linq;
 using Data;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 public static class AvatarLoader
 {
-    public static async Awaitable LoadAvatar(string userID, string overrideWearableID)
+    public static async Awaitable LoadAvatar(string profileID, string overrideWearableID)
     {
-        Debug.Log($"Loading user: {userID}");
+        Debug.Log($"Loading user: {profileID}");
 
-        var avatar = await APIService.GetAvatar(userID);
+        var avatar = await APIService.GetAvatar(profileID);
         var avatarColors = new AvatarColors(avatar.eyes.color, avatar.hair.color, avatar.skin.color);
         var bodyShape = avatar.bodyShape;
 
@@ -67,17 +68,24 @@ public static class AvatarLoader
         {
             Debug.Log($"Loading wearable({category}): {wd.Pointer}");
 
-            // TODO: Support facial features and stuff
-            if (!wd.MainFile.EndsWith(".glb"))
+
+            if (WearablesConstants.FACIAL_FEATURES.Contains(category))
             {
-                Debug.LogError("Could not load wearable: " + wd.MainFile);
+                // This is a facial feature, only comes as a texture
+                Debug.LogError("Facial feature loading not supported.");
                 continue;
             }
+            else
+            {
+                Assert.IsTrue(wd.MainFile.EndsWith(".glb"), "Only GLB files are supported");
+                
+                // Normal GLB
+                var go = await WearableLoader.LoadGLB(wd.Category, wd.MainFile, wd.Files, avatarColors);
+                CommonAssets.AvatarRoot.Attach(category, go);
+                go.AddComponent<Animator>();
 
-            var go = await GLBLoader.LoadWearable(wd.Category, wd.MainFile, wd.Files, avatarColors);
-            go.AddComponent<Animator>();
-
-            if (category == WearablesConstants.Categories.BODY_SHAPE) bodyGO = go;
+                if (category == WearablesConstants.Categories.BODY_SHAPE) bodyGO = go;
+            }
         }
 
         // Hide stuff on body shape
