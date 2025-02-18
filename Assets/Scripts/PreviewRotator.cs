@@ -35,6 +35,12 @@ public class PreviewRotator : MonoBehaviour
 
     private void Update()
     {
+        var e = transform.eulerAngles;
+        e.y += autoRotationSpeed * Time.deltaTime;
+        transform.rotation = Quaternion.Euler(e);
+
+        return;
+
         HandleDrag();
         if (!_isDragging)
         {

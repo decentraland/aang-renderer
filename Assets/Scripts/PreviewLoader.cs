@@ -1,28 +1,36 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Data;
 using UnityEngine;
 using UnityEngine.Assertions;
+using Debug = UnityEngine.Debug;
 
 public class PreviewLoader : MonoBehaviour
 {
+    [SerializeField] private Camera mainCamera;
     [SerializeField] private PreviewRotator rotator;
     [SerializeField] private RuntimeAnimatorController animatorController;
     [SerializeField] private UIPresenter uiPresenter;
-    
+    [SerializeField] private Transform avatarRoot;
+    [SerializeField] private Transform wearableRoot;
+
     private readonly Dictionary<string, GameObject> _categories = new();
 
-    private bool _showAvatar = true;
+    private bool _showingAvatar;
     private string _overrideCategory;
-    
+
+    /// <summary>
+    /// Loads the player's avatar with an optional override wearable that will replace
+    /// the original wearable in the same category.
+    /// </summary>
     public async Awaitable LoadPreview(string profileID, string overrideWearableID)
     {
+        Debug.Log($"Loading profile: {profileID}");
+
         gameObject.SetActive(false);
         uiPresenter.EnableLoader(true);
-        
         Clear();
-        
-        Debug.Log($"Loading profile: {profileID}");
 
         var avatar = await APIService.GetAvatar(profileID);
         var avatarColors = new AvatarColors(avatar.eyes.color, avatar.hair.color, avatar.skin.color);
@@ -55,12 +63,16 @@ public class PreviewLoader : MonoBehaviour
                 // Apparently there's no difference between hides and replaces
                 foreach (var toHide in wearableDefinition.Hides)
                 {
+                    if (toHide == category) continue; // Safeguard so wearables don't hide themselves
+
                     wearableDefinitions.Remove(toHide);
                     allHides.Add(toHide);
                 }
 
                 foreach (var toReplace in wearableDefinition.Replaces)
                 {
+                    if (toReplace == category) continue; // Safeguard so wearables don't hide themselves
+
                     wearableDefinitions.Remove(toReplace);
                     allHides.Add(toReplace);
                 }
@@ -78,38 +90,29 @@ public class PreviewLoader : MonoBehaviour
         }
 
         // Load all wearables and body shape
-        GameObject bodyGO = null;
-        foreach (var (category, wd) in wearableDefinitions)
+        await Task.WhenAll(wearableDefinitions
+            .Select(cwd => LoadWearable(cwd.Key, cwd.Value, avatarColors))
+            .ToList());
+
+        // Create a copy of the overridden wearable just because that's easier to manage
+        if (!string.IsNullOrEmpty(_overrideCategory))
         {
-            Debug.Log($"Loading wearable({category}): {wd.Pointer}");
-
-
-            if (WearablesConstants.FACIAL_FEATURES.Contains(category))
+            var overrideGO = (await InstantiateAsync(_categories[_overrideCategory], new InstantiateParameters()
             {
-                // This is a facial feature, only comes as a texture
-                Debug.LogError("Facial feature loading not supported.");
-                continue;
-            }
-            else
-            {
-                Assert.IsTrue(wd.MainFile.EndsWith(".glb"), "Only GLB files are supported");
-
-                // Normal GLB
-                var go = await WearableLoader.LoadGLB(wd.Category, wd.MainFile, wd.Files, avatarColors);
-                
-                go.transform.SetParent(transform, false);
-                _categories[category] = go;
-                
-                var animator = go.AddComponent<Animator>();
-                animator.runtimeAnimatorController = animatorController;
-
-                if (category == WearablesConstants.Categories.BODY_SHAPE) bodyGO = go;
-            }
+                parent = wearableRoot,
+                worldSpace = false
+            }))[0];
+            Destroy(overrideGO.GetComponent<Animator>());
         }
 
         // Hide stuff on body shape
+        var bodyGO = avatarRoot.Find(WearablesConstants.Categories.BODY_SHAPE)?.gameObject;
         AvatarHideHelper.HideBodyShape(bodyGO, allHides, wearableDefinitions.Keys.ToHashSet());
-        
+
+        // Center the roots around the meshes
+        CenterMeshes(avatarRoot);
+        CenterMeshes(wearableRoot);
+
         // Restart rotator so it re-calculates the bounds
         rotator.RecalculateBounds();
 
@@ -119,46 +122,85 @@ public class PreviewLoader : MonoBehaviour
         Debug.Log("Loaded all wearables!");
     }
 
+    /// <summary>
+    /// Toggles between showing the avatar or just the wearable.
+    /// </summary>
     public void ShowAvatar(bool show)
     {
-        if(_showAvatar == show) return;
-        
-        _showAvatar = show;
-        
-        foreach (var (category, go) in _categories)
-        {
-            go.SetActive(_showAvatar || category == _overrideCategory);
-        }
-        
-        // We don't want to animate just the wearable
-        EnableAnimation(show);
-        
+        if (_showingAvatar == show) return;
+        _showingAvatar = show;
+
+        avatarRoot.gameObject.SetActive(show);
+        wearableRoot.gameObject.SetActive(!show);
+
         rotator.RecalculateBounds();
     }
-    
-    private void EnableAnimation(bool enable)
-    {
-        var animators = GetComponentsInChildren<Animator>(true);
-        foreach (var animator in animators)
-        {
-            animator.enabled = enable;
 
-            // Restart animator
-            if (enable)
-            {
-                animator.Rebind();
-                animator.Update(0f);
-            }
+    private async Task LoadWearable(string category, WearableDefinition wd, AvatarColors avatarColors)
+    {
+        Debug.Log($"Loading wearable({category}): {wd.Pointer}");
+
+        if (WearablesConstants.FACIAL_FEATURES.Contains(category))
+        {
+            // This is a facial feature, only comes as a texture
+            Debug.LogError("Facial feature loading not supported.");
+        }
+        else
+        {
+            Assert.IsTrue(wd.MainFile.EndsWith(".glb"), "Only GLB files are supported");
+
+            // Normal GLB
+            var go = await WearableLoader.LoadGLB(wd.Category, wd.MainFile, wd.Files, avatarColors);
+
+            go.transform.SetParent(avatarRoot, false);
+            _categories[category] = go;
+
+            var animator = go.AddComponent<Animator>();
+            animator.runtimeAnimatorController = animatorController;
         }
     }
+
+    private void CenterMeshes(Transform root)
+    {
+        var renderers = root.GetComponentsInChildren<Renderer>(true);
+
+        if (renderers.Length == 0)
+        {
+            Debug.LogError("No MeshRenderers found in the child.");
+            return;
+        }
+
+        // Calculate the combined bounds of all MeshRenderers
+        var combinedBounds = renderers[0].bounds;
+        foreach (var meshRenderer in renderers)
+        {
+            combinedBounds.Encapsulate(meshRenderer.bounds);
+        }
+
+        // Compute the center offset relative to the child
+        var centerOffset = combinedBounds.center - root.position;
+
+        // Apply the offset to the child transform
+        root.position -= centerOffset;
+
+        // Calculate the scaling factor to maintain screen size
+        // var boundsSize = combinedBounds.size;
+        // var maxDimension = Mathf.Max(boundsSize.x, boundsSize.y, boundsSize.z);
+        //
+        // var distance = Vector3.Distance(mainCamera.transform.position, root.position);
+        // var fovFactor = 2.0f * Mathf.Tan(mainCamera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+        //
+        // var desiredWorldSize = targetScreenSize * distance * fovFactor;
+        // var scaleFactor = desiredWorldSize / maxDimension;
+        //
+        // root.localScale = Vector3.one * scaleFactor;
+    }
+
 
     private void Clear()
     {
-        foreach (Transform child in transform)
-        {
-            Destroy(child.gameObject);
-        }
-        
+        foreach (Transform child in avatarRoot) Destroy(child.gameObject);
+        foreach (Transform child in wearableRoot) Destroy(child.gameObject);
         _categories.Clear();
     }
 }

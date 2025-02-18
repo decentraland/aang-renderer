@@ -1,4 +1,7 @@
+using System.Diagnostics;
+using GLTFast;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 public class Bootstrap : MonoBehaviour
 {
@@ -9,41 +12,51 @@ public class Bootstrap : MonoBehaviour
     [SerializeField] private RuntimeAnimatorController animatorController;
     [SerializeField] private PreviewRotator previewRotator;
 
-    private void Start()
+    // ReSharper disable once AsyncVoidMethod
+    private async void Start()
     {
         // Common assets TODO: Improve maybe
         CommonAssets.AvatarMaterial = baseMat;
         CommonAssets.FacialFeaturesMaterial = facialFeaturesMat;
 
+        // Sets uninterrupted defer agent for fastest loading
+        GltfImport.SetDefaultDeferAgent(new UninterruptedDeferAgent());
+        
         // Autoload avatar / wearable from parameters
-        //var parameters = URLParameters.ParseDefault();
-        // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0xbebb268219a67a80fe85fc6af9f0ad0ec0dca98c:0");
+#if UNITY_EDITOR
+        var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0xbebb268219a67a80fe85fc6af9f0ad0ec0dca98c:0");
         // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0x0d2f515ba568042a6756561ae552090b0ae5c586&item=0");
         // var parameters = URLParameters.Parse("https://example.com/?contract=0x0d2f515ba568042a6756561ae552090b0ae5c586&item=0");
-        
         // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0xee8ae4c668edd43b34b98934d6d2ff82e41e6488&token=1");
-        var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0xee8ae4c668edd43b34b98934d6d2ff82e41e6488:5");
+        // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0xee8ae4c668edd43b34b98934d6d2ff82e41e6488:5");
+        // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0x994684b980d6faff06ff36b13c243c31d1b3aa0e&item=0");
+#else
+        var parameters = URLParameters.ParseDefault();
+#endif
 
         if (parameters == null)
         {
             Debug.LogWarning("No parameters found");
             return;
         }
-        
+
         Debug.Log("Loading!");
 
         mainCamera.backgroundColor = parameters.Background;
 
-        _ = LoadFromParameters(parameters);
+        await LoadFromParameters(parameters);
     }
 
     private async Awaitable LoadFromParameters(URLParameters parameters)
     {
+        var sw = Stopwatch.StartNew();
         // If we have an URN we load directly
         if (parameters.Urn != null)
         {
             // We have the urn, can load directly
-            await LoadAvatar(parameters.Profile, parameters.Urn);
+            await previewLoader.LoadPreview(parameters.Profile, parameters.Urn);
+            sw.Stop();
+            Debug.Log($"Loaded in {sw.ElapsedMilliseconds}ms");
             return;
         }
 
@@ -56,12 +69,10 @@ public class Bootstrap : MonoBehaviour
                 .urn;
 
             // We have the contract and item id, can load directly
-            await LoadAvatar(parameters.Profile, urn);
+            await previewLoader.LoadPreview(parameters.Profile, urn);
         }
-    }
 
-    private Awaitable LoadAvatar(string profileID, string wearableID)
-    {
-        return previewLoader.LoadPreview(profileID, wearableID);
+        sw.Stop();
+        Debug.Log($"Loaded in {sw.ElapsedMilliseconds}ms");
     }
 }

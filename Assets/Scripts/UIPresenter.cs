@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UIElements;
+using Utils;
 
 [RequireComponent(typeof(UIDocument))]
 public class UIPresenter : MonoBehaviour
@@ -103,13 +104,5 @@ public class UIPresenter : MonoBehaviour
 
             await previewLoader.LoadPreview(profileID, wearableID);
         };
-    }
-}
-
-public static class UIExtensions
-{
-    public static void RotateBy(this VisualElement element, float angle)
-    {
-        element.style.rotate = new StyleRotate(new Rotate(new Angle(element.style.rotate.value.angle.value + angle)));
     }
 }
