@@ -47,6 +47,7 @@ public class UIPresenter : MonoBehaviour
     public void EnableLoader(bool enable)
     {
         _loader.style.display = enable ? DisplayStyle.Flex : DisplayStyle.None;
+        _switcher.style.display = enable ? DisplayStyle.None : DisplayStyle.Flex;
     }
 
     private void OnAvatarButtonClicked()

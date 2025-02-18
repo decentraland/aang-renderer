@@ -22,7 +22,7 @@ public class Bootstrap : MonoBehaviour
         // var parameters = URLParameters.Parse("https://example.com/?contract=0x0d2f515ba568042a6756561ae552090b0ae5c586&item=0");
         
         // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0xee8ae4c668edd43b34b98934d6d2ff82e41e6488&token=1");
-        var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0xee8ae4c668edd43b34b98934d6d2ff82e41e6488&item=5");
+        var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0xee8ae4c668edd43b34b98934d6d2ff82e41e6488:5");
 
         if (parameters == null)
         {
@@ -62,21 +62,6 @@ public class Bootstrap : MonoBehaviour
 
     private Awaitable LoadAvatar(string profileID, string wearableID)
     {
-
         return previewLoader.LoadPreview(profileID, wearableID);
-        
-        // // Clear previous avatar
-        // avatarRoot.Clear();
-        //
-        // await AvatarLoader.LoadAvatar(profileID, wearableID);
-        //
-        // previewRotator.Restart();
-        //
-        // // Animation
-        // var animators = avatarRoot.GetComponentsInChildren<Animator>();
-        // foreach (var animator in animators)
-        // {
-        //     animator.runtimeAnimatorController = animatorController;
-        // }
     }
 }

@@ -73,11 +73,7 @@ public static class APIService
 
     private static T[] FromJsonArray<T>(string json)
     {
-        var wrappedJson = $"{{\"items\":{json}}}";
-
-        Debug.Log(wrappedJson);
-
-        return JsonUtility.FromJson<JsonArrayWrapper<T>>(wrappedJson).items;
+        return JsonUtility.FromJson<JsonArrayWrapper<T>>($"{{\"items\":{json}}}").items;
     }
     
     [Serializable]

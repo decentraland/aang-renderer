@@ -13,14 +13,12 @@ public class PreviewLoader : MonoBehaviour
     private readonly Dictionary<string, GameObject> _categories = new();
 
     private bool _showAvatar = true;
-    private bool _loading;
     private string _overrideCategory;
     
     public async Awaitable LoadPreview(string profileID, string overrideWearableID)
     {
         gameObject.SetActive(false);
         uiPresenter.EnableLoader(true);
-        _loading = true;
         
         Clear();
         
@@ -115,8 +113,6 @@ public class PreviewLoader : MonoBehaviour
         // Restart rotator so it re-calculates the bounds
         rotator.RecalculateBounds();
 
-        _loading = false;
-        EnableAnimation(_showAvatar);
         gameObject.SetActive(true);
         uiPresenter.EnableLoader(false);
 
@@ -128,8 +124,6 @@ public class PreviewLoader : MonoBehaviour
         if(_showAvatar == show) return;
         
         _showAvatar = show;
-        
-        if (_loading) return;
         
         foreach (var (category, go) in _categories)
         {
