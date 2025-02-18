@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 
 public class Bootstrap : MonoBehaviour
 {
@@ -8,7 +7,7 @@ public class Bootstrap : MonoBehaviour
     [SerializeField] private Material baseMat;
     [SerializeField] private Material facialFeaturesMat;
     [SerializeField] private RuntimeAnimatorController animatorController;
-    [FormerlySerializedAs("wearablePreviewRotator")] [SerializeField] private PreviewRotator previewRotator;
+    [SerializeField] private PreviewRotator previewRotator;
 
     private void Start()
     {
@@ -17,12 +16,21 @@ public class Bootstrap : MonoBehaviour
         CommonAssets.FacialFeaturesMaterial = facialFeaturesMat;
 
         // Autoload avatar / wearable from parameters
-        // var parameters = URLParameters.ParseDefault();
+        //var parameters = URLParameters.ParseDefault();
         // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0xbebb268219a67a80fe85fc6af9f0ad0ec0dca98c:0");
         // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0x0d2f515ba568042a6756561ae552090b0ae5c586&item=0");
-        var parameters = URLParameters.Parse("https://example.com/?contract=0x0d2f515ba568042a6756561ae552090b0ae5c586&item=0");
+        // var parameters = URLParameters.Parse("https://example.com/?contract=0x0d2f515ba568042a6756561ae552090b0ae5c586&item=0");
+        
+        // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0xee8ae4c668edd43b34b98934d6d2ff82e41e6488&token=1");
+        var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0xee8ae4c668edd43b34b98934d6d2ff82e41e6488&item=5");
 
-        if (parameters == null) return;
+        if (parameters == null)
+        {
+            Debug.LogWarning("No parameters found");
+            return;
+        }
+        
+        Debug.Log("Loading!");
 
         mainCamera.backgroundColor = parameters.Background;
 
@@ -35,7 +43,7 @@ public class Bootstrap : MonoBehaviour
         if (parameters.Urn != null)
         {
             // We have the urn, can load directly
-            _ = LoadAvatar(parameters.Profile, parameters.Urn);
+            await LoadAvatar(parameters.Profile, parameters.Urn);
             return;
         }
 
@@ -48,7 +56,7 @@ public class Bootstrap : MonoBehaviour
                 .urn;
 
             // We have the contract and item id, can load directly
-            _ = LoadAvatar(parameters.Profile, urn);
+            await LoadAvatar(parameters.Profile, urn);
         }
     }
 

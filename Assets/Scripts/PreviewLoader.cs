@@ -1,14 +1,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using Data;
-using UnityEditor.Animations;
 using UnityEngine;
 using UnityEngine.Assertions;
 
 public class PreviewLoader : MonoBehaviour
 {
     [SerializeField] private PreviewRotator rotator;
-    [SerializeField] private AnimatorController animatorController;
+    [SerializeField] private RuntimeAnimatorController animatorController;
     [SerializeField] private UIPresenter uiPresenter;
     
     private readonly Dictionary<string, GameObject> _categories = new();
@@ -163,7 +162,7 @@ public class PreviewLoader : MonoBehaviour
     {
         foreach (Transform child in transform)
         {
-            Destroy(child);
+            Destroy(child.gameObject);
         }
         
         _categories.Clear();

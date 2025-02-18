@@ -32,6 +32,16 @@ public static class WearableLoader
 
             await importer.InstantiateMainSceneAsync(root.transform);
 
+            // TODO: Do we need to normalize?
+            // foreach (Transform t in root.transform)
+            // {
+            //     if (t.name.StartsWith("Armature"))
+            //     {
+            //         t.localScale = new Vector3(0.01f, 0.01f, 0.01f);
+            //         t.name = "Armature";
+            //     }
+            // }
+
             return root;
         }
 

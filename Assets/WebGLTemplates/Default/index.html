@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes">
+    <title>Unity Web Player | AangRenderer</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #231F20;
+      }
+      #unity-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="unity-canvas" tabindex="-1"></canvas>
+    <script src="Build/AangRenderer.loader.js"></script>
+    <script>
+      createUnityInstance(document.querySelector("#unity-canvas"), {
+        arguments: [],
+        dataUrl: "Build/AangRenderer.data.br",
+        frameworkUrl: "Build/AangRenderer.framework.js.br",
+        codeUrl: "Build/AangRenderer.wasm.br",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "Decentraland",
+        productName: "AangRenderer",
+        productVersion: "0.1.0",
+        matchWebGLToCanvasSize: true, // Ensures Unity scales properly
+        devicePixelRatio: window.devicePixelRatio || 1
+      });
+    </script>
+  </body>
+</html>

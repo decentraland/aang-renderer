@@ -6,9 +6,10 @@ public class UIPresenter : MonoBehaviour
 {
     private const string USS_SWITCHER_BUTTON_SELECTED = "switcher__button--selected";
     private const float LOADER_SPEED = 360f;
-    
+    private const string DEBUG_PASSPHRASE = "debugmesilly";
+
     [SerializeField] private PreviewLoader previewLoader;
-    
+
     private VisualElement _switcher;
     private VisualElement _wearableButton;
     private VisualElement _avatarButton;
@@ -16,7 +17,9 @@ public class UIPresenter : MonoBehaviour
     private VisualElement _loader;
     private VisualElement _loaderIcon;
 
-    private void Start()
+    private string _currentInput = "";
+
+    private void Awake()
     {
         var root = GetComponent<UIDocument>().rootVisualElement;
         _switcher = root.Q("Switcher");
@@ -28,20 +31,17 @@ public class UIPresenter : MonoBehaviour
 
         _wearableButton.AddManipulator(new Clickable(OnWearableButtonClicked));
         _avatarButton.AddManipulator(new Clickable(OnAvatarButtonClicked));
-        
-        // TODO: Debug panel
 
         // TODO: Temporary fix for copy / paste in Web builds
-        root.Query<TextField>().ForEach(v =>
-        {
-            v.AddManipulator(new WebGLSupport.WebGLInputManipulator());
-        });
+        root.Query<TextField>().ForEach(v => v.AddManipulator(new WebGLSupport.WebGLInputManipulator()));
     }
 
     private void Update()
     {
         // Rotate the loader icon
         _loaderIcon.RotateBy(LOADER_SPEED * Time.deltaTime);
+
+        CheckDebug();
     }
 
     public void EnableLoader(bool enable)
@@ -53,7 +53,7 @@ public class UIPresenter : MonoBehaviour
     {
         _wearableButton.RemoveFromClassList(USS_SWITCHER_BUTTON_SELECTED);
         _avatarButton.AddToClassList(USS_SWITCHER_BUTTON_SELECTED);
-        
+
         previewLoader.ShowAvatar(true);
     }
 
@@ -61,8 +61,47 @@ public class UIPresenter : MonoBehaviour
     {
         _avatarButton.RemoveFromClassList(USS_SWITCHER_BUTTON_SELECTED);
         _wearableButton.AddToClassList(USS_SWITCHER_BUTTON_SELECTED);
-        
+
         previewLoader.ShowAvatar(false);
+    }
+
+    private void CheckDebug()
+    {
+        foreach (var c in Input.inputString)
+        {
+            _currentInput += c;
+
+            if (!DEBUG_PASSPHRASE.StartsWith(_currentInput))
+            {
+                _currentInput = string.Empty;
+                return;
+            }
+
+            if (_currentInput.Equals(DEBUG_PASSPHRASE))
+            {
+                EnableDebug();
+                _currentInput = "";
+            }
+        }
+    }
+
+    private void EnableDebug()
+    {
+        var debugPanel = GetComponent<UIDocument>().rootVisualElement.Q("DebugPanel");
+        debugPanel.style.display = DisplayStyle.Flex;
+
+        debugPanel.Q<Button>("LoadButton").clicked += async () =>
+        {
+            var profileID = debugPanel.Q<TextField>("PlayerID").value;
+            var wearableID = debugPanel.Q<TextField>("WearableID").value;
+            if (string.IsNullOrEmpty(wearableID))
+            {
+                wearableID = debugPanel.Q<DropdownField>("WearableDropdown").value;
+                if (wearableID == "None") wearableID = null;
+            }
+
+            await previewLoader.LoadPreview(profileID, wearableID);
+        };
     }
 }
 
