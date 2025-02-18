@@ -1,0 +1,22 @@
+.switcher {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    height: 32px;
+    width: 80px;
+    flex-direction: row;
+    background-color: rgb(32, 30, 36);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+}
+
+.switcher__button {
+    flex-grow: 1;
+    transition-duration: 0.1s;
+}
+
+.switcher__button--selected {
+    background-color: rgb(231, 63, 78);
+}

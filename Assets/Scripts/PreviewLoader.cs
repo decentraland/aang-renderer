@@ -1,14 +1,31 @@
 using System.Collections.Generic;
 using System.Linq;
 using Data;
+using UnityEditor.Animations;
 using UnityEngine;
 using UnityEngine.Assertions;
 
-public static class AvatarLoader
+public class PreviewLoader : MonoBehaviour
 {
-    public static async Awaitable LoadAvatar(string profileID, string overrideWearableID)
+    [SerializeField] private PreviewRotator rotator;
+    [SerializeField] private AnimatorController animatorController;
+    [SerializeField] private UIPresenter uiPresenter;
+    
+    private readonly Dictionary<string, GameObject> _categories = new();
+
+    private bool _showAvatar = true;
+    private bool _loading;
+    private string _overrideCategory;
+    
+    public async Awaitable LoadPreview(string profileID, string overrideWearableID)
     {
-        Debug.Log($"Loading user: {profileID}");
+        gameObject.SetActive(false);
+        uiPresenter.EnableLoader(true);
+        _loading = true;
+        
+        Clear();
+        
+        Debug.Log($"Loading profile: {profileID}");
 
         var avatar = await APIService.GetAvatar(profileID);
         var avatarColors = new AvatarColors(avatar.eyes.color, avatar.hair.color, avatar.skin.color);
@@ -24,6 +41,7 @@ public static class AvatarLoader
         var activeEntities = await APIService.GetActiveEntities(entitiesToFetch);
 
         var overrideEntity = activeEntities.FirstOrDefault(ae => ae.pointers[0] == overrideWearableID);
+        _overrideCategory = overrideEntity?.metadata.data.category;
         var wearableDefinitions = activeEntities
             .Select(ae => WearableDefinition.FromActiveEntity(ae, bodyShape))
             // Skip the original wearable and use the override
@@ -78,11 +96,15 @@ public static class AvatarLoader
             else
             {
                 Assert.IsTrue(wd.MainFile.EndsWith(".glb"), "Only GLB files are supported");
-                
+
                 // Normal GLB
                 var go = await WearableLoader.LoadGLB(wd.Category, wd.MainFile, wd.Files, avatarColors);
-                CommonAssets.AvatarRoot.Attach(category, go);
-                go.AddComponent<Animator>();
+                
+                go.transform.SetParent(transform, false);
+                _categories[category] = go;
+                
+                var animator = go.AddComponent<Animator>();
+                animator.runtimeAnimatorController = animatorController;
 
                 if (category == WearablesConstants.Categories.BODY_SHAPE) bodyGO = go;
             }
@@ -90,7 +112,60 @@ public static class AvatarLoader
 
         // Hide stuff on body shape
         AvatarHideHelper.HideBodyShape(bodyGO, allHides, wearableDefinitions.Keys.ToHashSet());
+        
+        // Restart rotator so it re-calculates the bounds
+        rotator.RecalculateBounds();
+
+        _loading = false;
+        EnableAnimation(_showAvatar);
+        gameObject.SetActive(true);
+        uiPresenter.EnableLoader(false);
 
         Debug.Log("Loaded all wearables!");
+    }
+
+    public void ShowAvatar(bool show)
+    {
+        if(_showAvatar == show) return;
+        
+        _showAvatar = show;
+        
+        if (_loading) return;
+        
+        foreach (var (category, go) in _categories)
+        {
+            go.SetActive(_showAvatar || category == _overrideCategory);
+        }
+        
+        // We don't want to animate just the wearable
+        EnableAnimation(show);
+        
+        rotator.RecalculateBounds();
+    }
+    
+    private void EnableAnimation(bool enable)
+    {
+        var animators = GetComponentsInChildren<Animator>(true);
+        foreach (var animator in animators)
+        {
+            animator.enabled = enable;
+
+            // Restart animator
+            if (enable)
+            {
+                animator.Rebind();
+                animator.Update(0f);
+            }
+        }
+    }
+
+    private void Clear()
+    {
+        foreach (Transform child in transform)
+        {
+            Destroy(child);
+        }
+        
+        _categories.Clear();
     }
 }

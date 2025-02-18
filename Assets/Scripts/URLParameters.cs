@@ -1,5 +1,8 @@
 using UnityEngine;
 
+/// <summary>
+/// Holds all the parameters passed in via the URL.
+/// </summary>
 public class URLParameters
 {
     // Logged in

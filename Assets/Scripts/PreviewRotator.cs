@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class WearablePreviewRotator : MonoBehaviour
+public class PreviewRotator : MonoBehaviour
 {
     [SerializeField] private Camera previewCamera;
     [SerializeField] private float autoRotationSpeed = 30f;
@@ -13,21 +13,16 @@ public class WearablePreviewRotator : MonoBehaviour
     private Vector3 _previousMousePos;
     private Vector3 _combinedCenter;
 
-    private void Start()
-    {
-        Restart(); // Ensure we calculate the center on start
-    }
-
     /// <summary>
     /// Recalculate the combined center for all child SkinnedMeshRenderers.
     /// Call this if the meshes change at runtime.
     /// </summary>
-    public void Restart()
+    public void RecalculateBounds()
     {
-        var renderers = GetComponentsInChildren<SkinnedMeshRenderer>();
+        var renderers = GetComponentsInChildren<SkinnedMeshRenderer>(false);
         if (renderers.Length > 0)
         {
-            Bounds bounds = new Bounds(renderers[0].bounds.center, Vector3.zero);
+            var bounds = new Bounds(renderers[0].bounds.center, Vector3.zero);
             foreach (var r in renderers)
                 bounds.Encapsulate(r.bounds);
             _combinedCenter = bounds.center;

@@ -1,74 +1,75 @@
-using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.UIElements;
 
+[RequireComponent(typeof(UIDocument))]
 public class UIPresenter : MonoBehaviour
 {
-    [SerializeField] private UIDocument uiDocument;
-    [SerializeField] private AvatarRoot avatarRoot;
-    [SerializeField] private Material baseMat;
-    [SerializeField] private RuntimeAnimatorController animatorController;
-    [SerializeField] private WearablePreviewRotator wearablePreviewRotator;
+    private const string USS_SWITCHER_BUTTON_SELECTED = "switcher__button--selected";
+    private const float LOADER_SPEED = 360f;
+    
+    [SerializeField] private PreviewLoader previewLoader;
+    
+    private VisualElement _switcher;
+    private VisualElement _wearableButton;
+    private VisualElement _avatarButton;
+
+    private VisualElement _loader;
+    private VisualElement _loaderIcon;
 
     private void Start()
     {
-        // UI
-        var root = uiDocument.rootVisualElement;
-        var graphicsLabel = root.Q<Label>("GraphicsAPI");
-        graphicsLabel.text = $"API: {SystemInfo.graphicsDeviceType.ToString()}";
-        root.Q<Button>("LoadButton").clicked += async () => await LoadAvatar(); // TODO: Nasty async void
+        var root = GetComponent<UIDocument>().rootVisualElement;
+        _switcher = root.Q("Switcher");
+        _wearableButton = _switcher.Q("WearableButton");
+        _avatarButton = _switcher.Q("AvatarButton");
 
-        // TODO: Temporary fix for copy / paste in WebGL
-        uiDocument.rootVisualElement.Query<TextField>().ForEach(v =>
+        _loader = root.Q("Loader");
+        _loaderIcon = _loader.Q("Icon");
+
+        _wearableButton.AddManipulator(new Clickable(OnWearableButtonClicked));
+        _avatarButton.AddManipulator(new Clickable(OnAvatarButtonClicked));
+        
+        // TODO: Debug panel
+
+        // TODO: Temporary fix for copy / paste in Web builds
+        root.Query<TextField>().ForEach(v =>
         {
             v.AddManipulator(new WebGLSupport.WebGLInputManipulator());
         });
-
-        // Common assets TODO: Improve maybe
-        CommonAssets.AvatarMaterial = baseMat;
-        CommonAssets.AvatarRoot = avatarRoot;
     }
 
-    private async Awaitable LoadAvatar()
+    private void Update()
     {
-        // Clear previous avatar
-        avatarRoot.Clear();
-
-        var userID = uiDocument.rootVisualElement.Q<TextField>("PlayerID").value;
-        var wearableID = uiDocument.rootVisualElement.Q<TextField>("WearableID").value;
-        if (string.IsNullOrEmpty(wearableID))
-        {
-            wearableID = uiDocument.rootVisualElement.Q<DropdownField>("WearableDropdown").value;
-            if (wearableID == "None") wearableID = null;
-        }
-
-        await AvatarLoader.LoadAvatar(userID, wearableID);
-
-        wearablePreviewRotator.Restart();
-
-        // Animation
-        var animators = avatarRoot.GetComponentsInChildren<Animator>();
-        foreach (var animator in animators)
-        {
-            animator.runtimeAnimatorController = animatorController;
-        }
+        // Rotate the loader icon
+        _loaderIcon.RotateBy(LOADER_SPEED * Time.deltaTime);
     }
 
-    [UsedImplicitly]
-    private async void LoadAvatarExternal(string userID)
+    public void EnableLoader(bool enable)
     {
-        // Clear previous avatar
-        avatarRoot.Clear();
+        _loader.style.display = enable ? DisplayStyle.Flex : DisplayStyle.None;
+    }
+
+    private void OnAvatarButtonClicked()
+    {
+        _wearableButton.RemoveFromClassList(USS_SWITCHER_BUTTON_SELECTED);
+        _avatarButton.AddToClassList(USS_SWITCHER_BUTTON_SELECTED);
         
-        await AvatarLoader.LoadAvatar(userID, null);
+        previewLoader.ShowAvatar(true);
+    }
 
-        wearablePreviewRotator.Restart();
+    private void OnWearableButtonClicked()
+    {
+        _avatarButton.RemoveFromClassList(USS_SWITCHER_BUTTON_SELECTED);
+        _wearableButton.AddToClassList(USS_SWITCHER_BUTTON_SELECTED);
+        
+        previewLoader.ShowAvatar(false);
+    }
+}
 
-        // Animation
-        var animators = avatarRoot.GetComponentsInChildren<Animator>();
-        foreach (var animator in animators)
-        {
-            animator.runtimeAnimatorController = animatorController;
-        }
+public static class UIExtensions
+{
+    public static void RotateBy(this VisualElement element, float angle)
+    {
+        element.style.rotate = new StyleRotate(new Rotate(new Angle(element.style.rotate.value.angle.value + angle)));
     }
 }

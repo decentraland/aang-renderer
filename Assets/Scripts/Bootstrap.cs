@@ -1,24 +1,26 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class Bootstrap : MonoBehaviour
 {
     [SerializeField] private Camera mainCamera;
-    [SerializeField] private AvatarRoot avatarRoot;
+    [SerializeField] private PreviewLoader previewLoader;
     [SerializeField] private Material baseMat;
+    [SerializeField] private Material facialFeaturesMat;
     [SerializeField] private RuntimeAnimatorController animatorController;
-    [SerializeField] private WearablePreviewRotator wearablePreviewRotator;
+    [FormerlySerializedAs("wearablePreviewRotator")] [SerializeField] private PreviewRotator previewRotator;
 
     private void Start()
     {
         // Common assets TODO: Improve maybe
         CommonAssets.AvatarMaterial = baseMat;
-        CommonAssets.AvatarRoot = avatarRoot;
+        CommonAssets.FacialFeaturesMaterial = facialFeaturesMat;
 
         // Autoload avatar / wearable from parameters
-        var parameters = URLParameters.ParseDefault();
+        // var parameters = URLParameters.ParseDefault();
         // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0xbebb268219a67a80fe85fc6af9f0ad0ec0dca98c:0");
         // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0x0d2f515ba568042a6756561ae552090b0ae5c586&item=0");
-        // var parameters = URLParameters.Parse("https://example.com/?contract=0x0d2f515ba568042a6756561ae552090b0ae5c586&item=0");
+        var parameters = URLParameters.Parse("https://example.com/?contract=0x0d2f515ba568042a6756561ae552090b0ae5c586&item=0");
 
         if (parameters == null) return;
 
@@ -50,20 +52,23 @@ public class Bootstrap : MonoBehaviour
         }
     }
 
-    private async Awaitable LoadAvatar(string profileID, string wearableID)
+    private Awaitable LoadAvatar(string profileID, string wearableID)
     {
-        // Clear previous avatar
-        avatarRoot.Clear();
 
-        await AvatarLoader.LoadAvatar(profileID, wearableID);
-
-        wearablePreviewRotator.Restart();
-
-        // Animation
-        var animators = avatarRoot.GetComponentsInChildren<Animator>();
-        foreach (var animator in animators)
-        {
-            animator.runtimeAnimatorController = animatorController;
-        }
+        return previewLoader.LoadPreview(profileID, wearableID);
+        
+        // // Clear previous avatar
+        // avatarRoot.Clear();
+        //
+        // await AvatarLoader.LoadAvatar(profileID, wearableID);
+        //
+        // previewRotator.Restart();
+        //
+        // // Animation
+        // var animators = avatarRoot.GetComponentsInChildren<Animator>();
+        // foreach (var animator in animators)
+        // {
+        //     animator.runtimeAnimatorController = animatorController;
+        // }
     }
 }

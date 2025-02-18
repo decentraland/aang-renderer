@@ -4,7 +4,7 @@ using UnityEngine;
 public class AvatarRoot: MonoBehaviour
 {
     public readonly Dictionary<string, GameObject> Categories = new();
-
+    
     public void Attach(string category, GameObject go)
     {
         // TODO: Maybe check for existing attachment and destroy it?
