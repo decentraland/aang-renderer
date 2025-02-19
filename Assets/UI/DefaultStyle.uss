@@ -22,7 +22,3 @@
 .switcher__button--selected {
     background-color: rgb(231, 63, 78);
 }
-
-.hidden {
-    display: none;
-}

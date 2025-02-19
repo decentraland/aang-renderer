@@ -7,7 +7,8 @@
     <engine:VisualElement name="Loader" style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; justify-content: center; align-items: center;">
         <engine:VisualElement name="Icon" style="width: 64px; height: 64px; background-image: url(&quot;project://database/Assets/UI/Sprites/Spinner.png?fileID=2800000&amp;guid=7277d900fbbbd4d2986e2ff79fd14803&amp;type=3#Spinner&quot;);" />
     </engine:VisualElement>
-    <engine:VisualElement name="DebugPanel" class="hidden" style="flex-direction: column; font-size: 22px; justify-content: flex-end; align-items: stretch; position: absolute; top: 0; left: 0; bottom: 0; right: 0;">
+    <engine:VisualElement name="DebugPanel" picking-mode="Ignore" style="flex-direction: column; font-size: 22px; justify-content: flex-end; align-items: stretch; position: absolute; top: 0; left: 0; bottom: 0; right: 0; display: none;">
+        <engine:Button text="Hide" name="HideButton" style="width: 100px; align-self: flex-end;" />
         <engine:TextField label="PlayerID" name="PlayerID" value="0x3f574d05ec670fe2c92305480b175654ca512005" />
         <engine:TextField label="WearableID" name="WearableID" />
         <engine:DropdownField label="Wearable" name="WearableDropdown" choices="None,urn:decentraland:off-chain:base-avatars:baggy_pullover,urn:decentraland:off-chain:base-avatars:balbo_beard,urn:decentraland:off-chain:base-avatars:basketball_shorts,urn:decentraland:off-chain:base-avatars:bear_slippers,urn:decentraland:matic:collections-v2:0xbebb268219a67a80fe85fc6af9f0ad0ec0dca98c:0" index="0" />

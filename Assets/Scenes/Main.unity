@@ -505,11 +505,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 32390193916540c996e9002f3baadd03, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  previewCamera: {fileID: 330585545}
-  autoRotationSpeed: 30
-  dragSensitivity: 0.2
-  rotationResumeDelay: 1
-  resetSpeed: 2
+  mainCamera: {fileID: 330585545}
+  dragSpeed: 0.1
+  inertiaDamp: 0.25
+  autoRotateSpeed: 90
+  autoRotateDelay: 2
+  returnSpeed: 2
 --- !u!114 &1088246592
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -523,13 +524,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mainCamera: {fileID: 330585545}
-  rotator: {fileID: 1088246591}
   animatorController: {fileID: 9100000, guid: 911503823286fbb45adb70692446da43, type: 2}
   uiPresenter: {fileID: 1101889421}
   avatarRoot: {fileID: 452428171}
   wearableRoot: {fileID: 1516276170}
-  targetScreenSize: 0.6
-  _drawBounds: 1
 --- !u!1 &1101889418
 GameObject:
   m_ObjectHideFlags: 0

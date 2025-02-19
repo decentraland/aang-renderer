@@ -5,70 +5,72 @@ using GLTFast.Logging;
 using GLTFast.Materials;
 using UnityEngine;
 
-public class AvatarMaterialGenerator : IMaterialGenerator
+namespace GLTF
 {
-    private static readonly int MainTex_ID = Shader.PropertyToID("_MainTex");
-    private static readonly int BaseColor_ID = Shader.PropertyToID("_BaseColor");
-    private readonly AvatarColors _avatarColors;
-
-    private Texture2DArray _texture2DArray;
-
-    public AvatarMaterialGenerator(AvatarColors avatarColors)
+    public class AvatarMaterialGenerator : IMaterialGenerator
     {
-        _avatarColors = avatarColors;
-    }
+        private static readonly int MainTexID = Shader.PropertyToID("_MainTex");
+        private static readonly int BaseColorID = Shader.PropertyToID("_BaseColor");
+        private readonly AvatarColors _avatarColors;
 
-    public Material GenerateMaterial(int materialIndex, GLTFast.Schema.Material gltfMaterial, IGltfReadable gltf,
-        bool pointsSupport = false)
-    {
-        var mat = new Material(CommonAssets.AvatarMaterial);
-        mat.name = gltfMaterial.name;
+        private Texture2DArray _texture2DArray;
 
-        if (TryGetColorOverride(gltfMaterial.name, out var color))
+        public AvatarMaterialGenerator(AvatarColors avatarColors)
         {
-            mat.SetColor(BaseColor_ID, color);
+            _avatarColors = avatarColors;
         }
 
-        mat.SetTexture(MainTex_ID, gltf.GetTexture(materialIndex));
-
-        return mat;
-    }
-
-    // TODO: This is probably wrong
-    private bool TryGetColorOverride(string materialName, out Color color)
-    {
-        if (materialName.Contains("skin", StringComparison.OrdinalIgnoreCase) ||
-            materialName.Contains("mouth", StringComparison.OrdinalIgnoreCase))
+        public Material GenerateMaterial(int materialIndex, GLTFast.Schema.Material gltfMaterial, IGltfReadable gltf,
+            bool pointsSupport = false)
         {
-            color = _avatarColors.Skin;
-            return true;
+            var mat = new Material(CommonAssets.AvatarMaterial) { name = gltfMaterial.name };
+
+            if (TryGetColorOverride(gltfMaterial.name, out var color))
+            {
+                mat.SetColor(BaseColorID, color);
+            }
+
+            mat.SetTexture(MainTexID, gltf.GetTexture(materialIndex));
+
+            return mat;
         }
 
-        if (materialName.Contains("hair", StringComparison.OrdinalIgnoreCase) ||
-            materialName.Contains("eyebrows", StringComparison.OrdinalIgnoreCase))
+        // TODO: This is probably wrong
+        private bool TryGetColorOverride(string materialName, out Color color)
         {
-            color = _avatarColors.Hair;
-            return true;
+            if (materialName.Contains("skin", StringComparison.OrdinalIgnoreCase) ||
+                materialName.Contains("mouth", StringComparison.OrdinalIgnoreCase))
+            {
+                color = _avatarColors.Skin;
+                return true;
+            }
+
+            if (materialName.Contains("hair", StringComparison.OrdinalIgnoreCase) ||
+                materialName.Contains("eyebrows", StringComparison.OrdinalIgnoreCase))
+            {
+                color = _avatarColors.Hair;
+                return true;
+            }
+
+            if (materialName.Contains("eyes", StringComparison.OrdinalIgnoreCase))
+            {
+                color = _avatarColors.Eyes;
+                return true;
+            }
+
+            color = default;
+            return false;
         }
 
-        if (materialName.Contains("eyes", StringComparison.OrdinalIgnoreCase))
+        public Material GetDefaultMaterial(bool pointsSupport = false)
         {
-            color = _avatarColors.Eyes;
-            return true;
+            // I don't think this is ever called
+            return CommonAssets.AvatarMaterial;
         }
 
-        color = default;
-        return false;
-    }
-
-    public Material GetDefaultMaterial(bool pointsSupport = false)
-    {
-        // I don't think this is ever called
-        return CommonAssets.AvatarMaterial;
-    }
-
-    public void SetLogger(ICodeLogger logger)
-    {
-        // We don't need a logger
+        public void SetLogger(ICodeLogger logger)
+        {
+            // We don't need a logger
+        }
     }
 }

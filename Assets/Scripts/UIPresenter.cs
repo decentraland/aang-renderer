@@ -18,7 +18,8 @@ public class UIPresenter : MonoBehaviour
     private VisualElement _loader;
     private VisualElement _loaderIcon;
 
-    private string _currentInput = "";
+    private string _currentDebugInput = "";
+    private bool _debugLoaded;
 
     private void Awake()
     {
@@ -43,6 +44,12 @@ public class UIPresenter : MonoBehaviour
         _loaderIcon.RotateBy(LOADER_SPEED * Time.deltaTime);
 
         CheckDebug();
+    }
+
+    public void EnableSwitcher(bool enable)
+    {
+        // We use visibility instead of display so that EnableLoader won't override it
+        _switcher.style.visibility = enable ? Visibility.Visible : Visibility.Hidden;
     }
 
     public void EnableLoader(bool enable)
@@ -71,18 +78,18 @@ public class UIPresenter : MonoBehaviour
     {
         foreach (var c in Input.inputString)
         {
-            _currentInput += c;
+            _currentDebugInput += c;
 
-            if (!DEBUG_PASSPHRASE.StartsWith(_currentInput))
+            if (!DEBUG_PASSPHRASE.StartsWith(_currentDebugInput))
             {
-                _currentInput = string.Empty;
+                _currentDebugInput = string.Empty;
                 return;
             }
 
-            if (_currentInput.Equals(DEBUG_PASSPHRASE))
+            if (_currentDebugInput.Equals(DEBUG_PASSPHRASE))
             {
                 EnableDebug();
-                _currentInput = "";
+                _currentDebugInput = "";
             }
         }
     }
@@ -91,6 +98,8 @@ public class UIPresenter : MonoBehaviour
     {
         var debugPanel = GetComponent<UIDocument>().rootVisualElement.Q("DebugPanel");
         debugPanel.style.display = DisplayStyle.Flex;
+
+        if (_debugLoaded) return;
 
         debugPanel.Q<Button>("LoadButton").clicked += async () =>
         {
@@ -104,5 +113,8 @@ public class UIPresenter : MonoBehaviour
 
             await previewLoader.LoadPreview(profileID, wearableID);
         };
+        debugPanel.Q<Button>("HideButton").clicked += () => debugPanel.style.display = DisplayStyle.None;
+
+        _debugLoaded = true;
     }
 }

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Data;
+using GLTF;
 using UnityEngine;
 using UnityEngine.Assertions;
 using Debug = UnityEngine.Debug;
@@ -9,11 +10,12 @@ using Debug = UnityEngine.Debug;
 public class PreviewLoader : MonoBehaviour
 {
     [SerializeField] private Camera mainCamera;
-    [SerializeField] private PreviewRotator rotator;
     [SerializeField] private RuntimeAnimatorController animatorController;
     [SerializeField] private UIPresenter uiPresenter;
     [SerializeField] private Transform avatarRoot;
     [SerializeField] private Transform wearableRoot;
+    [SerializeField] private PreviewRotator previewRotator;
+    [SerializeField] private float targetScreenSize = 0.5f;
 
     private readonly Dictionary<string, GameObject> _categories = new();
 
@@ -30,20 +32,21 @@ public class PreviewLoader : MonoBehaviour
 
         gameObject.SetActive(false);
         uiPresenter.EnableLoader(true);
+        previewRotator.ResetRotation();
         Clear();
 
         var avatar = await APIService.GetAvatar(profileID);
         var avatarColors = new AvatarColors(avatar.eyes.color, avatar.hair.color, avatar.skin.color);
         var bodyShape = avatar.bodyShape;
+        var hasOverride = !string.IsNullOrEmpty(overrideWearableID);
 
-        // TODO: Too much array copying
-        var entitiesToFetch = avatar.wearables.Prepend(bodyShape).ToArray();
-        if (!string.IsNullOrEmpty(overrideWearableID))
+        var entitiesToFetch = avatar.wearables.Prepend(bodyShape);
+        if (hasOverride)
         {
-            entitiesToFetch = entitiesToFetch.Append(overrideWearableID).ToArray();
+            entitiesToFetch = entitiesToFetch.Append(overrideWearableID);
         }
 
-        var activeEntities = await APIService.GetActiveEntities(entitiesToFetch);
+        var activeEntities = await APIService.GetActiveEntities(entitiesToFetch.ToArray());
 
         var overrideEntity = activeEntities.FirstOrDefault(ae => ae.pointers[0] == overrideWearableID);
         _overrideCategory = overrideEntity?.metadata.data.category;
@@ -53,41 +56,8 @@ public class PreviewLoader : MonoBehaviour
             .Where(wd => overrideEntity == null || wd.Category != overrideEntity.metadata.data.category ||
                          wd.Pointer == overrideWearableID)
             .ToDictionary(wd => wd.Category);
-        var allHides = new HashSet<string>();
 
-        // Figure out what wearables to keep
-        foreach (var category in WearablesConstants.CATEGORIES_PRIORITY)
-        {
-            if (wearableDefinitions.TryGetValue(category, out var wearableDefinition))
-            {
-                // Apparently there's no difference between hides and replaces
-                foreach (var toHide in wearableDefinition.Hides)
-                {
-                    if (toHide == category) continue; // Safeguard so wearables don't hide themselves
-
-                    wearableDefinitions.Remove(toHide);
-                    allHides.Add(toHide);
-                }
-
-                foreach (var toReplace in wearableDefinition.Replaces)
-                {
-                    if (toReplace == category) continue; // Safeguard so wearables don't hide themselves
-
-                    wearableDefinitions.Remove(toReplace);
-                    allHides.Add(toReplace);
-                }
-
-                // Skin has implicit hides
-                if (category == WearablesConstants.Categories.SKIN)
-                {
-                    foreach (var skinCategory in WearablesConstants.SKIN_IMPLICIT_CATEGORIES)
-                    {
-                        wearableDefinitions.Remove(skinCategory);
-                        allHides.Add(skinCategory);
-                    }
-                }
-            }
-        }
+        var hiddenCategories = AvatarHideHelper.HideWearables(wearableDefinitions);
 
         // Load all wearables and body shape
         await Task.WhenAll(wearableDefinitions
@@ -107,14 +77,15 @@ public class PreviewLoader : MonoBehaviour
 
         // Hide stuff on body shape
         var bodyGO = avatarRoot.Find(WearablesConstants.Categories.BODY_SHAPE)?.gameObject;
-        AvatarHideHelper.HideBodyShape(bodyGO, allHides, wearableDefinitions.Keys.ToHashSet());
+        AvatarHideHelper.HideBodyShape(bodyGO, hiddenCategories, wearableDefinitions);
 
         // Center the roots around the meshes
         CenterMeshes(avatarRoot);
-        CenterMeshes(wearableRoot);
+        if (hasOverride) CenterMeshes(wearableRoot);
 
-        // Restart rotator so it re-calculates the bounds
-        rotator.RecalculateBounds();
+        // Switch to avatar view if there's no override
+        uiPresenter.EnableSwitcher(hasOverride);
+        if (!hasOverride) ShowAvatar(true);
 
         gameObject.SetActive(true);
         uiPresenter.EnableLoader(false);
@@ -132,8 +103,6 @@ public class PreviewLoader : MonoBehaviour
 
         avatarRoot.gameObject.SetActive(show);
         wearableRoot.gameObject.SetActive(!show);
-
-        rotator.RecalculateBounds();
     }
 
     private async Task LoadWearable(string category, WearableDefinition wd, AvatarColors avatarColors)
@@ -162,6 +131,8 @@ public class PreviewLoader : MonoBehaviour
 
     private void CenterMeshes(Transform root)
     {
+        root.position = Vector3.zero;
+
         var renderers = root.GetComponentsInChildren<Renderer>(true);
 
         if (renderers.Length == 0)

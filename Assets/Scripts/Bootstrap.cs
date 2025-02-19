@@ -21,26 +21,13 @@ public class Bootstrap : MonoBehaviour
 
         // Sets uninterrupted defer agent for fastest loading
         GltfImport.SetDefaultDeferAgent(new UninterruptedDeferAgent());
-        
+
+        // Let's make it a bit smoother
+        Application.targetFrameRate = 60;
+
         // Autoload avatar / wearable from parameters
-#if UNITY_EDITOR
+        //var parameters = URLParameters.ParseDefault() ?? URLParameters.Parse("https://example.com/?profile=default1");
         var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0xbebb268219a67a80fe85fc6af9f0ad0ec0dca98c:0");
-        // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0x0d2f515ba568042a6756561ae552090b0ae5c586&item=0");
-        // var parameters = URLParameters.Parse("https://example.com/?contract=0x0d2f515ba568042a6756561ae552090b0ae5c586&item=0");
-        // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0xee8ae4c668edd43b34b98934d6d2ff82e41e6488&token=1");
-        // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0xee8ae4c668edd43b34b98934d6d2ff82e41e6488:5");
-        // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0x994684b980d6faff06ff36b13c243c31d1b3aa0e&item=0");
-#else
-        var parameters = URLParameters.ParseDefault();
-#endif
-
-        if (parameters == null)
-        {
-            Debug.LogWarning("No parameters found");
-            return;
-        }
-
-        Debug.Log("Loading!");
 
         mainCamera.backgroundColor = parameters.Background;
 
@@ -50,15 +37,8 @@ public class Bootstrap : MonoBehaviour
     private async Awaitable LoadFromParameters(URLParameters parameters)
     {
         var sw = Stopwatch.StartNew();
-        // If we have an URN we load directly
-        if (parameters.Urn != null)
-        {
-            // We have the urn, can load directly
-            await previewLoader.LoadPreview(parameters.Profile, parameters.Urn);
-            sw.Stop();
-            Debug.Log($"Loaded in {sw.ElapsedMilliseconds}ms");
-            return;
-        }
+        
+        Debug.Log("Loading from parameters");
 
         // If we have a contract and item id or token id we need to fetch the urn first
         if (parameters.Contract != null && (parameters.ItemID != null || parameters.TokenID != null))
@@ -70,6 +50,11 @@ public class Bootstrap : MonoBehaviour
 
             // We have the contract and item id, can load directly
             await previewLoader.LoadPreview(parameters.Profile, urn);
+        }
+        else
+        {
+            // If we have an URN or nothing we load directly
+            await previewLoader.LoadPreview(parameters.Profile, parameters.Urn);
         }
 
         sw.Stop();
