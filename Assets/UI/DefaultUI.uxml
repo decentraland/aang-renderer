@@ -1,16 +1,16 @@
 <engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Assets/UI/DefaultStyle.uss?fileID=7433441132597879392&amp;guid=f68a6a2e06d354fd9a80fadbd46871a5&amp;type=3#DefaultStyle" />
+    <engine:VisualElement name="Switcher" class="switcher">
+        <engine:VisualElement name="WearableButton" class="switcher__button switcher__button--selected" style="background-image: url(&quot;project://database/Assets/UI/Sprites/UpperBodyIcon.png?fileID=2800000&amp;guid=485539051aef5498a9871192a27ad7ca&amp;type=3#UpperBodyIcon&quot;);" />
+        <engine:VisualElement name="AvatarButton" class="switcher__button" style="background-image: url(&quot;project://database/Assets/UI/Sprites/BodyIcon.png?fileID=2800000&amp;guid=c6339aa049f3a42c6b337d3822bf7118&amp;type=3#BodyIcon&quot;);" />
+    </engine:VisualElement>
+    <engine:VisualElement name="Loader" style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; justify-content: center; align-items: center;">
+        <engine:VisualElement name="Icon" style="width: 64px; height: 64px; background-image: url(&quot;project://database/Assets/UI/Sprites/Spinner.png?fileID=2800000&amp;guid=7277d900fbbbd4d2986e2ff79fd14803&amp;type=3#Spinner&quot;);" />
+    </engine:VisualElement>
     <engine:VisualElement name="DebugPanel" class="hidden" style="flex-direction: column; font-size: 22px; justify-content: flex-end; align-items: stretch; position: absolute; top: 0; left: 0; bottom: 0; right: 0;">
         <engine:TextField label="PlayerID" name="PlayerID" value="0x3f574d05ec670fe2c92305480b175654ca512005" />
         <engine:TextField label="WearableID" name="WearableID" />
         <engine:DropdownField label="Wearable" name="WearableDropdown" choices="None,urn:decentraland:off-chain:base-avatars:baggy_pullover,urn:decentraland:off-chain:base-avatars:balbo_beard,urn:decentraland:off-chain:base-avatars:basketball_shorts,urn:decentraland:off-chain:base-avatars:bear_slippers,urn:decentraland:matic:collections-v2:0xbebb268219a67a80fe85fc6af9f0ad0ec0dca98c:0" index="0" />
         <engine:Button text="Load" name="LoadButton" />
-    </engine:VisualElement>
-    <engine:VisualElement name="Switcher" class="switcher" style="overflow: hidden;">
-        <engine:VisualElement name="WearableButton" class="switcher__button switcher__button--selected" style="background-image: url(&quot;project://database/Assets/UI/Sprites/UpperBodyIcon.png?fileID=2800000&amp;guid=485539051aef5498a9871192a27ad7ca&amp;type=3#UpperBodyIcon&quot;); background-size: 20px 20px;" />
-        <engine:VisualElement name="AvatarButton" class="switcher__button" style="background-image: url(&quot;project://database/Assets/UI/Sprites/BodyIcon.png?fileID=2800000&amp;guid=c6339aa049f3a42c6b337d3822bf7118&amp;type=3#BodyIcon&quot;); background-size: 20px 20px;" />
-    </engine:VisualElement>
-    <engine:VisualElement name="Loader" style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; justify-content: center; align-items: center;">
-        <engine:VisualElement name="Icon" style="width: 64px; height: 64px; background-image: url(&quot;project://database/Assets/UI/Sprites/Spinner.png?fileID=2800000&amp;guid=7277d900fbbbd4d2986e2ff79fd14803&amp;type=3#Spinner&quot;);" />
     </engine:VisualElement>
 </engine:UXML>
