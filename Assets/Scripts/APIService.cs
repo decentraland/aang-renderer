@@ -6,7 +6,7 @@ using UnityEngine.Networking;
 public static class APIService
 {
     private const string ENDPOINT_PEER = "https://peer.decentraland.org";
-    private const string ENDPOINT_MARKETPLACE = "https://marketplace.decentraland.org";
+    private const string ENDPOINT_MARKETPLACE = "https://marketplace-api.decentraland.org";
 
     public const string API_CATALYST = "https://peer.decentraland.org/content/contents/{0}";
     private const string API_PROFILE = ENDPOINT_PEER + "/lambdas/profiles/{0}";
