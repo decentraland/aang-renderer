@@ -440,7 +440,7 @@ MonoBehaviour:
   mainCamera: {fileID: 330585545}
   previewLoader: {fileID: 1088246592}
   baseMat: {fileID: 2100000, guid: 406504d4e46794b17941d2039cfd49c4, type: 2}
-  facialFeaturesMat: {fileID: 2100000, guid: 406504d4e46794b17941d2039cfd49c4, type: 2}
+  facialFeaturesMat: {fileID: 2100000, guid: 640484c930a9c425791b434dd2094bff, type: 2}
   animatorController: {fileID: 9100000, guid: 911503823286fbb45adb70692446da43, type: 2}
   previewRotator: {fileID: 1088246591}
 --- !u!4 &983774208
@@ -528,6 +528,7 @@ MonoBehaviour:
   uiPresenter: {fileID: 1101889421}
   avatarRoot: {fileID: 452428171}
   wearableRoot: {fileID: 1516276170}
+  previewRotator: {fileID: 1088246591}
 --- !u!1 &1101889418
 GameObject:
   m_ObjectHideFlags: 0

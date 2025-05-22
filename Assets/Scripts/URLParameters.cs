@@ -12,12 +12,12 @@ public class URLParameters
     /// It can be set to default or a numbered default profile like default15 to use a default profile.
     /// </summary>
     public string Profile { get; private set; } = "default1"; // TODO: Handle default profile?
-    
+
     /// <summary>
     /// The emote that the avatar will play. Default value is idle, other possible values are:
     /// clap, dab, dance, fashion, fashion-2, fashion-3,fashion-4, love, money, fist-pump and head-explode
     /// </summary>
-    public string Emote { get; private set; }
+    public string Emote { get; private set; } = "idle";
     
     // Ethereum
 

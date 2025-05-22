@@ -6,8 +6,11 @@ namespace Data
     public class ActiveEntity
     {
         public string[] pointers;
+        public string type;
         public Content[] content;
         public Metadata metadata;
+
+        public bool IsEmote => type == "emote";
 
         [Serializable]
         public class Content
@@ -21,6 +24,7 @@ namespace Data
         {
             public string id;
             public Data data;
+            public EmoteData emoteDataADR74;
 
             [Serializable]
             public class Data
@@ -31,14 +35,25 @@ namespace Data
                 public string[] replaces;
                 public string[] removesDefaultHiding;
 
-                [Serializable]
-                public class Representation
-                {
-                    public string[] bodyShapes;
-                    public string mainFile;
-                    public string[] overrideHides;
-                    public string[] overrideReplaces;
-                }
+
+            }
+
+            [Serializable]
+            public class EmoteData
+            {
+                public string category;
+                public Representation[] representations;
+                public bool loop;
+            }
+            
+            [Serializable]
+            public class Representation
+            {
+                public string[] bodyShapes;
+                public string mainFile;
+                public string[] contents;
+                public string[] overrideHides;
+                public string[] overrideReplaces;
             }
         }
     }

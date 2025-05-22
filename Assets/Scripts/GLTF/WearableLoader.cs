@@ -1,8 +1,12 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using Data;
 using GLTFast;
 using GLTFast.Logging;
 using UnityEngine;
+using UnityEngine.Networking;
+using Object = UnityEngine.Object;
 
 namespace GLTF
 {
@@ -45,6 +49,85 @@ namespace GLTF
 
             Debug.LogError($"Failed to load GLB: {mainFile}");
             return null;
+        }
+
+        public static async Awaitable<(Texture2D main, Texture2D mask)?> LoadFacialFeature(string mainFile,
+            Dictionary<string, string> files)
+        {
+            var mainTexture = await LoadTexture(files[mainFile]);
+            if (!mainTexture) return null;
+
+            var maskTexture = files.Count == 2 ? await LoadTexture(files[files.Keys.First(x => x != mainFile)]) : null;
+
+            return (mainTexture, maskTexture);
+
+            // using var mainTexWebRequest =
+            //     UnityWebRequestTexture.GetTexture(new Uri(string.Format(APIService.API_CATALYST, files[mainFile])),
+            //         true);
+            //
+            // await mainTexWebRequest.SendWebRequest();
+            //
+            // if (mainTexWebRequest.result != UnityWebRequest.Result.Success)
+            // {
+            //     Debug.LogError($"Failed to load main texture: {mainTexWebRequest.error}");
+            //     return null;
+            // }
+            //
+            // var mainTexture = DownloadHandlerTexture.GetContent(mainTexWebRequest);
+            // return texture;
+
+            async Awaitable<Texture2D> LoadTexture(string fileHash)
+            {
+                using var webRequest =
+                    UnityWebRequestTexture.GetTexture(new Uri(string.Format(APIService.API_CATALYST, fileHash)),
+                        true);
+
+                await webRequest.SendWebRequest();
+
+                if (webRequest.result != UnityWebRequest.Result.Success)
+                {
+                    Debug.LogError($"Failed to load texture {fileHash}: {webRequest.error}");
+                    return null;
+                }
+
+                return DownloadHandlerTexture.GetContent(webRequest);
+            }
+
+
+            // var req = new AwaitableTextureDownload(new Uri(string.Format(APIService.API_CATALYST, files[mainFile])), true);
+            // await req.WaitAsync();
+            // return req;
+            //
+            //
+            //
+            //
+            // var importer = new GltfImport(
+            //     downloadProvider: new BinaryDownloadProvider(files),
+            //     materialGenerator: new AvatarMaterialGenerator(avatarColors),
+            //     logger: new ConsoleLogger()
+            // );
+            //
+            // var importSettings = new ImportSettings
+            // {
+            //     NodeNameMethod = NameImportMethod.OriginalUnique,
+            //     AnisotropicFilterLevel = 0,
+            //     GenerateMipMaps = false,
+            // };
+            //
+            // var fileHash = files[mainFile];
+            //
+            // Debug.Log($"Loading facial feature: {mainFile} - {fileHash}");
+            //
+            // var success = await importer.Load(string.Format(APIService.API_CATALYST, fileHash), importSettings);
+            //
+            // if (success)
+            // {
+            //     Debug.Log($"Facial feature GLB loaded: {mainFile}");
+            //     return importer.GetTexture();
+            // }
+            //
+            // Debug.LogError($"Failed to load GLB: {mainFile}");
+            // return null;
         }
 
         /// <summary>

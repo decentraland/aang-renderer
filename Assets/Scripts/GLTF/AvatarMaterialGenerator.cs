@@ -13,8 +13,6 @@ namespace GLTF
         private static readonly int BaseColorID = Shader.PropertyToID("_BaseColor");
         private readonly AvatarColors _avatarColors;
 
-        private Texture2DArray _texture2DArray;
-
         public AvatarMaterialGenerator(AvatarColors avatarColors)
         {
             _avatarColors = avatarColors;
@@ -23,7 +21,7 @@ namespace GLTF
         public Material GenerateMaterial(int materialIndex, GLTFast.Schema.Material gltfMaterial, IGltfReadable gltf,
             bool pointsSupport = false)
         {
-            var mat = new Material(CommonAssets.AvatarMaterial) { name = gltfMaterial.name };
+            var mat = new Material(GetMaterial(gltfMaterial.name)) { name = gltfMaterial.name };
 
             if (TryGetColorOverride(gltfMaterial.name, out var color))
             {
@@ -33,6 +31,13 @@ namespace GLTF
             mat.SetTexture(MainTexID, gltf.GetTexture(materialIndex));
 
             return mat;
+        }
+
+        private Material GetMaterial(string gltfMaterialName)
+        {
+            return gltfMaterialName is "AvatarEyebrows_MAT" or "AvatarEyes_MAT" or "AvatarMouth_MAT"
+                ? CommonAssets.FacialFeaturesMaterial
+                : CommonAssets.AvatarMaterial;
         }
 
         // TODO: This is probably wrong
