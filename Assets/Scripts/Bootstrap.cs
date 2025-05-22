@@ -27,13 +27,13 @@ public class Bootstrap : MonoBehaviour
         Application.targetFrameRate = 60;
 
         // Autoload avatar / wearable from parameters
-        //var parameters = URLParameters.ParseDefault() ?? URLParameters.Parse("https://example.com/?profile=default1");
+        var parameters = URLParameters.ParseDefault() ?? URLParameters.Parse("https://example.com/?profile=default1");
         
         // Miha avatar
         // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0xbebb268219a67a80fe85fc6af9f0ad0ec0dca98c:0");
         
         // Emote
-        var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0xb5e24ada4096b86ce3cf7af5119f19ed6089a80b&item=0");
+        // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0xb5e24ada4096b86ce3cf7af5119f19ed6089a80b&item=0");
 
         mainCamera.backgroundColor = parameters.Background;
 
