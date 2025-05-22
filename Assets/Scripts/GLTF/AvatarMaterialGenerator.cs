@@ -35,7 +35,8 @@ namespace GLTF
 
         private Material GetMaterial(string gltfMaterialName)
         {
-            return gltfMaterialName is "AvatarEyebrows_MAT" or "AvatarEyes_MAT" or "AvatarMouth_MAT"
+            // TODO: Is there a better way to determine this here?
+            return gltfMaterialName is "AvatarEyebrows_MAT" or "AvatarEyes_MAT" or "AvatarMouth_MAT" or "AvatarMaskEyebrows_MAT" or "AvatarMaskEyes_MAT" or "AvatarMaskMouth_MAT"
                 ? CommonAssets.FacialFeaturesMaterial
                 : CommonAssets.AvatarMaterial;
         }
