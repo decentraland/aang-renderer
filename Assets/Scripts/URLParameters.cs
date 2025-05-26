@@ -18,7 +18,7 @@ public class URLParameters
     /// clap, dab, dance, fashion, fashion-2, fashion-3,fashion-4, love, money, fist-pump and head-explode
     /// </summary>
     public string Emote { get; private set; } = "idle";
-    
+
     // Ethereum
 
     /// <summary>
@@ -29,26 +29,26 @@ public class URLParameters
     /// <summary>
     /// The color of the background in HEX.
     /// </summary>
-    public Color Background { get; private set; } = new(75 / 255f, 118 / 255f, 219 / 255f); // TODO: Default?
-    
-    // Polygon
-    
+    public Color Background { get; private set; } = new(0, 0, 0, 0);
+
     /// <summary>
     /// The contract address of the wearable collection.
     /// </summary>
     public string Contract { get; private set; }
-    
+
     /// <summary>
     /// The id of the item in the collection.
     /// </summary>
     public string ItemID { get; private set; }
-    
+
     /// <summary>
     /// The id of the token (to preview a specific NFT).
     /// </summary>
     public string TokenID { get; private set; }
-    
-    private URLParameters() { }
+
+    private URLParameters()
+    {
+    }
 
     public static URLParameters ParseDefault() => Parse(Application.absoluteURL);
 
@@ -57,17 +57,17 @@ public class URLParameters
         if (string.IsNullOrEmpty(url) || !url.Contains('?')) return null;
 
         var split = url[(url.IndexOf('?') + 1)..].Split('&');
-        
-        if(split.Length == 0) return null;
+
+        if (split.Length == 0) return null;
 
         var parameters = new URLParameters();
-        
+
         foreach (var parameter in split)
         {
             var keyValueSplit = parameter.Split('=');
             var key = keyValueSplit[0];
             var value = keyValueSplit[1];
-            
+
             switch (key)
             {
                 case "profile":
@@ -80,7 +80,9 @@ public class URLParameters
                     parameters.Urn = value;
                     break;
                 case "background":
-                    parameters.Background = ColorUtility.TryParseHtmlString("#" + value, out var color) ? color : Color.black;
+                    parameters.Background = ColorUtility.TryParseHtmlString("#" + value, out var color)
+                        ? color
+                        : Color.black;
                     break;
                 case "contract":
                     parameters.Contract = value;
@@ -100,4 +102,3 @@ public class URLParameters
         return parameters;
     }
 }
-

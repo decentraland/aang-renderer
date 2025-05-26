@@ -155,8 +155,8 @@ Camera:
   m_GameObject: {fileID: 330585543}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 2
-  m_BackGroundColor: {r: 0.29411766, g: 0.4627451, b: 0.85882354, a: 0}
+  m_ClearFlags: 3
+  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -235,7 +235,7 @@ MonoBehaviour:
     m_Bits: 1
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
-  m_RenderPostProcessing: 1
+  m_RenderPostProcessing: 0
   m_Antialiasing: 0
   m_AntialiasingQuality: 2
   m_StopNaN: 0
@@ -440,7 +440,7 @@ MonoBehaviour:
   mainCamera: {fileID: 330585545}
   previewLoader: {fileID: 1088246592}
   baseMat: {fileID: 2100000, guid: 406504d4e46794b17941d2039cfd49c4, type: 2}
-  facialFeaturesMat: {fileID: 2100000, guid: 640484c930a9c425791b434dd2094bff, type: 2}
+  facialFeaturesMat: {fileID: 2100000, guid: 406504d4e46794b17941d2039cfd49c4, type: 2}
   animatorController: {fileID: 9100000, guid: 911503823286fbb45adb70692446da43, type: 2}
   previewRotator: {fileID: 1088246591}
 --- !u!4 &983774208
