@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Data;
 using GLTF;
-using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Assertions;
 using Debug = UnityEngine.Debug;
@@ -57,9 +56,13 @@ public class PreviewLoader : MonoBehaviour
             if (overrideEntity.IsEmote)
             {
                 var emoteDefinition = EmoteDefinition.FromActiveEntity(overrideEntity, bodyShape);
-                _emoteAnimation = await EmoteLoader.LoadEmote(emoteDefinition.MainFile, emoteDefinition.Files);
+                var emote = await EmoteLoader.LoadEmote(emoteDefinition.MainFile, emoteDefinition.Files); 
+                _emoteAnimation = emote.anim;
                 overrideEntity = null;
                 hasOverride = false;
+                
+                emote.prop.transform.SetParent(avatarRoot);
+                _wearables["emote"] = emote.prop;
             }
             else
             {
@@ -200,7 +203,6 @@ public class PreviewLoader : MonoBehaviour
             var animComponent = go.AddComponent<Animation>();
             animComponent.playAutomatically = false;
             animComponent.AddClip(_emoteAnimation, "emote");
-            animComponent.clip = _emoteAnimation;
         }
     }
 

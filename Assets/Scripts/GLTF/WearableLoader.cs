@@ -142,9 +142,11 @@ namespace GLTF
             if (root.childCount == 1 && root.GetChild(0).name == "Scene")
             {
                 var sceneChild = root.GetChild(0);
-                foreach (Transform t in sceneChild)
+
+                while (sceneChild.childCount > 0)
                 {
-                    t.SetParent(root, true);
+                    var child = sceneChild.GetChild(0);
+                    child.SetParent(root, true);
                 }
 
                 Object.Destroy(sceneChild.gameObject);
