@@ -6,13 +6,14 @@ using System.Threading.Tasks;
 using GLTFast;
 using GLTFast.Logging;
 using UnityEngine;
+using UnityEngine.Networking;
 using Object = UnityEngine.Object;
 
 namespace GLTF
 {
     public static class EmoteLoader
     {
-        public static async Task<(AnimationClip anim, GameObject prop)> LoadEmote(string mainFile,
+        public static async Task<(AnimationClip anim, AudioClip audio, GameObject prop)> LoadEmote(string mainFile,
             Dictionary<string, string> files)
         {
             var importer = new GltfImport(
@@ -33,6 +34,44 @@ namespace GLTF
             Debug.Log($"Loading Emote: {mainFile} - {fileHash}");
 
             var success = await importer.Load(string.Format(APIService.API_CATALYST, fileHash), importSettings);
+
+            AudioClip audioClip = null;
+
+            // TODO: Clean this up cmon
+            var audioFile = files.FirstOrDefault(kvp =>
+                kvp.Key.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase) ||
+                kvp.Key.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase) ||
+                kvp.Key.EndsWith(".wav", StringComparison.OrdinalIgnoreCase));
+            if (audioFile.Key != null)
+            {
+                Debug.Log($"Loading audio clip: {audioFile.Key} - {audioFile.Value}");
+
+                var audioType = AudioType.UNKNOWN;
+
+
+                if (audioFile.Key.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase))
+                    audioType = AudioType.MPEG;
+
+                if (audioFile.Key.EndsWith(".wav", StringComparison.OrdinalIgnoreCase))
+                    audioType = AudioType.WAV;
+
+                if (audioFile.Key.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase))
+                    audioType = AudioType.OGGVORBIS;
+
+
+                using var www = UnityWebRequestMultimedia.GetAudioClip(
+                    string.Format(APIService.API_CATALYST, audioFile.Value), audioType);
+                await www.SendWebRequest();
+
+                if (www.result == UnityWebRequest.Result.ConnectionError)
+                {
+                    Debug.Log(www.error);
+                }
+                else
+                {
+                    audioClip = DownloadHandlerAudioClip.GetContent(www);
+                }
+            }
 
             if (success)
             {
@@ -56,10 +95,10 @@ namespace GLTF
                     animComponent.AddClip(propClip, "emote");
                     animComponent.playAutomatically = false;
 
-                    return (avatarClip, parent);
+                    return (avatarClip, audioClip, parent);
                 }
 
-                return (avatarClip, null);
+                return (avatarClip, audioClip, null);
             }
 
             Debug.LogError($"Failed to load emote: {mainFile}");
