@@ -1,87 +1,160 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Data;
 using GLTF;
+using JetBrains.Annotations;
 using UnityEngine;
-using UnityEngine.Assertions;
+using Assert = UnityEngine.Assertions.Assert;
 using Debug = UnityEngine.Debug;
 
 public class PreviewLoader : MonoBehaviour
 {
     [SerializeField] private Camera mainCamera;
-    [SerializeField] private RuntimeAnimatorController animatorController;
     [SerializeField] private UIPresenter uiPresenter;
     [SerializeField] private Transform avatarRoot;
     [SerializeField] private Transform wearableRoot;
-    [SerializeField] private PreviewRotator previewRotator;
-    // [SerializeField] private float targetScreenSize = 0.5f;
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private GameObject platform;
 
     private readonly Dictionary<string, GameObject> _wearables = new();
     private readonly Dictionary<string, (Texture2D main, Texture2D mask)> _facialFeatures = new();
 
     private bool _showingAvatar;
-    private string _overrideCategory;
+    private string _overrideWearableCategory;
     private AnimationClip _emoteAnimation;
+    private AudioClip _emoteAudio;
 
-    /// <summary>
-    /// Loads the player's avatar with an optional override wearable that will replace
-    /// the original wearable in the same category.
-    /// </summary>
-    public async Awaitable LoadPreview(string profileID, string overrideID, string defaultEmote = "idle")
+    public async Awaitable LoadPreview(PreviewConfiguration config)
     {
-        Debug.Log($"Loading profile: {profileID}");
+        switch (config.Mode)
+        {
+            case PreviewConfiguration.PreviewMode.Marketplace:
+                await LoadForMarketplace(config.Profile, await GetUrn(config), config.Emote);
+                break;
+            case PreviewConfiguration.PreviewMode.Authentication:
+                await LoadForProfile(config.Profile, config.Emote, true);
+                break;
+            case PreviewConfiguration.PreviewMode.Profile:
+                await LoadForProfile(config.Profile, config.Emote, false);
+                break;
+            case PreviewConfiguration.PreviewMode.Builder:
+                await LoadForBuilder(config.BodyShape, config.EyeColor, config.HairColor, config.SkinColor, config.Hair,
+                    config.FacialHair, config.UpperBody, config.LowerBody, config.Emote, config.Base64);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
 
-        gameObject.SetActive(false);
-        uiPresenter.EnableLoader(true);
-        previewRotator.ResetRotation();
-        Clear();
+    private async Awaitable LoadForMarketplace(string profileID, string urn, string defaultEmote)
+    {
+        Assert.IsNotNull(profileID);
+        Assert.IsNotNull(urn);
+        Assert.IsNotNull(defaultEmote);
 
         var avatar = await APIService.GetAvatar(profileID);
-        var avatarColors = new AvatarColors(avatar.eyes.color, avatar.hair.color, avatar.skin.color);
-        var bodyShape = avatar.bodyShape;
-        var hasOverride = !string.IsNullOrEmpty(overrideID);
 
-        var entitiesToFetch = avatar.wearables.Prepend(bodyShape);
-        if (hasOverride)
+        await LoadStuff(avatar.bodyShape, avatar.wearables.ToList(), urn, avatar.eyes.color, avatar.hair.color,
+            avatar.skin.color, defaultEmote, null);
+    }
+
+    private async Awaitable LoadForProfile(string profileID, string defaultEmote, bool showPlatform)
+    {
+        Assert.IsNotNull(profileID);
+
+        var avatar = await APIService.GetAvatar(profileID);
+
+        await LoadStuff(avatar.bodyShape, avatar.wearables.ToList(), null, avatar.eyes.color, avatar.hair.color,
+            avatar.skin.color, defaultEmote, null);
+
+        platform.SetActive(showPlatform);
+    }
+
+    private async Awaitable LoadForBuilder(string bodyShape, Color? eyeColor, Color? hairColor, Color? skinColor,
+        [CanBeNull] string hair, [CanBeNull] string facialHair, string upperBody, string lowerBody, string defaultEmote,
+        [CanBeNull] byte[] base64)
+    {
+        Assert.IsNotNull(bodyShape);
+        Assert.IsTrue(eyeColor.HasValue);
+        Assert.IsTrue(hairColor.HasValue);
+        Assert.IsTrue(skinColor.HasValue);
+        // Assert.IsNotNull(hair);
+        // Assert.IsNotNull(facialHair);
+        Assert.IsNotNull(upperBody);
+        Assert.IsNotNull(lowerBody);
+
+        var urns = new List<string>
         {
-            entitiesToFetch = entitiesToFetch.Append(overrideID);
-        }
+            upperBody,
+            lowerBody
+        };
+        if (hair != null) urns.Add(hair);
+        if (facialHair != null) urns.Add(facialHair);
 
-        var activeEntities = await APIService.GetActiveEntities(entitiesToFetch.ToArray());
+        await LoadStuff(bodyShape, urns, null, eyeColor.Value, hairColor.Value, skinColor.Value, defaultEmote, base64);
+    }
 
-        var overrideEntity = activeEntities.FirstOrDefault(ae => ae.pointers[0] == overrideID);
-        if (overrideEntity != null)
+    private async Awaitable LoadStuff(string bodyShape, List<string> urns, string overrideURN, Color eyeColor,
+        Color hairColor, Color skinColor,
+        string defaultEmote, byte[] base64)
+    {
+        Cleanup();
+
+        var avatarColors = new AvatarColors(eyeColor, hairColor, skinColor);
+
+        urns.Insert(0, bodyShape);
+        if (overrideURN != null) urns.Add(overrideURN);
+
+        var activeEntities = (await APIService.GetActiveEntities(urns.ToArray())).ToList();
+
+        if (base64 != null)
         {
-            if (overrideEntity.IsEmote)
+            var base64String = Encoding.UTF8.GetString(base64);
+            var base64ActiveEntity = JsonUtility.FromJson<ActiveEntity>(base64String);
+
+            if (base64ActiveEntity.IsEmote)
             {
-                var emoteDefinition = EmoteDefinition.FromActiveEntity(overrideEntity, bodyShape);
-                var emote = await EmoteLoader.LoadEmote(emoteDefinition.MainFile, emoteDefinition.Files); 
-                _emoteAnimation = emote.anim;
-                overrideEntity = null;
-                hasOverride = false;
-                
-                emote.prop.transform.SetParent(avatarRoot);
-                _wearables["emote"] = emote.prop;
+                activeEntities.RemoveAll(ae => ae.IsEmote);
             }
             else
             {
-                _overrideCategory = overrideEntity?.metadata.data.category;
+                activeEntities.RemoveAll(ae => ae.metadata.data.category == base64ActiveEntity.metadata.data.category);
             }
+
+            activeEntities.Add(base64ActiveEntity);
         }
 
-        // Fallback to default emote
-        if (_emoteAnimation == null)
+        // Load emote first
+        var emoteDefinition = activeEntities.Where(ae => ae.IsEmote)
+            .Select(ae => EmoteDefinition.FromActiveEntity(ae, bodyShape))
+            .FirstOrDefault();
+        var emote = emoteDefinition != null
+            ? await EmoteLoader.LoadEmote(emoteDefinition)
+            : await EmoteLoader.LoadEmbeddedEmote(defaultEmote);
+
+        _emoteAnimation = emote.anim;
+        _emoteAudio = emote.audio;
+        if (emote.prop)
         {
-            _emoteAnimation = await EmoteLoader.LoadEmbeddedEmote(defaultEmote);
+            emote.prop.transform.SetParent(avatarRoot, false);
+            _wearables["emote"] = emote.prop;
         }
+
+        // data is null in case of an emote, in which case the category should be null too
+        _overrideWearableCategory = overrideURN != null
+            ? activeEntities.First(ae => ae.pointers.Contains(overrideURN)).metadata.data?.category
+            : null;
+        var hasWearableOverride = _overrideWearableCategory != null;
 
         var wearableDefinitions = activeEntities
-            .Where(ae => !ae.IsEmote) // TODO: Could be better
+            .Where(ae => !ae.IsEmote)
             .Select(ae => WearableDefinition.FromActiveEntity(ae, bodyShape))
-            // Skip the original wearable and use the override
-            .Where(wd => overrideEntity == null || wd.Category != overrideEntity.metadata.data.category ||
-                         wd.Pointer == overrideID)
+            // Skip the original wearable and use the override if we have one
+            .Where(wd => _overrideWearableCategory == null || wd.Category != _overrideWearableCategory ||
+                         wd.Pointer == overrideURN)
             .ToDictionary(wd => wd.Category);
 
         var hiddenCategories = AvatarHideHelper.HideWearables(wearableDefinitions);
@@ -92,14 +165,13 @@ public class PreviewLoader : MonoBehaviour
             .ToList());
 
         // Create a copy of the overridden wearable just because that's easier to manage
-        if (!string.IsNullOrEmpty(_overrideCategory))
+        if (hasWearableOverride)
         {
-            var overrideGO = (await InstantiateAsync(_wearables[_overrideCategory], new InstantiateParameters()
+            await InstantiateAsync(_wearables[_overrideWearableCategory], new InstantiateParameters()
             {
                 parent = wearableRoot,
                 worldSpace = false
-            }))[0];
-            Destroy(overrideGO.GetComponent<Animator>());
+            });
         }
 
         // Hide stuff on body shape
@@ -110,17 +182,39 @@ public class PreviewLoader : MonoBehaviour
         SetupFacialFeatures(bodyGO);
 
         // Center the roots around the meshes
-        CenterMeshes(avatarRoot);
-        if (hasOverride) CenterMeshes(wearableRoot);
+        // CenterMeshes(avatarRoot);
+        if (hasWearableOverride) CenterMeshes(wearableRoot);
+
+        // Adjust platform position
+        platform.transform.localPosition = avatarRoot.transform.localPosition;
 
         // Switch to avatar view if there's no wearable override
-        uiPresenter.EnableSwitcher(hasOverride);
-        if (!hasOverride) ShowAvatar(true);
+        uiPresenter.EnableSwitcher(hasWearableOverride);
+        if (!hasWearableOverride) ShowAvatar(true);
+
+        // Audio event 
+        audioSource.clip = _emoteAudio;
+        //audioSource.Play();
 
         // Force play animations
+        var eventAdded = false;
         foreach (var (_, go) in _wearables)
         {
-            go.GetComponent<Animation>().Play("emote");
+            var anim = go.GetComponent<Animation>();
+
+            if (_emoteAudio != null && !eventAdded)
+            {
+                eventAdded = true;
+                anim.GetClip("emote").AddEvent(new AnimationEvent
+                {
+                    time = 0,
+                    functionName = "Play"
+                });
+                var aer = go.AddComponent<AudioEventReceiver>();
+                aer.AudioSource = audioSource;
+            }
+
+            anim.Play("emote");
         }
 
         gameObject.SetActive(true);
@@ -132,7 +226,7 @@ public class PreviewLoader : MonoBehaviour
     private void SetupFacialFeatures(GameObject bodyGO)
     {
         if (!bodyGO) return;
-        
+
         // TODO: Shouldn't be here
 
         var meshRenderers = bodyGO.GetComponentsInChildren<SkinnedMeshRenderer>(false);
@@ -245,8 +339,29 @@ public class PreviewLoader : MonoBehaviour
     }
 
 
-    private void Clear()
+    private static async Awaitable<string> GetUrn(PreviewConfiguration config)
     {
+        if (config.Urn != null) return config.Urn;
+
+        // If we have a contract and item id or token id we need to fetch the urn first
+        if (config.Contract != null && (config.ItemID != null || config.TokenID != null))
+        {
+            return config.ItemID != null
+                ? (await APIService.GetMarketplaceItemFromID(config.Contract, config.ItemID)).data[0].urn
+                : (await APIService.GetMarketplaceItemFromToken(config.Contract, config.TokenID)).data[0].nft
+                .urn;
+        }
+
+        return null;
+    }
+
+
+    private void Cleanup()
+    {
+        platform.SetActive(false);
+        gameObject.SetActive(false);
+        uiPresenter.EnableLoader(true);
+
         foreach (Transform child in avatarRoot) Destroy(child.gameObject);
         foreach (Transform child in wearableRoot) Destroy(child.gameObject);
         _wearables.Clear();

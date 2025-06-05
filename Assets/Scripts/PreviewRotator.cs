@@ -6,13 +6,15 @@ using UnityEngine;
 public class PreviewRotator : MonoBehaviour
 {
     [SerializeField] private Camera mainCamera;
-    
-    [Header("Drag Settings")] 
-    [SerializeField] private float dragSpeed = 0.2f;
+
+    [Header("Drag Settings")] [SerializeField]
+    private float dragSpeed = 0.2f;
+
     [SerializeField] private float inertiaDamp = 0.95f;
 
-    [Header("Auto-Rotate Settings")] 
-    [SerializeField] private float autoRotateSpeed = 20f;
+    [Header("Auto-Rotate Settings")] [SerializeField]
+    private float autoRotateSpeed = 20f;
+
     [SerializeField] private float autoRotateDelay = 2f;
     [SerializeField] private float returnSpeed = 2f;
 
@@ -20,7 +22,10 @@ public class PreviewRotator : MonoBehaviour
     private float _verticalVel;
     private float _lastDragTime;
     private Quaternion _initialRotation;
-    
+
+    public bool AllowVertical { get; set; } = true;
+    public bool EnableAutoRotate { get; set; } = true;
+
     private void Start()
     {
         _initialRotation = transform.rotation;
@@ -41,10 +46,10 @@ public class PreviewRotator : MonoBehaviour
         // Framerate-independent dampening
         _horizontalVel *= Mathf.Pow(inertiaDamp, dt);
         _verticalVel *= Mathf.Pow(inertiaDamp, dt);
-        
+
         // Velocity rotation
         transform.Rotate(mainCamera.transform.up, _horizontalVel, Space.World);
-        transform.Rotate(mainCamera.transform.right, _verticalVel, Space.World);
+        if (AllowVertical) transform.Rotate(mainCamera.transform.right, _verticalVel, Space.World);
 
         // Auto rotation
         if (Time.time - _lastDragTime > autoRotateDelay)

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Utils;
@@ -17,6 +18,17 @@ public class UIPresenter : MonoBehaviour
 
     private VisualElement _loader;
     private VisualElement _loaderIcon;
+    
+    // Builder
+    private DropdownField _bodyShapeDropdown;
+    private EnumField _bodyShapeEnum;
+    private DropdownField _eyeColorDropdown;
+    private DropdownField _hairDropdown;
+    private DropdownField _upperBodyDropdown;
+    private DropdownField _skinColorDropdown;
+    private DropdownField _hairColorDropdown;
+    private DropdownField _facialHairDropdown;
+    private DropdownField _lowerBodyDropdown;
 
     private string _currentDebugInput = "";
     private bool _debugLoaded;
@@ -30,6 +42,17 @@ public class UIPresenter : MonoBehaviour
 
         _loader = root.Q("Loader");
         _loaderIcon = _loader.Q("Icon");
+        
+        _bodyShapeDropdown = root.Q<DropdownField>("BodyShape");
+        _eyeColorDropdown = root.Q<DropdownField>("EyeColor");
+        _hairDropdown = root.Q<DropdownField>("Hair");
+        _upperBodyDropdown = root.Q<DropdownField>("UpperBody");
+        _skinColorDropdown = root.Q<DropdownField>("SkinColor");
+        _hairColorDropdown = root.Q<DropdownField>("HairColor");
+        _facialHairDropdown = root.Q<DropdownField>("FacialHair");
+        _lowerBodyDropdown = root.Q<DropdownField>("LowerBody");
+        
+        _bodyShapeEnum = root.Q<EnumField>("BodyShape");
 
         _wearableButton.AddManipulator(new Clickable(OnWearableButtonClicked));
         _avatarButton.AddManipulator(new Clickable(OnAvatarButtonClicked));
@@ -111,7 +134,8 @@ public class UIPresenter : MonoBehaviour
                 if (wearableID == "None") wearableID = null;
             }
 
-            await previewLoader.LoadPreview(profileID, wearableID);
+            // TODO: Fix debug!
+            //await previewLoader.LoadPreview(profileID, wearableID);
         };
         debugPanel.Q<Button>("HideButton").clicked += () => debugPanel.style.display = DisplayStyle.None;
 

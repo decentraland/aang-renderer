@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Data;
 using GLTFast;
 using GLTFast.Logging;
 using UnityEngine;
@@ -13,11 +14,10 @@ namespace GLTF
 {
     public static class EmoteLoader
     {
-        public static async Task<(AnimationClip anim, AudioClip audio, GameObject prop)> LoadEmote(string mainFile,
-            Dictionary<string, string> files)
+        public static async Task<(AnimationClip anim, AudioClip audio, GameObject prop)> LoadEmote(EmoteDefinition emoteDefinition)
         {
             var importer = new GltfImport(
-                downloadProvider: new BinaryDownloadProvider(files),
+                downloadProvider: new BinaryDownloadProvider(emoteDefinition.Files),
                 logger: new ConsoleLogger()
             );
 
@@ -29,16 +29,16 @@ namespace GLTF
                 GenerateMipMaps = false,
             };
 
-            var fileHash = files[mainFile];
+            var fileHash = emoteDefinition.Files[emoteDefinition.MainFile];
 
-            Debug.Log($"Loading Emote: {mainFile} - {fileHash}");
+            Debug.Log($"Loading Emote: {emoteDefinition.MainFile} - {fileHash}");
 
             var success = await importer.Load(string.Format(APIService.API_CATALYST, fileHash), importSettings);
 
             AudioClip audioClip = null;
 
             // TODO: Clean this up cmon
-            var audioFile = files.FirstOrDefault(kvp =>
+            var audioFile = emoteDefinition.Files.FirstOrDefault(kvp =>
                 kvp.Key.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase) ||
                 kvp.Key.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase) ||
                 kvp.Key.EndsWith(".wav", StringComparison.OrdinalIgnoreCase));
@@ -76,9 +76,12 @@ namespace GLTF
             if (success)
             {
                 var clips = importer.GetAnimationClips();
-                Debug.Log($"Loaded emote: {mainFile} with clips: {clips.Length}");
+                Debug.Log($"Loaded emote: {emoteDefinition.MainFile} with clips: {clips.Length}");
 
-                var avatarClip = clips.First(c => c.name.EndsWith("_Avatar"));
+                // Note, some GLB's just don't have an animation that ends with _Avatar, because of course they bloody don't.
+                // Even though conventions say they should: https://docs.decentraland.org/creator/emotes/props-and-sounds/#naming-conventions
+                // Like this one: urn:decentraland:matic:collections-v2:0xb5e24ada4096b86ce3cf7af5119f19ed6089a80b:0
+                var avatarClip = clips.Length == 1 ? clips[0] : clips.First(c => c.name.EndsWith("_Avatar"));
                 var propClip = clips.FirstOrDefault(c =>
                     c.name.EndsWith("_Prop", StringComparison.InvariantCultureIgnoreCase));
 
@@ -100,13 +103,11 @@ namespace GLTF
 
                 return (avatarClip, audioClip, null);
             }
-
-            Debug.LogError($"Failed to load emote: {mainFile}");
-
-            throw new NotSupportedException("Failed to load emote");
+            
+            throw new NotSupportedException($"Failed to load emote: {emoteDefinition.MainFile}");
         }
 
-        public static async Task<AnimationClip> LoadEmbeddedEmote(string emote)
+        public static async Task<(AnimationClip anim, AudioClip audio, GameObject prop)> LoadEmbeddedEmote(string emote)
         {
             var filePath = Path.Combine(Application.streamingAssetsPath, $"{emote}.glb");
 
@@ -120,12 +121,10 @@ namespace GLTF
             {
                 var clips = importer.GetAnimationClips();
                 Debug.Log($"Loaded emote: {emote} with clips: {clips.Length}");
-                return clips[0];
+                return (clips[0], null, null);
             }
-
-            Debug.LogError($"Failed to load emote: {emote}");
-
-            return null;
+            
+            throw new NotSupportedException($"Failed to load emote: {emote}");
         }
 
         private static void Sanitize(Transform root)

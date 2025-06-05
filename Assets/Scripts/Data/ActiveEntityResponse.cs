@@ -5,6 +5,7 @@ namespace Data
     [Serializable]
     public class ActiveEntity
     {
+        public string id;
         public string[] pointers;
         public string type;
         public Content[] content;

@@ -1,16 +1,17 @@
 using NUnit.Framework;
 using UnityEngine;
+using Utils;
 
 namespace Tests
 {
     [TestFixture]
-    [TestOf(typeof(URLParameters))]
+    [TestOf(typeof(URLParser))]
     public class URLParametersTest
     {
         [Test]
         public void TestInitialize()
         {
-            var parameters = URLParameters.Parse("https://example.com/?profile=0x1234&emote=wave&urn=urnyurn&background=FF0000&contract=0x22334&item=0x5678&token=0x9ABC");
+            var parameters = URLParser.Parse("https://example.com/?profile=0x1234&emote=wave&urn=urnyurn&background=FF0000&contract=0x22334&item=0x5678&token=0x9ABC");
             
             Assert.AreEqual("0x1234", parameters.Profile);
             Assert.AreEqual("wave", parameters.Emote);

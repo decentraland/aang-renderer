@@ -1,8 +1,6 @@
-using System.Diagnostics;
-using GLTF;
 using GLTFast;
 using UnityEngine;
-using Debug = UnityEngine.Debug;
+using Utils;
 
 public class Bootstrap : MonoBehaviour
 {
@@ -10,8 +8,9 @@ public class Bootstrap : MonoBehaviour
     [SerializeField] private PreviewLoader previewLoader;
     [SerializeField] private Material baseMat;
     [SerializeField] private Material facialFeaturesMat;
-    [SerializeField] private RuntimeAnimatorController animatorController;
     [SerializeField] private PreviewRotator previewRotator;
+
+    public PreviewConfiguration Config;
 
     // ReSharper disable once AsyncVoidMethod
     private async void Start()
@@ -26,44 +25,51 @@ public class Bootstrap : MonoBehaviour
         // Let's make it a bit smoother
         Application.targetFrameRate = 60;
 
-        // Autoload avatar / wearable from parameters
-        var parameters = URLParameters.ParseDefault() ?? URLParameters.Parse("https://example.com/?profile=default1");
-        
+        ParseFromURL();
+
         // Miha avatar
-        // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0xbebb268219a67a80fe85fc6af9f0ad0ec0dca98c:0");
-        
+        // ParseFromURL("https://example.com/?mode=profile&profile=0x3f574d05ec670fe2c92305480b175654ca512005");
+        // ParseFromURL("https://example.com/?mode=authentication&profile=0x3f574d05ec670fe2c92305480b175654ca512005");
+
         // Emote
-        // var parameters = URLParameters.Parse("https://example.com/?profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0xb5e24ada4096b86ce3cf7af5119f19ed6089a80b&item=0");
+        // ParseFromURL("https://example.com/?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0xb5e24ada4096b86ce3cf7af5119f19ed6089a80b&item=0");
 
-        mainCamera.backgroundColor = parameters.Background;
+        // Emote with prop
+        // ParseFromURL("https://example.com/?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0x97822560ec3e3522c1237f85817003211281eb79:0");
 
-        await LoadFromParameters(parameters);
+        // Emote with Audio
+        // ParseFromURL("https://example.com/?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0xb187264af67cf6d147521626203dedcfd901ceb3:4");
+        
+        // Builder TODO: Support base64
+        // var base64Data = "eyJpZCI6IjUyNThhMmQxLTdiYTUtNGIwMi04MzY1LTg5MTZmMmUyMDgzZiIsIm5hbWUiOiJKYWNrZXQiLCJ0aHVtYm5h" +
+        //                  "aWwiOiJ0aHVtYm5haWwucG5nIiwiaW1hZ2UiOiJ0aHVtYm5haWwucG5nIiwiZGVzY3JpcHRpb24iOiIiLCJpMThuIjpbeyJjb2Rl" +
+        //                  "IjoiZW4iLCJ0ZXh0IjoiSmFja2V0In1dLCJkYXRhIjp7ImNhdGVnb3J5IjoidXBwZXJfYm9keSIsInJlcGxhY2VzIjpbXSwiaGlk" +
+        //                  "ZXMiOltdLCJyZW1vdmVzRGVmYXVsdEhpZGluZyI6WyJoYW5kcyJdLCJ0YWdzIjpbXSwicmVwcmVzZW50YXRpb25zIjpbeyJib2R5U" +
+        //                  "2hhcGVzIjpbInVybjpkZWNlbnRyYWxhbmQ6b2ZmLWNoYWluOmJhc2UtYXZhdGFyczpCYXNlTWFsZSJdLCJtYWluRmlsZSI6Im1hbGUv" +
+        //                  "amFja2V0LmdsYiIsImNvbnRlbnRzIjpbeyJrZXkiOiJtYWxlL2phY2tldC5nbGIiLCJ1cmwiOiJodHRwOi8vbG9jYWxob3N0OjUwMDEv" +
+        //                  "djEvc3RvcmFnZS9jb250ZW50cy9iYWZ5YmVpaHJleXNjYml3NXJkNXJ3anM1cHN6bGw1ZHFlb20zdWFxNXk3YXJ2YWF6a2hzZW11NHdka" +
+        //                  "SJ9XSwib3ZlcnJpZGVIaWRlcyI6W10sIm92ZXJyaWRlUmVwbGFjZXMiOltdfSx7ImJvZHlTaGFwZXMiOlsidXJuOmRlY2VudHJhbGFuZDp" +
+        //                  "vZmYtY2hhaW46YmFzZS1hdmF0YXJzOkJhc2VGZW1hbGUiXSwibWFpbkZpbGUiOiJmZW1hbGUvamFja2V0LmdsYiIsImNvbnRlbnRzIjpbeyJr" +
+        //                  "ZXkiOiJmZW1hbGUvamFja2V0LmdsYiIsInVybCI6Imh0dHA6Ly9sb2NhbGhvc3Q6NTAwMS92MS9zdG9yYWdlL2NvbnRlbnRzL2JhZnliZWlocmV" +
+        //                  "5c2NiaXc1cmQ1cndqczVwc3psbDVkcWVvbTN1YXE1eTdhcnZhYXpraHNlbXU0d2RpIn1dLCJvdmVycmlkZUhpZGVzIjpbXSwib3ZlcnJpZGVS" +
+        //                  "ZXBsYWNlcyI6W119XSwicmVxdWlyZWRQZXJtaXNzaW9ucyI6W10sImJsb2NrVnJtRXhwb3J0IjpmYWxzZSwiaXNTbWFydCI6ZmFsc2V9fQ";
+        // ParseFromURL($"https://example.com/?mode=builder&bodyShape=urn:decentraland:off-chain:base-avatars:BaseMale&eyeColor=00ffff&hairColor=00ffff&skinColor=aaaaaa&upperBody=urn:decentraland:off-chain:base-avatars:turtle_neck_sweater&lowerBody=urn:decentraland:off-chain:base-avatars:kilt&base64={base64Data}");
+        
+        await Reload();
     }
 
-    private async Awaitable LoadFromParameters(URLParameters parameters)
+    public void ParseFromURL(string url = null)
     {
-        var sw = Stopwatch.StartNew();
-        
-        Debug.Log("Loading from parameters");
+        Config = URLParser.Parse(url ?? Application.absoluteURL);
+    }
 
-        // If we have a contract and item id or token id we need to fetch the urn first
-        if (parameters.Contract != null && (parameters.ItemID != null || parameters.TokenID != null))
-        {
-            var urn = parameters.ItemID != null
-                ? (await APIService.GetMarketplaceItemFromID(parameters.Contract, parameters.ItemID)).data[0].urn
-                : (await APIService.GetMarketplaceItemFromToken(parameters.Contract, parameters.TokenID)).data[0].nft
-                .urn;
-
-            // We have the contract and item id, can load directly
-            await previewLoader.LoadPreview(parameters.Profile, urn, parameters.Emote);
-        }
-        else
-        {
-            // If we have an URN or nothing we load directly
-            await previewLoader.LoadPreview(parameters.Profile, parameters.Urn, parameters.Emote);
-        }
-
-        sw.Stop();
-        Debug.Log($"Loaded in {sw.ElapsedMilliseconds}ms");
+    public async Awaitable Reload()
+    {
+        mainCamera.backgroundColor = Config.Background;
+        previewRotator.AllowVertical = Config.Mode is PreviewConfiguration.PreviewMode.Marketplace
+            or PreviewConfiguration.PreviewMode.Builder;
+        previewRotator.EnableAutoRotate = Config.Mode is PreviewConfiguration.PreviewMode.Marketplace;
+        previewRotator.ResetRotation();
+        await previewLoader.LoadPreview(Config);
     }
 }
