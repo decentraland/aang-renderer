@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Data;
+using DCL.GLTFast.Wrappers;
 using GLTFast;
 using GLTFast.Logging;
 using UnityEngine;
@@ -17,6 +18,7 @@ namespace GLTF
         public static async Task<(AnimationClip anim, AudioClip audio, GameObject prop)> LoadEmote(EmoteDefinition emoteDefinition)
         {
             var importer = new GltfImport(
+                materialGenerator: new DecentralandMaterialGenerator("DCL/Scene"),
                 downloadProvider: new BinaryDownloadProvider(emoteDefinition.Files),
                 logger: new ConsoleLogger()
             );

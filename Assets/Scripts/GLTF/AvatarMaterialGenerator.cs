@@ -9,8 +9,8 @@ namespace GLTF
 {
     public class AvatarMaterialGenerator : IMaterialGenerator
     {
-        private static readonly int MainTexID = Shader.PropertyToID("_MainTex");
-        private static readonly int BaseColorID = Shader.PropertyToID("_BaseColor");
+        private static readonly int MAIN_TEX_ID = Shader.PropertyToID("_MainTex");
+        private static readonly int BASE_COLOR_ID = Shader.PropertyToID("_BaseColor");
         private readonly AvatarColors _avatarColors;
 
         public AvatarMaterialGenerator(AvatarColors avatarColors)
@@ -25,10 +25,10 @@ namespace GLTF
 
             if (TryGetColorOverride(gltfMaterial.name, out var color))
             {
-                mat.SetColor(BaseColorID, color);
+                mat.SetColor(BASE_COLOR_ID, color);
             }
 
-            mat.SetTexture(MainTexID, gltf.GetTexture(materialIndex));
+            mat.SetTexture(MAIN_TEX_ID, gltf.GetTexture(materialIndex));
 
             return mat;
         }
