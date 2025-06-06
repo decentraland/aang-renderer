@@ -13,11 +13,11 @@
       "hash": "e4587451389b6cf93b084ae434d0cc3d32a45076"
     },
     "com.decentraland.unity-shared-dependencies": {
-      "version": "https://github.com/decentraland/unity-shared-dependencies.git",
+      "version": "git@github.com:decentraland/unity-shared-dependencies.git#feat/blend_op_support",
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "e4cb3c41a94ba810f35e743bfdabbbaaa8fd8ab2"
+      "hash": "25ddf5aba0154c258f9ea1c0f97bffc48dc2b9a9"
     },
     "com.unity.burst": {
       "version": "1.8.21",

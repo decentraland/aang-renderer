@@ -18,7 +18,7 @@ namespace GLTF
         public static async Task<(AnimationClip anim, AudioClip audio, GameObject prop)> LoadEmote(EmoteDefinition emoteDefinition)
         {
             var importer = new GltfImport(
-                materialGenerator: new DecentralandMaterialGenerator("DCL/Scene"),
+                materialGenerator: new DecentralandMaterialGenerator("DCL/Scene", true),
                 downloadProvider: new BinaryDownloadProvider(emoteDefinition.Files),
                 logger: new ConsoleLogger()
             );

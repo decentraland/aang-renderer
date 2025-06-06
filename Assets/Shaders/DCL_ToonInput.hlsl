@@ -452,20 +452,11 @@ UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
     TEXTURE2D(_OcclusionMap);           SAMPLER(sampler_OcclusionMap);
     TEXTURE2D(_MetallicGlossMap);       SAMPLER(sampler_MetallicGlossMap);
 
-    sampler2D _Set_1st_ShadePosition; 
-    sampler2D _Set_2nd_ShadePosition;
     sampler2D _ShadingGradeMap;
-    sampler2D _HighColor_Tex;
-    sampler2D _Set_HighColorMask;
-    sampler2D _Set_RimLightMask;
     sampler2D _MatCap_Sampler;
     sampler2D _NormalMapForMatCap;
-    sampler2D _Set_MatcapMask;
     sampler2D _Emissive_Tex;    
     sampler2D _AngelRing_Sampler;
-    sampler2D _Outline_Sampler;
-    sampler2D _OutlineTex;
-    sampler2D _BakedNormal;
 
     #define SAMPLE_BASEMAP(uv,texArrayID)                   SAMPLE_TEXTURE2D(_BaseMap,                  sampler_BaseMap, uv)
     #define SAMPLE_BUMPMAP(uv,texArrayID)                   SAMPLE_TEXTURE2D(_BumpMap,                  sampler_BumpMap, uv)
@@ -479,20 +470,11 @@ UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
     #define SAMPLE_OCCLUSIONMAP(uv,texArrayID)              SAMPLE_TEXTURE2D(_OcclusionMap,             sampler_OcclusionMap, uv)
     #define SAMPLE_METALLICGLOSS(uv,texArrayID)             SAMPLE_TEXTURE2D(_MetallicGlossMap,         sampler_MetallicGlossMap, uv)
 
-    #define SAMPLE_SET_1ST_SHADEPOSITION(uv,texArrayID)     tex2D(_Set_1st_ShadePosition,       uv) 
-    #define SAMPLE_SET_2ND_SHADEPOSITION(uv,texArrayID)     tex2D(_Set_2nd_ShadePosition,       uv)
     #define SAMPLE_SHADINGGRADEMAP(uv,texArrayID,lod)       tex2Dlod(_ShadingGradeMap,          float4(uv, 0.0f, lod))
-    #define SAMPLE_HIGHCOLOR(uv,texArrayID)                 tex2D(_HighColor_Tex,               uv)
-    #define SAMPLE_HIGHCOLORMASK(uv,texArrayID)             tex2D(_Set_HighColorMask,           uv)
-    #define SAMPLE_SET_RIMLIGHTMASK(uv, texArrayID)         tex2D(_Set_RimLightMask,            uv)
     #define SAMPLE_MATCAP(uv,texArrayID,lod)                tex2Dlod(_MatCap_Sampler,           float4(uv, 0.0f, lod))
     #define SAMPLE_NORMALMAPFORMATCAP(uv,texArrayID)        tex2D(_NormalMapForMatCap,          uv)
-    #define SAMPLE_SET_MATCAPMASK(uv,texArrayID)            tex2D(_Set_MatcapMask,              uv)
     #define SAMPLE_EMISSIVE(uv,texArrayID)                  tex2D(_Emissive_Tex,                uv)
     #define SAMPLE_ANGELRING(uv,texArrayID)                 tex2D(_AngelRing_Sampler,           uv)
-    #define SAMPLE_OUTLINE(uv,texArrayID,lod)               tex2Dlod(_Outline_Sampler,          float4(uv, 0.0f, lod))
-    #define SAMPLE_OUTLINETEX(uv,texArrayID)                tex2D(_OutlineTex,                  uv)
-    #define SAMPLE_BAKEDNORMAL(uv,texArrayID,lod)           tex2Dlod(_BakedNormal,              float4(uv, 0.0f, lod))
 #endif
 
 #include "DCL_Toon_SurfaceInput.hlsl"
