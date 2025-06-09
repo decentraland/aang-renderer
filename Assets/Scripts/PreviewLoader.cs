@@ -18,6 +18,7 @@ public class PreviewLoader : MonoBehaviour
     [SerializeField] private Transform wearableRoot;
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private GameObject platform;
+    [SerializeField] private PreviewRotator previewRotator;
 
     private readonly Dictionary<string, GameObject> _wearables = new();
     private readonly Dictionary<string, (Texture2D main, Texture2D mask)> _facialFeatures = new();
@@ -59,6 +60,13 @@ public class PreviewLoader : MonoBehaviour
 
         await LoadStuff(avatar.bodyShape, avatar.wearables.ToList(), urn, avatar.eyes.color, avatar.hair.color,
             avatar.skin.color, defaultEmote, null);
+        
+        // This probably shouldn't be here but it's fiiiine
+        if (_overrideWearableCategory == "emote")
+        {
+            previewRotator.EnableAutoRotate = false;
+            previewRotator.ResetRotation();
+        }
     }
 
     private async Awaitable LoadForProfile(string profileID, string defaultEmote, bool showPlatform)
@@ -143,11 +151,13 @@ public class PreviewLoader : MonoBehaviour
             _wearables["emote"] = emote.prop;
         }
 
-        // data is null in case of an emote, in which case the category should be null too
-        _overrideWearableCategory = overrideURN != null
-            ? activeEntities.First(ae => ae.pointers.Contains(overrideURN)).metadata.data?.category
-            : null;
-        var hasWearableOverride = _overrideWearableCategory != null;
+        if (overrideURN != null)
+        {
+            var overrideEntity = activeEntities.First(ae => ae.pointers.Contains(overrideURN));
+            _overrideWearableCategory = overrideEntity.IsEmote ? "emote" : overrideEntity.metadata.data.category;
+        }
+
+        var hasWearableOverride = _overrideWearableCategory != null && _overrideWearableCategory != "emote";
 
         var wearableDefinitions = activeEntities
             .Where(ae => !ae.IsEmote)

@@ -12,6 +12,9 @@ public class Bootstrap : MonoBehaviour
 
     public PreviewConfiguration Config;
 
+    private bool _loading;
+    private bool _shouldReload;
+
     // ReSharper disable once AsyncVoidMethod
     private async void Start()
     {
@@ -38,7 +41,7 @@ public class Bootstrap : MonoBehaviour
         // ParseFromURL("https://example.com/?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0x97822560ec3e3522c1237f85817003211281eb79:0");
 
         // Emote with Audio
-        // ParseFromURL("https://example.com/?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0xb187264af67cf6d147521626203dedcfd901ceb3:4");
+        ParseFromURL("https://example.com/?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0xb187264af67cf6d147521626203dedcfd901ceb3:4");
         
         // Builder TODO: Support base64
         // var base64Data = "eyJpZCI6IjUyNThhMmQxLTdiYTUtNGIwMi04MzY1LTg5MTZmMmUyMDgzZiIsIm5hbWUiOiJKYWNrZXQiLCJ0aHVtYm5h" +
@@ -63,13 +66,27 @@ public class Bootstrap : MonoBehaviour
         Config = URLParser.Parse(url ?? Application.absoluteURL);
     }
 
-    public async Awaitable Reload()
+    private async Awaitable Reload()
     {
+        _loading = true;
         mainCamera.backgroundColor = Config.Background;
         previewRotator.AllowVertical = Config.Mode is PreviewConfiguration.PreviewMode.Marketplace
             or PreviewConfiguration.PreviewMode.Builder;
         previewRotator.EnableAutoRotate = Config.Mode is PreviewConfiguration.PreviewMode.Marketplace;
         previewRotator.ResetRotation();
         await previewLoader.LoadPreview(Config);
+
+        if (_shouldReload)
+        {
+            _shouldReload = false;
+            await Reload();
+        }
+        
+        _loading = false;
+    }
+
+    public void InvokeReload()
+    {
+        StartCoroutine(Reload());
     }
 }

@@ -664,6 +664,7 @@ MonoBehaviour:
   wearableRoot: {fileID: 1516276170}
   audioSource: {fileID: 330585548}
   platform: {fileID: 880806146}
+  previewRotator: {fileID: 1088246591}
 --- !u!1 &1101889418
 GameObject:
   m_ObjectHideFlags: 0

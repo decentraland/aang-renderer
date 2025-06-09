@@ -26,7 +26,7 @@ public class PreviewRotator : MonoBehaviour
     public bool AllowVertical { get; set; } = true;
     public bool EnableAutoRotate { get; set; } = true;
 
-    private void Start()
+    private void Awake()
     {
         _initialRotation = transform.rotation;
     }
