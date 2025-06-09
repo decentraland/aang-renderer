@@ -15,7 +15,8 @@ namespace GLTF
 {
     public static class EmoteLoader
     {
-        public static async Task<(AnimationClip anim, AudioClip audio, GameObject prop)> LoadEmote(EmoteDefinition emoteDefinition)
+        public static async Task<(AnimationClip anim, AudioClip audio, GameObject prop)> LoadEmote(
+            EmoteDefinition emoteDefinition)
         {
             var importer = new GltfImport(
                 materialGenerator: new DecentralandMaterialGenerator("DCL/Scene", true),
@@ -31,11 +32,11 @@ namespace GLTF
                 GenerateMipMaps = false,
             };
 
-            var fileHash = emoteDefinition.Files[emoteDefinition.MainFile];
+            var file = emoteDefinition.Files[emoteDefinition.MainFile];
 
-            Debug.Log($"Loading Emote: {emoteDefinition.MainFile} - {fileHash}");
+            Debug.Log($"Loading Emote: {emoteDefinition.MainFile} - {file}");
 
-            var success = await importer.Load(string.Format(APIService.API_CATALYST, fileHash), importSettings);
+            var success = await importer.Load(GetUri(file), importSettings);
 
             AudioClip audioClip = null;
 
@@ -61,8 +62,7 @@ namespace GLTF
                     audioType = AudioType.OGGVORBIS;
 
 
-                using var www = UnityWebRequestMultimedia.GetAudioClip(
-                    string.Format(APIService.API_CATALYST, audioFile.Value), audioType);
+                using var www = UnityWebRequestMultimedia.GetAudioClip(GetUri(audioFile.Value), audioType);
                 await www.SendWebRequest();
 
                 if (www.result == UnityWebRequest.Result.ConnectionError)
@@ -105,7 +105,7 @@ namespace GLTF
 
                 return (avatarClip, audioClip, null);
             }
-            
+
             throw new NotSupportedException($"Failed to load emote: {emoteDefinition.MainFile}");
         }
 
@@ -125,7 +125,7 @@ namespace GLTF
                 Debug.Log($"Loaded emote: {emote} with clips: {clips.Length}");
                 return (clips[0], null, null);
             }
-            
+
             throw new NotSupportedException($"Failed to load emote: {emote}");
         }
 
@@ -146,6 +146,13 @@ namespace GLTF
 
                 Object.Destroy(sceneChild.gameObject);
             }
+        }
+
+        private static Uri GetUri(string file)
+        {
+            return Uri.TryCreate(file, UriKind.Absolute, out var uri)
+                ? uri
+                : new Uri(string.Format(APIService.API_CATALYST, file));
         }
     }
 }

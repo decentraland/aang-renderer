@@ -21,7 +21,8 @@ namespace Data
 
             return new EmoteDefinition
             {
-                Files = entity.content.Where(c => representation.contents.Contains(c.file)).ToDictionary(c => c.file, c => c.hash),
+                Files = entity.content.Where(c => representation.contents.Contains(c.file))
+                    .ToDictionary(c => c.file, c => c.url ?? c.hash),
                 MainFile = representation.mainFile,
             };
         }

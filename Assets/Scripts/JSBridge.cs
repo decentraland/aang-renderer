@@ -30,7 +30,7 @@ public class JSBridge : MonoBehaviour
     [UsedImplicitly]
     public void SetBase64(string value)
     {
-        bootstrap.Config.Base64 = Convert.FromBase64String(value);
+        bootstrap.Config.SetBase64(value);
         bootstrap.InvokeReload();
     }
 
@@ -43,36 +43,28 @@ public class JSBridge : MonoBehaviour
     [UsedImplicitly]
     public void SetBackground(string value)
     {
-        bootstrap.Config.Background = ColorUtility.TryParseHtmlString("#" + value, out var color)
-            ? color
-            : Color.black;
+        bootstrap.Config.SetBackground(value);
         bootstrap.InvokeReload();
     }
 
     [UsedImplicitly]
     public void SetSkinColor(string value)
     {
-        bootstrap.Config.SkinColor = ColorUtility.TryParseHtmlString("#" + value, out var color)
-            ? color
-            : Color.black;
+        bootstrap.Config.SetSkinColor(value);
         bootstrap.InvokeReload();
     }
 
     [UsedImplicitly]
     public void SetHairColor(string value)
     {
-        bootstrap.Config.HairColor = ColorUtility.TryParseHtmlString("#" + value, out var color)
-            ? color
-            : Color.black;
+        bootstrap.Config.SetHairColor(value);
         bootstrap.InvokeReload();
     }
 
     [UsedImplicitly]
     public void SetEyeColor(string value)
     {
-        bootstrap.Config.EyeColor = ColorUtility.TryParseHtmlString("#" + value, out var color)
-            ? color
-            : Color.black;
+        bootstrap.Config.SetEyeColor(value);
         bootstrap.InvokeReload();
     }
 

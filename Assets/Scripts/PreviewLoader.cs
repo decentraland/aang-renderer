@@ -60,7 +60,7 @@ public class PreviewLoader : MonoBehaviour
 
         await LoadStuff(avatar.bodyShape, avatar.wearables.ToList(), urn, avatar.eyes.color, avatar.hair.color,
             avatar.skin.color, defaultEmote, null);
-        
+
         // This probably shouldn't be here but it's fiiiine
         if (_overrideWearableCategory == "emote")
         {
@@ -121,7 +121,7 @@ public class PreviewLoader : MonoBehaviour
         if (base64 != null)
         {
             var base64String = Encoding.UTF8.GetString(base64);
-            var base64ActiveEntity = JsonUtility.FromJson<ActiveEntity>(base64String);
+            var base64ActiveEntity = JsonUtility.FromJson<Base64ActiveEntity>(base64String).ToActiveEntity();
 
             if (base64ActiveEntity.IsEmote)
             {

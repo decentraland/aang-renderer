@@ -18,6 +18,8 @@ namespace Data
         {
             public string file;
             public string hash;
+
+            public string url; // Used by Base64 entities only
         }
 
         [Serializable]
@@ -35,8 +37,6 @@ namespace Data
                 public string[] hides;
                 public string[] replaces;
                 public string[] removesDefaultHiding;
-
-
             }
 
             [Serializable]

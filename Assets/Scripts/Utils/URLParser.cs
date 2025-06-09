@@ -46,24 +46,16 @@ namespace Utils
                         config.Urn = value;
                         break;
                     case "background":
-                        config.Background = ColorUtility.TryParseHtmlString("#" + value, out var backgroundColor)
-                            ? backgroundColor
-                            : Color.black;
+                        config.SetBackground(value);
                         break;
                     case "skinColor":
-                        config.SkinColor = ColorUtility.TryParseHtmlString("#" + value, out var skinColor)
-                            ? skinColor
-                            : null;
+                        config.SetSkinColor(value);
                         break;
                     case "hairColor":
-                        config.HairColor = ColorUtility.TryParseHtmlString("#" + value, out var hairColor)
-                            ? hairColor
-                            : null;
+                        config.SetHairColor(value);
                         break;
                     case "eyeColor":
-                        config.EyeColor = ColorUtility.TryParseHtmlString("#" + value, out var eyesColor)
-                            ? eyesColor
-                            : null;
+                        config.SetEyeColor(value);
                         break;
                     case "bodyShape":
                         config.BodyShape = value;
@@ -78,7 +70,7 @@ namespace Utils
                         config.Projection = value;
                         break;
                     case "base64":
-                        config.Base64 = Convert.FromBase64String(value + "==");
+                        config.SetBase64(value);
                         break;
                     case "contract":
                         config.Contract = value;

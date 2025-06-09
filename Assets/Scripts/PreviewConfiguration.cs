@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class PreviewConfiguration
@@ -19,7 +20,23 @@ public class PreviewConfiguration
     /// <summary>
     /// The base64 encoded GLB to load.
     /// </summary>
-    public byte[] Base64 { get; set; } = null;
+    public byte[] Base64 { get; private set; }
+
+    /// <summary>
+    /// Converts the string base64 to a byte array, adding padding if needed
+    /// </summary>
+    public void SetBase64(string value)
+    {
+        var sanitized = (value.Length % 4) switch
+        {
+            2 => value + "==",
+            3 => value + "=",
+            0 => value,
+            _ => throw new FormatException("Invalid Base64 string")
+        };
+
+        Base64 = Convert.FromBase64String(sanitized);
+    }
 
     /// <summary>
     /// A URN of a wearable or an emote to load. If it is a wearable, it will override anything loaded from a profile.
@@ -29,33 +46,111 @@ public class PreviewConfiguration
     /// <summary>
     /// The color of the background in HEX.
     /// </summary>
-    public Color Background { get; set; } = new(0, 0, 0, 0);
+    public Color Background { get; private set; } = new(0, 0, 0, 0);
+
+    /// <summary>
+    /// Sets the background color from a hex string. The string must not contain a leading #.
+    /// </summary>
+    public void SetBackground(string value)
+    {
+        if (ColorUtility.TryParseHtmlString("#" + value, out var color))
+        {
+            Background = color;
+        }
+        else
+        {
+            Background = Color.black;
+            Debug.LogError("Failed to parse background color");
+        }
+    }
 
     /// <summary>
     /// The color of the skin in HEX.
     /// </summary>
-    public Color? SkinColor { get; set; } = new(0, 0, 0, 0);
+    public Color? SkinColor { get; private set; } = new(0, 0, 0, 0);
+
+    /// <summary>
+    /// Sets the skin color from a hex string. The string must not contain a leading #.
+    /// </summary>
+    public void SetSkinColor(string value)
+    {
+        if (ColorUtility.TryParseHtmlString("#" + value, out var color))
+        {
+            SkinColor = color;
+        }
+        else
+        {
+            SkinColor = null;
+            Debug.LogError("Failed to parse skin color");
+        }
+    }
 
     /// <summary>
     /// The color of the hair in HEX.
     /// </summary>
-    public Color? HairColor { get; set; } = new(0, 0, 0, 0);
+    public Color? HairColor { get; private set; } = new(0, 0, 0, 0);
+
+    /// <summary>
+    /// Sets the skin color from a hex string. The string must not contain a leading #.
+    /// </summary>
+    public void SetHairColor(string value)
+    {
+        if (ColorUtility.TryParseHtmlString("#" + value, out var color))
+        {
+            HairColor = color;
+        }
+        else
+        {
+            HairColor = null;
+            Debug.LogError("Failed to parse hair color");
+        }
+    }
 
     /// <summary>
     /// The color of the eyes in HEX.
     /// </summary>
-    public Color? EyeColor { get; set; } = new(0, 0, 0, 0);
+    public Color? EyeColor { get; private set; } = new(0, 0, 0, 0);
+
+    /// <summary>
+    /// Sets the skin color from a hex string. The string must not contain a leading #.
+    /// </summary>
+    public void SetEyeColor(string value)
+    {
+        if (ColorUtility.TryParseHtmlString("#" + value, out var color))
+        {
+            EyeColor = color;
+        }
+        else
+        {
+            EyeColor = null;
+            Debug.LogError("Failed to parse eye color");
+        }
+    }
 
     /// <summary>
     /// The body shape URN (urn:decentraland:off-chain:base-avatars:BaseMale or urn:decentraland:off-chain:base-avatars:BaseFemale)
     /// </summary>
     public string BodyShape { get; set; } = null;
-    
+
+    /// <summary>
+    /// The URN of the hair wearable.
+    /// </summary>
     public string Hair { get; set; }
+
+    /// <summary>
+    /// The URN of the facial hair wearable.
+    /// </summary>
     public string FacialHair { get; set; }
+
+    /// <summary>
+    /// The URN of the upper body wearable.
+    /// </summary>
     public string UpperBody { get; set; }
-    public string LowerBody{ get; set; }
-    
+
+    /// <summary>
+    /// The URN of the lower body wearable.
+    /// </summary>
+    public string LowerBody { get; set; }
 
     /// <summary>
     /// If we're using orthographic projection.

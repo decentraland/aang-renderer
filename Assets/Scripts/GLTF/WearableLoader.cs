@@ -28,11 +28,11 @@ namespace GLTF
                 GenerateMipMaps = false,
             };
 
-            var fileHash = files[mainFile];
+            var file = files[mainFile];
 
-            Debug.Log($"Loading GLB: {mainFile} - {fileHash}");
+            Debug.Log($"Loading GLB: {mainFile} - {file}");
 
-            var success = await importer.Load(string.Format(APIService.API_CATALYST, fileHash), importSettings);
+            var success = await importer.Load(GetUri(file), importSettings);
 
             if (success)
             {
@@ -76,58 +76,22 @@ namespace GLTF
             // var mainTexture = DownloadHandlerTexture.GetContent(mainTexWebRequest);
             // return texture;
 
-            async Awaitable<Texture2D> LoadTexture(string fileHash)
+            async Awaitable<Texture2D> LoadTexture(string file)
             {
                 using var webRequest =
-                    UnityWebRequestTexture.GetTexture(new Uri(string.Format(APIService.API_CATALYST, fileHash)),
+                    UnityWebRequestTexture.GetTexture(GetUri(file),
                         true);
 
                 await webRequest.SendWebRequest();
 
                 if (webRequest.result != UnityWebRequest.Result.Success)
                 {
-                    Debug.LogError($"Failed to load texture {fileHash}: {webRequest.error}");
+                    Debug.LogError($"Failed to load texture {file}: {webRequest.error}");
                     return null;
                 }
 
                 return DownloadHandlerTexture.GetContent(webRequest);
             }
-
-
-            // var req = new AwaitableTextureDownload(new Uri(string.Format(APIService.API_CATALYST, files[mainFile])), true);
-            // await req.WaitAsync();
-            // return req;
-            //
-            //
-            //
-            //
-            // var importer = new GltfImport(
-            //     downloadProvider: new BinaryDownloadProvider(files),
-            //     materialGenerator: new AvatarMaterialGenerator(avatarColors),
-            //     logger: new ConsoleLogger()
-            // );
-            //
-            // var importSettings = new ImportSettings
-            // {
-            //     NodeNameMethod = NameImportMethod.OriginalUnique,
-            //     AnisotropicFilterLevel = 0,
-            //     GenerateMipMaps = false,
-            // };
-            //
-            // var fileHash = files[mainFile];
-            //
-            // Debug.Log($"Loading facial feature: {mainFile} - {fileHash}");
-            //
-            // var success = await importer.Load(string.Format(APIService.API_CATALYST, fileHash), importSettings);
-            //
-            // if (success)
-            // {
-            //     Debug.Log($"Facial feature GLB loaded: {mainFile}");
-            //     return importer.GetTexture();
-            // }
-            //
-            // Debug.LogError($"Failed to load GLB: {mainFile}");
-            // return null;
         }
 
         /// <summary>
@@ -163,6 +127,13 @@ namespace GLTF
                     t.name = "Armature";
                 }
             }
+        }
+
+        private static Uri GetUri(string file)
+        {
+            return Uri.TryCreate(file, UriKind.Absolute, out var uri)
+                ? uri
+                : new Uri(string.Format(APIService.API_CATALYST, file));
         }
     }
 }

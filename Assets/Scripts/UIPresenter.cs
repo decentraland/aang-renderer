@@ -18,7 +18,7 @@ public class UIPresenter : MonoBehaviour
 
     private VisualElement _loader;
     private VisualElement _loaderIcon;
-    
+
     // Builder
     private DropdownField _bodyShapeDropdown;
     private EnumField _bodyShapeEnum;
@@ -42,7 +42,7 @@ public class UIPresenter : MonoBehaviour
 
         _loader = root.Q("Loader");
         _loaderIcon = _loader.Q("Icon");
-        
+
         _bodyShapeDropdown = root.Q<DropdownField>("BodyShape");
         _eyeColorDropdown = root.Q<DropdownField>("EyeColor");
         _hairDropdown = root.Q<DropdownField>("Hair");
@@ -51,7 +51,7 @@ public class UIPresenter : MonoBehaviour
         _hairColorDropdown = root.Q<DropdownField>("HairColor");
         _facialHairDropdown = root.Q<DropdownField>("FacialHair");
         _lowerBodyDropdown = root.Q<DropdownField>("LowerBody");
-        
+
         _bodyShapeEnum = root.Q<EnumField>("BodyShape");
 
         _wearableButton.AddManipulator(new Clickable(OnWearableButtonClicked));
@@ -134,8 +134,8 @@ public class UIPresenter : MonoBehaviour
                 if (wearableID == "None") wearableID = null;
             }
 
-            // TODO: Fix debug!
-            //await previewLoader.LoadPreview(profileID, wearableID);
+            await previewLoader.LoadPreview(
+                URLParser.Parse($"https://example.com/?mode=marketplace&profile={profileID}&urn={wearableID}"));
         };
         debugPanel.Q<Button>("HideButton").clicked += () => debugPanel.style.display = DisplayStyle.None;
 

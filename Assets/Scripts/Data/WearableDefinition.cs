@@ -30,7 +30,7 @@ namespace Data
                 Pointer = entity.pointers[0],
                 Category = entity.metadata.data.category,
                 Files = entity.content.Where(c => representation.contents.Contains(c.file))
-                    .ToDictionary(c => c.file, c => c.hash),
+                    .ToDictionary(c => c.file, c => c.url ?? c.hash),
                 MainFile = representation.mainFile,
 
                 // If the representation has hides we take it from there, otherwise we take it from the entity metadata
