@@ -13,12 +13,10 @@ using Debug = UnityEngine.Debug;
 public class PreviewLoader : MonoBehaviour
 {
     [SerializeField] private Camera mainCamera;
-    [SerializeField] private UIPresenter uiPresenter;
     [SerializeField] private Transform avatarRoot;
     [SerializeField] private Transform wearableRoot;
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private GameObject platform;
-    [SerializeField] private PreviewRotator previewRotator;
 
     private readonly Dictionary<string, GameObject> _wearables = new();
     private readonly Dictionary<string, (Texture2D main, Texture2D mask)> _facialFeatures = new();
@@ -28,20 +26,24 @@ public class PreviewLoader : MonoBehaviour
     private AnimationClip _emoteAnimation;
     private AudioClip _emoteAudio;
 
+    public bool HasEmoteOverride => _overrideWearableCategory == "emote";
+    public bool HasEmoteAudio => _emoteAudio != null;
+    public bool HasWearableOverride => _overrideWearableCategory != null && !HasEmoteOverride;
+
     public async Awaitable LoadPreview(PreviewConfiguration config)
     {
         switch (config.Mode)
         {
-            case PreviewConfiguration.PreviewMode.Marketplace:
+            case PreviewMode.Marketplace:
                 await LoadForMarketplace(config.Profile, await GetUrn(config), config.Emote);
                 break;
-            case PreviewConfiguration.PreviewMode.Authentication:
+            case PreviewMode.Authentication:
                 await LoadForProfile(config.Profile, config.Emote, true);
                 break;
-            case PreviewConfiguration.PreviewMode.Profile:
+            case PreviewMode.Profile:
                 await LoadForProfile(config.Profile, config.Emote, false);
                 break;
-            case PreviewConfiguration.PreviewMode.Builder:
+            case PreviewMode.Builder:
                 await LoadForBuilder(config.BodyShape, config.EyeColor, config.HairColor, config.SkinColor, config.Hair,
                     config.FacialHair, config.UpperBody, config.LowerBody, config.Emote, config.Base64);
                 break;
@@ -64,8 +66,6 @@ public class PreviewLoader : MonoBehaviour
         // This probably shouldn't be here but it's fiiiine
         if (_overrideWearableCategory == "emote")
         {
-            previewRotator.EnableAutoRotate = false;
-            previewRotator.ResetRotation();
         }
     }
 
@@ -196,10 +196,9 @@ public class PreviewLoader : MonoBehaviour
         if (hasWearableOverride) CenterMeshes(wearableRoot);
 
         // Adjust platform position
-        platform.transform.localPosition = avatarRoot.transform.localPosition;
+        platform.transform.localPosition = new Vector3(0, avatarRoot.transform.localPosition.y, 0);
 
         // Switch to avatar view if there's no wearable override
-        uiPresenter.EnableSwitcher(hasWearableOverride);
         if (!hasWearableOverride) ShowAvatar(true);
 
         // Audio event 
@@ -208,6 +207,7 @@ public class PreviewLoader : MonoBehaviour
 
         // Force play animations
         var eventAdded = false;
+
         foreach (var (_, go) in _wearables)
         {
             var anim = go.GetComponent<Animation>();
@@ -228,7 +228,6 @@ public class PreviewLoader : MonoBehaviour
         }
 
         gameObject.SetActive(true);
-        uiPresenter.EnableLoader(false);
 
         Debug.Log("Loaded all wearables!");
     }
@@ -274,6 +273,26 @@ public class PreviewLoader : MonoBehaviour
 
         avatarRoot.gameObject.SetActive(show);
         wearableRoot.gameObject.SetActive(!show);
+    }
+
+    /// <summary>
+    /// Starts or stops animation playback.
+    /// </summary>
+    public void PlayAnimation(bool play)
+    {
+        foreach (var (_, go) in _wearables)
+        {
+            var anim = go.GetComponent<Animation>();
+
+            if (play)
+            {
+                anim.Play("emote");
+            }
+            else
+            {
+                anim.Stop();
+            }
+        }
     }
 
     private async Task LoadWearable(string category, WearableDefinition wd, AvatarColors avatarColors)
@@ -370,7 +389,6 @@ public class PreviewLoader : MonoBehaviour
     {
         platform.SetActive(false);
         gameObject.SetActive(false);
-        uiPresenter.EnableLoader(true);
 
         foreach (Transform child in avatarRoot) Destroy(child.gameObject);
         foreach (Transform child in wearableRoot) Destroy(child.gameObject);

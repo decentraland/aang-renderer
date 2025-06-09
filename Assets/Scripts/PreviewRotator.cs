@@ -59,7 +59,7 @@ public class PreviewRotator : MonoBehaviour
             euler.z = Mathf.LerpAngle(euler.z, 0f, returnSpeed * dt);
             transform.eulerAngles = euler;
 
-            transform.Rotate(Vector3.up, autoRotateSpeed * dt, Space.World);
+            if (EnableAutoRotate) transform.Rotate(Vector3.up, autoRotateSpeed * dt, Space.World);
         }
     }
 

@@ -30,10 +30,10 @@ namespace Utils
                     case "mode":
                         config.Mode = value switch
                         {
-                            "profile" => PreviewConfiguration.PreviewMode.Profile,
-                            "authentication" => PreviewConfiguration.PreviewMode.Authentication,
-                            "builder" => PreviewConfiguration.PreviewMode.Builder,
-                            _ => PreviewConfiguration.PreviewMode.Marketplace
+                            "profile" => PreviewMode.Profile,
+                            "authentication" => PreviewMode.Authentication,
+                            "builder" => PreviewMode.Builder,
+                            _ => PreviewMode.Marketplace
                         };
                         break;
                     case "profile":

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Utils;
@@ -11,27 +10,29 @@ public class UIPresenter : MonoBehaviour
     private const string DEBUG_PASSPHRASE = "debugmesilly";
 
     [SerializeField] private PreviewLoader previewLoader;
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private CameraController cameraController;
 
     private VisualElement _switcher;
     private VisualElement _wearableButton;
     private VisualElement _avatarButton;
 
+    private VisualElement _zoomControls;
+    private Button _zoomInButton;
+    private Button _zoomOutButton;
+
+    private VisualElement _emoteControls;
+    private Button _playEmoteButton;
+    private Label _playEmoteLabel;
+    private Button _muteEmoteButton;
+
+    private VisualElement _controls;
     private VisualElement _loader;
     private VisualElement _loaderIcon;
 
-    // Builder
-    private DropdownField _bodyShapeDropdown;
-    private EnumField _bodyShapeEnum;
-    private DropdownField _eyeColorDropdown;
-    private DropdownField _hairDropdown;
-    private DropdownField _upperBodyDropdown;
-    private DropdownField _skinColorDropdown;
-    private DropdownField _hairColorDropdown;
-    private DropdownField _facialHairDropdown;
-    private DropdownField _lowerBodyDropdown;
-
     private string _currentDebugInput = "";
     private bool _debugLoaded;
+    private bool _animationPlaying = true;
 
     private void Awake()
     {
@@ -40,22 +41,27 @@ public class UIPresenter : MonoBehaviour
         _wearableButton = _switcher.Q("WearableButton");
         _avatarButton = _switcher.Q("AvatarButton");
 
+        _zoomControls = root.Q("ZoomControls");
+        _zoomInButton = _zoomControls.Q<Button>("ZoomInButton");
+        _zoomOutButton = _zoomControls.Q<Button>("ZoomOutButton");
+        _zoomInButton.clicked += cameraController.ZoomIn;
+        _zoomOutButton.clicked += cameraController.ZoomOut;
+
+        _emoteControls = root.Q("EmoteControls");
+        _playEmoteButton = _emoteControls.Q<Button>("PlayStopButton");
+        _playEmoteLabel = _playEmoteButton.Q<Label>("Title");
+        _muteEmoteButton = _emoteControls.Q<Button>("MuteButton");
+        _playEmoteButton.clicked += OnPlayPauseEmoteClicked;
+        _muteEmoteButton.clicked += OnMuteEmoteClicked;
+
+        _controls = root.Q("Controls");
         _loader = root.Q("Loader");
         _loaderIcon = _loader.Q("Icon");
 
-        _bodyShapeDropdown = root.Q<DropdownField>("BodyShape");
-        _eyeColorDropdown = root.Q<DropdownField>("EyeColor");
-        _hairDropdown = root.Q<DropdownField>("Hair");
-        _upperBodyDropdown = root.Q<DropdownField>("UpperBody");
-        _skinColorDropdown = root.Q<DropdownField>("SkinColor");
-        _hairColorDropdown = root.Q<DropdownField>("HairColor");
-        _facialHairDropdown = root.Q<DropdownField>("FacialHair");
-        _lowerBodyDropdown = root.Q<DropdownField>("LowerBody");
-
-        _bodyShapeEnum = root.Q<EnumField>("BodyShape");
-
         _wearableButton.AddManipulator(new Clickable(OnWearableButtonClicked));
         _avatarButton.AddManipulator(new Clickable(OnAvatarButtonClicked));
+
+        EnableLoader(true);
 
         // TODO: Temporary fix for copy / paste in Web builds
         root.Query<TextField>().ForEach(v => v.AddManipulator(new WebGLSupport.WebGLInputManipulator()));
@@ -71,14 +77,28 @@ public class UIPresenter : MonoBehaviour
 
     public void EnableSwitcher(bool enable)
     {
-        // We use visibility instead of display so that EnableLoader won't override it
-        _switcher.style.visibility = enable ? Visibility.Visible : Visibility.Hidden;
+        _switcher.style.display = enable ? DisplayStyle.Flex : DisplayStyle.None;
+    }
+
+    public void EnableZoom(bool enable)
+    {
+        _zoomControls.style.display = enable ? DisplayStyle.Flex : DisplayStyle.None;
+    }
+
+    public void EnableEmoteControls(bool enable)
+    {
+        _emoteControls.style.display = enable ? DisplayStyle.Flex : DisplayStyle.None;
+    }
+
+    public void EnableAudioControls(bool enable)
+    {
+        _muteEmoteButton.style.display = enable ? DisplayStyle.Flex : DisplayStyle.None;
     }
 
     public void EnableLoader(bool enable)
     {
         _loader.style.display = enable ? DisplayStyle.Flex : DisplayStyle.None;
-        _switcher.style.display = enable ? DisplayStyle.None : DisplayStyle.Flex;
+        _controls.style.display = enable ? DisplayStyle.None : DisplayStyle.Flex;
     }
 
     private void OnAvatarButtonClicked()
@@ -95,6 +115,26 @@ public class UIPresenter : MonoBehaviour
         _wearableButton.AddToClassList(USS_SWITCHER_BUTTON_SELECTED);
 
         previewLoader.ShowAvatar(false);
+    }
+
+    private void OnMuteEmoteClicked()
+    {
+        audioSource.mute = !audioSource.mute;
+        _muteEmoteButton.EnableInClassList("emote-controls__button-mute--muted", audioSource.mute);
+    }
+
+    private void OnPlayPauseEmoteClicked()
+    {
+        _animationPlaying = !_animationPlaying;
+
+        previewLoader.PlayAnimation(_animationPlaying);
+        _playEmoteButton.EnableInClassList("emote-controls__button-play--stopped", !_animationPlaying);
+        _playEmoteLabel.text = _animationPlaying ? "STOP EMOTE" : "PLAY EMOTE";
+
+        if (!_animationPlaying)
+        {
+            audioSource.Stop();
+        }
     }
 
     private void CheckDebug()

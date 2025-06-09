@@ -171,12 +171,12 @@ public class PreviewConfiguration
     /// The id of the token (to preview a specific NFT).
     /// </summary>
     public string TokenID { get; set; }
+}
 
-    public enum PreviewMode
-    {
-        Marketplace,
-        Authentication,
-        Profile,
-        Builder
-    }
+public enum PreviewMode
+{
+    Marketplace,
+    Authentication,
+    Profile,
+    Builder
 }
