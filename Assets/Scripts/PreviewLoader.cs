@@ -19,7 +19,6 @@ public class PreviewLoader : MonoBehaviour
     [SerializeField] private Transform avatarRoot;
     [SerializeField] private Transform wearableRoot;
     [SerializeField] private AudioSource audioSource;
-    [SerializeField] private GameObject platform;
 
     private readonly Dictionary<string, GameObject> _wearables = new();
     private readonly Dictionary<string, (Texture2D main, Texture2D mask)> _facialFeatures = new();
@@ -43,10 +42,8 @@ public class PreviewLoader : MonoBehaviour
                 await LoadForMarketplace(config.Profile, urns[0], config.Emote);
                 break;
             case PreviewMode.Authentication:
-                await LoadForProfile(config.Profile, config.Emote, true);
-                break;
             case PreviewMode.Profile:
-                await LoadForProfile(config.Profile, config.Emote, false);
+                await LoadForProfile(config.Profile, config.Emote);
                 break;
             case PreviewMode.Builder:
                 await LoadForBuilder(config.BodyShape, config.EyeColor, config.HairColor, config.SkinColor,
@@ -69,7 +66,7 @@ public class PreviewLoader : MonoBehaviour
             avatar.skin.color, defaultEmote, null);
     }
 
-    private async Awaitable LoadForProfile(string profileID, string defaultEmote, bool showPlatform)
+    private async Awaitable LoadForProfile(string profileID, string defaultEmote)
     {
         Assert.IsNotNull(profileID);
 
@@ -77,8 +74,6 @@ public class PreviewLoader : MonoBehaviour
 
         await LoadStuff(avatar.bodyShape, avatar.wearables.ToList(), null, avatar.eyes.color, avatar.hair.color,
             avatar.skin.color, defaultEmote, null);
-
-        platform.SetActive(showPlatform);
     }
 
     private async Awaitable LoadForBuilder(string bodyShape, Color? eyeColor, Color? hairColor, Color? skinColor,
@@ -182,15 +177,11 @@ public class PreviewLoader : MonoBehaviour
         // CenterMeshes(avatarRoot);
         if (hasWearableOverride) CenterMeshes(wearableRoot);
 
-        // Adjust platform position
-        platform.transform.localPosition = new Vector3(0, avatarRoot.transform.localPosition.y, 0);
-
         // Switch to avatar view if there's no wearable override
         if (!hasWearableOverride) ShowAvatar(true);
 
         // Audio event 
         audioSource.clip = _emoteAudio;
-        //audioSource.Play();
 
         // Force play animations
         var eventAdded = false;
@@ -199,6 +190,7 @@ public class PreviewLoader : MonoBehaviour
         {
             var anim = go.GetComponent<Animation>();
 
+            // Auto play emote audio when animation starts
             if (_emoteAudio != null && !eventAdded)
             {
                 eventAdded = true;
@@ -340,18 +332,6 @@ public class PreviewLoader : MonoBehaviour
 
         // Apply the offset to the child transform
         root.position -= centerOffset;
-
-        // Calculate the scaling factor to maintain screen size
-        // var boundsSize = combinedBounds.size;
-        // var maxDimension = Mathf.Max(boundsSize.x, boundsSize.y, boundsSize.z);
-        //
-        // var distance = Vector3.Distance(mainCamera.transform.position, root.position);
-        // var fovFactor = 2.0f * Mathf.Tan(mainCamera.fieldOfView * 0.5f * Mathf.Deg2Rad);
-        //
-        // var desiredWorldSize = targetScreenSize * distance * fovFactor;
-        // var scaleFactor = desiredWorldSize / maxDimension;
-        //
-        // root.localScale = Vector3.one * scaleFactor;
     }
 
 
@@ -376,7 +356,6 @@ public class PreviewLoader : MonoBehaviour
 
     private void Cleanup()
     {
-        platform.SetActive(false);
         gameObject.SetActive(false);
 
         foreach (Transform child in avatarRoot) Destroy(child.gameObject);

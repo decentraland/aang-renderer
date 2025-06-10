@@ -152,6 +152,11 @@ public class PreviewConfiguration
     public string BodyShape { get; set; }
 
     /// <summary>
+    /// Shows or hides the animation reference platform.
+    /// </summary>
+    public bool ShowAnimationReference { get; set; }
+
+    /// <summary>
     /// If we're using orthographic projection.
     /// </summary>
     public string Projection { get; set; } = "perspective";

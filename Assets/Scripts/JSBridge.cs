@@ -90,6 +90,13 @@ public class JSBridge : MonoBehaviour
     }
 
     [UsedImplicitly]
+    public void SetShowAnimationReference(string value)
+    {
+        bootstrap.Config.ShowAnimationReference = bool.Parse(value);
+        bootstrap.InvokeLightReload();
+    }
+
+    [UsedImplicitly]
     public void SetProjection(string value)
     {
         bootstrap.Config.Projection = value;
@@ -116,4 +123,17 @@ public class JSBridge : MonoBehaviour
         bootstrap.Config.TokenID = value;
         bootstrap.InvokeReload();
     }
+
+    // private string _methodName;
+    // private string _methodValue;
+    // private void OnGUI()
+    // {
+    //     _methodName = GUILayout.TextField(_methodName);
+    //     _methodValue = GUILayout.TextField(_methodValue);
+    //
+    //     if (GUILayout.Button("Invoke"))
+    //     {
+    //         gameObject.SendMessage(_methodName, _methodValue);
+    //     }
+    // }
 }

@@ -52,6 +52,9 @@ namespace Utils
                     case "bodyShape":
                         config.BodyShape = value;
                         break;
+                    case "showAnimationReference":
+                        config.ShowAnimationReference = bool.Parse(value);
+                        break;
                     case "projection":
                         config.Projection = value;
                         break;
