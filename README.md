@@ -31,7 +31,7 @@ The renderer can run in three different modes, depending on it's usage: Marketpl
   * `money`
   * `fist-pump`
   * `head-explode`
-* `urn`: An URN address of a wearable or emote to load. It will override any existing wearable in the same category already present on the profile that has been loaded.
+* `urn`: An URN address of a wearable or emote to load. It will override any existing wearable in the same category already present on the profile that has been loaded. Can be included multiple times in `builder` mode to load multiple wearables.
 * `background`: The background color to use for the renderer. It must be in hex and not include the leading # (e.g. `ff00ff`). It may include alpha for a transparent background. Default is transparent.
 * `skinColor`: The color to use for the skin of the character. It must be in hex and not include the leading # (e.g. `ff00ff`).
 * `hairColor`: The color to use for the hair of the character. It must be in hex and not include the leading # (e.g. `ff00ff`).
@@ -39,10 +39,6 @@ The renderer can run in three different modes, depending on it's usage: Marketpl
 * `bodyShape`: The body shape to use. Possible values:
   * `urn:decentraland:off-chain:base-avatars:BaseMale`
   * `urn:decentraland:off-chain:base-avatars:BaseFemale`
-* `upperBody`: The URN address of the upper body wearable to load.
-* `lowerBody`: The URN address of the lower body wearable to load.
-* `hair`: The URN address of the hair wearable to load.
-* `facialHair`: The URN address of the facial hair wearable to load.
 * `projection`: The projection to use for the camera. Possible values:
   * `perspective` (default)
   * `orthographic`
@@ -81,10 +77,8 @@ Depending on the mode, not all parameters are used. These are the valid paramete
 * `eyeColor`
 * `hairColor`
 * `skinColor`
-* `hair`
-* `facialHair`
-* `upperBody`
-* `lowerBody`
+* `urn`
+  * Multiple urn parameters may be used to load several wearables. The categories of the wearables must be unique (e.g. two urns cannot both be for "upper_body")
 * `emote`
 * `base64`
 
@@ -101,3 +95,9 @@ unityInstance.SendMessage('JSBridge', 'SetSkinColor', 'ff0000');
 
 Every call of this function will trigger a reload of the entire avatar.
 For a full list of available functions check [JSBridge](Assets/Scripts/JSBridge.cs).
+
+### Special cases
+
+* `SetUrns`
+  * The input should be either a single URN or a list of urns separated by commas.
+  * Example: `unityInstance.SendMessage('JSBridge', 'SetUrns', 'urn:decentraland:off-chain:base-avatars:kilt,urn:decentraland:off-chain:base-avatars:full_beard,urn:decentraland:off-chain:base-avatars:blue_bandana');`

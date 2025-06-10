@@ -17,7 +17,6 @@ namespace Utils
 
             if (split.Length == 0) return config;
 
-
             foreach (var parameter in split)
             {
                 var keyValueSplit = parameter.Split('=');
@@ -36,7 +35,7 @@ namespace Utils
                         config.Emote = value;
                         break;
                     case "urn":
-                        config.Urn = value;
+                        config.Urns.Add(value);
                         break;
                     case "background":
                         config.SetBackground(value);
@@ -52,18 +51,6 @@ namespace Utils
                         break;
                     case "bodyShape":
                         config.BodyShape = value;
-                        break;
-                    case "upperBody":
-                        config.UpperBody = value;
-                        break;
-                    case "lowerBody":
-                        config.LowerBody = value;
-                        break;
-                    case "hair":
-                        config.Hair = value;
-                        break;
-                    case "facialHair":
-                        config.FacialHair = value;
                         break;
                     case "projection":
                         config.Projection = value;

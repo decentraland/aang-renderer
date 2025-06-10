@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class PreviewConfiguration
@@ -59,7 +60,7 @@ public class PreviewConfiguration
     /// <summary>
     /// A URN of a wearable or an emote to load. If it is a wearable, it will override anything loaded from a profile.
     /// </summary>
-    public string Urn { get; set; }
+    public List<string> Urns { get; set; } = new();
 
     /// <summary>
     /// The color of the background in HEX.
@@ -85,7 +86,7 @@ public class PreviewConfiguration
     /// <summary>
     /// The color of the skin in HEX.
     /// </summary>
-    public Color? SkinColor { get; private set; } = new(0, 0, 0, 0);
+    public Color? SkinColor { get; private set; }
 
     /// <summary>
     /// Sets the skin color from a hex string. The string must not contain a leading #.
@@ -106,7 +107,7 @@ public class PreviewConfiguration
     /// <summary>
     /// The color of the hair in HEX.
     /// </summary>
-    public Color? HairColor { get; private set; } = new(0, 0, 0, 0);
+    public Color? HairColor { get; private set; }
 
     /// <summary>
     /// Sets the skin color from a hex string. The string must not contain a leading #.
@@ -127,7 +128,7 @@ public class PreviewConfiguration
     /// <summary>
     /// The color of the eyes in HEX.
     /// </summary>
-    public Color? EyeColor { get; private set; } = new(0, 0, 0, 0);
+    public Color? EyeColor { get; private set; }
 
     /// <summary>
     /// Sets the skin color from a hex string. The string must not contain a leading #.
@@ -148,27 +149,7 @@ public class PreviewConfiguration
     /// <summary>
     /// The body shape URN (urn:decentraland:off-chain:base-avatars:BaseMale or urn:decentraland:off-chain:base-avatars:BaseFemale)
     /// </summary>
-    public string BodyShape { get; set; } = null;
-
-    /// <summary>
-    /// The URN of the hair wearable.
-    /// </summary>
-    public string Hair { get; set; }
-
-    /// <summary>
-    /// The URN of the facial hair wearable.
-    /// </summary>
-    public string FacialHair { get; set; }
-
-    /// <summary>
-    /// The URN of the upper body wearable.
-    /// </summary>
-    public string UpperBody { get; set; }
-
-    /// <summary>
-    /// The URN of the lower body wearable.
-    /// </summary>
-    public string LowerBody { get; set; }
+    public string BodyShape { get; set; }
 
     /// <summary>
     /// If we're using orthographic projection.

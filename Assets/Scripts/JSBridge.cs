@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using JetBrains.Annotations;
 using UnityEngine;
 
@@ -46,9 +48,10 @@ public class JSBridge : MonoBehaviour
     }
 
     [UsedImplicitly]
-    public void SetUrn(string value)
+    public void SetUrns(string value)
     {
-        bootstrap.Config.Urn = value;
+        bootstrap.Config.Urns = value.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+        bootstrap.InvokeReload();
     }
 
     [UsedImplicitly]

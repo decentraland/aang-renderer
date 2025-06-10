@@ -12,6 +12,9 @@ using Debug = UnityEngine.Debug;
 
 public class PreviewLoader : MonoBehaviour
 {
+    private static readonly int MAIN_TEX = Shader.PropertyToID("_MainTex");
+    private static readonly int MASK_TEX = Shader.PropertyToID("_MaskTex");
+
     [SerializeField] private Camera mainCamera;
     [SerializeField] private Transform avatarRoot;
     [SerializeField] private Transform wearableRoot;
@@ -35,7 +38,9 @@ public class PreviewLoader : MonoBehaviour
         switch (config.Mode)
         {
             case PreviewMode.Marketplace:
-                await LoadForMarketplace(config.Profile, await GetUrn(config), config.Emote);
+                var urns = await GetUrns(config);
+                Assert.IsTrue(urns.Count == 1, $"Marketplace mode only allows one urn, found: {urns.Count}");
+                await LoadForMarketplace(config.Profile, urns[0], config.Emote);
                 break;
             case PreviewMode.Authentication:
                 await LoadForProfile(config.Profile, config.Emote, true);
@@ -44,8 +49,8 @@ public class PreviewLoader : MonoBehaviour
                 await LoadForProfile(config.Profile, config.Emote, false);
                 break;
             case PreviewMode.Builder:
-                await LoadForBuilder(config.BodyShape, config.EyeColor, config.HairColor, config.SkinColor, config.Hair,
-                    config.FacialHair, config.UpperBody, config.LowerBody, config.Emote, config.Base64);
+                await LoadForBuilder(config.BodyShape, config.EyeColor, config.HairColor, config.SkinColor,
+                    await GetUrns(config), config.Emote, config.Base64);
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
@@ -62,11 +67,6 @@ public class PreviewLoader : MonoBehaviour
 
         await LoadStuff(avatar.bodyShape, avatar.wearables.ToList(), urn, avatar.eyes.color, avatar.hair.color,
             avatar.skin.color, defaultEmote, null);
-
-        // This probably shouldn't be here but it's fiiiine
-        if (_overrideWearableCategory == "emote")
-        {
-        }
     }
 
     private async Awaitable LoadForProfile(string profileID, string defaultEmote, bool showPlatform)
@@ -82,25 +82,12 @@ public class PreviewLoader : MonoBehaviour
     }
 
     private async Awaitable LoadForBuilder(string bodyShape, Color? eyeColor, Color? hairColor, Color? skinColor,
-        [CanBeNull] string hair, [CanBeNull] string facialHair, string upperBody, string lowerBody, string defaultEmote,
-        [CanBeNull] byte[] base64)
+        List<string> urns, string defaultEmote, [CanBeNull] byte[] base64)
     {
         Assert.IsNotNull(bodyShape);
         Assert.IsTrue(eyeColor.HasValue);
         Assert.IsTrue(hairColor.HasValue);
         Assert.IsTrue(skinColor.HasValue);
-        // Assert.IsNotNull(hair);
-        // Assert.IsNotNull(facialHair);
-        Assert.IsNotNull(upperBody);
-        Assert.IsNotNull(lowerBody);
-
-        var urns = new List<string>
-        {
-            upperBody,
-            lowerBody
-        };
-        if (hair != null) urns.Add(hair);
-        if (facialHair != null) urns.Add(facialHair);
 
         await LoadStuff(bodyShape, urns, null, eyeColor.Value, hairColor.Value, skinColor.Value, defaultEmote, base64);
     }
@@ -246,20 +233,20 @@ public class PreviewLoader : MonoBehaviour
 
         if (_facialFeatures.TryGetValue(WearablesConstants.Categories.EYEBROWS, out var eyebrowsTex) && eyebrows)
         {
-            eyebrows.material.SetTexture("_MainTex", eyebrowsTex.main);
-            eyebrows.material.SetTexture("_MaskTex", eyebrowsTex.mask);
+            eyebrows.material.SetTexture(MAIN_TEX, eyebrowsTex.main);
+            eyebrows.material.SetTexture(MASK_TEX, eyebrowsTex.mask);
         }
 
         if (_facialFeatures.TryGetValue(WearablesConstants.Categories.EYES, out var eyesTex) && eyes)
         {
-            eyes.material.SetTexture("_MainTex", eyesTex.main);
-            eyes.material.SetTexture("_MaskTex", eyesTex.mask);
+            eyes.material.SetTexture(MAIN_TEX, eyesTex.main);
+            eyes.material.SetTexture(MASK_TEX, eyesTex.mask);
         }
 
         if (_facialFeatures.TryGetValue(WearablesConstants.Categories.MOUTH, out var mouthTex) && mouth)
         {
-            mouth.material.SetTexture("_MainTex", mouthTex.main);
-            mouth.material.SetTexture("_MaskTex", mouthTex.mask);
+            mouth.material.SetTexture(MAIN_TEX, mouthTex.main);
+            mouth.material.SetTexture(MASK_TEX, mouthTex.mask);
         }
     }
 
@@ -368,22 +355,24 @@ public class PreviewLoader : MonoBehaviour
     }
 
 
-    private static async Awaitable<string> GetUrn(PreviewConfiguration config)
+    private static async Awaitable<List<string>> GetUrns(PreviewConfiguration config)
     {
-        if (config.Urn != null) return config.Urn;
+        if (config.Urns.Count > 0) return config.Urns;
 
         // If we have a contract and item id or token id we need to fetch the urn first
         if (config.Contract != null && (config.ItemID != null || config.TokenID != null))
         {
-            return config.ItemID != null
-                ? (await APIService.GetMarketplaceItemFromID(config.Contract, config.ItemID)).data[0].urn
-                : (await APIService.GetMarketplaceItemFromToken(config.Contract, config.TokenID)).data[0].nft
-                .urn;
+            return new List<string>
+            {
+                config.ItemID != null
+                    ? (await APIService.GetMarketplaceItemFromID(config.Contract, config.ItemID)).data[0].urn
+                    : (await APIService.GetMarketplaceItemFromToken(config.Contract, config.TokenID)).data[0].nft
+                    .urn
+            };
         }
 
         return null;
     }
-
 
     private void Cleanup()
     {
