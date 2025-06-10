@@ -5,20 +5,22 @@ using UnityEngine.Networking;
 
 public static class APIService
 {
-    private const string ENDPOINT_PEER = "https://peer.decentraland.org";
-    private const string ENDPOINT_MARKETPLACE = "https://marketplace-api.decentraland.org";
-
-    public const string API_CATALYST = "https://peer.decentraland.org/content/contents/{0}";
-    private const string API_PROFILE = ENDPOINT_PEER + "/lambdas/profiles/{0}";
-    private const string API_ACTIVE_ENTITIES = ENDPOINT_PEER + "/content/entities/active";
-    private const string API_MARKETPLACE_ITEM_ID = ENDPOINT_MARKETPLACE + "/v1/items?contractAddress={0}&itemId={1}";
-    private const string API_MARKETPLACE_TOKEN_ID = ENDPOINT_MARKETPLACE + "/v1/nfts?contractAddress={0}&tokenId={1}";
-
     private const int RETRY_COUNT = 2;
+
+    private static string EndpointPeer => $"https://peer.decentraland.{Environment}";
+    private static string EndpointMarketplace => $"https://marketplace-api.decentraland.{Environment}";
+    public static string EndpointCatalyst => $"https://peer.decentraland.{Environment}/content/contents/{{0}}";
+
+    private static string APIProfile => EndpointPeer + "/lambdas/profiles/{0}";
+    private static string APIActiveEntities => EndpointPeer + "/content/entities/active";
+    private static string APIMarketplaceItemID => EndpointMarketplace + "/v1/items?contractAddress={0}&itemId={1}";
+    private static string APIMarketplaceTokenID => EndpointMarketplace + "/v1/nfts?contractAddress={0}&tokenId={1}";
+
+    public static string Environment { get; set; } = "org";
 
     public static async Awaitable<ProfileResponse.Avatar.AvatarData> GetAvatar(string profileID)
     {
-        var profile = await GetWithRetry<ProfileResponse>(API_PROFILE, profileID);
+        var profile = await GetWithRetry<ProfileResponse>(APIProfile, profileID);
 
         var avatar = profile.avatars[0].avatar;
 
@@ -31,14 +33,14 @@ public static class APIService
     }
 
     public static Awaitable<MarketplaceItemResponse> GetMarketplaceItemFromID(string contract, string itemID) =>
-        GetWithRetry<MarketplaceItemResponse>(API_MARKETPLACE_ITEM_ID, contract, itemID);
+        GetWithRetry<MarketplaceItemResponse>(APIMarketplaceItemID, contract, itemID);
 
 
     public static Awaitable<MarketplaceNTFResponse> GetMarketplaceItemFromToken(string contract, string tokenID) =>
-        GetWithRetry<MarketplaceNTFResponse>(API_MARKETPLACE_TOKEN_ID, contract, tokenID);
+        GetWithRetry<MarketplaceNTFResponse>(APIMarketplaceTokenID, contract, tokenID);
 
     public static Awaitable<ActiveEntity[]> GetActiveEntities(string[] pointers) =>
-        PostWithRetryArray<ActiveEntity>(API_ACTIVE_ENTITIES, new ActiveEntitiesRequest(pointers));
+        PostWithRetryArray<ActiveEntity>(APIActiveEntities, new ActiveEntitiesRequest(pointers));
 
 
     private static async Awaitable<T[]> PostWithRetryArray<T>(string url, object data)

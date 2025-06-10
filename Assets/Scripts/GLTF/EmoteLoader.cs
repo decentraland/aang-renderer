@@ -152,7 +152,7 @@ namespace GLTF
         {
             return Uri.TryCreate(file, UriKind.Absolute, out var uri)
                 ? uri
-                : new Uri(string.Format(APIService.API_CATALYST, file));
+                : new Uri(string.Format(APIService.EndpointCatalyst, file));
         }
     }
 }

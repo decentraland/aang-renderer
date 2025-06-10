@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 namespace Utils
@@ -80,6 +79,10 @@ namespace Utils
                         break;
                     case "token":
                         config.TokenID = value;
+                        break;
+                    case "env":
+                        APIService.Environment = value == "dev" ? "zone" : "org";
+                        Debug.Log($"Using environment {APIService.Environment}");
                         break;
                     default:
                         Debug.LogWarning($"Unknown parameter in URL: {key}");
