@@ -62,9 +62,6 @@ public class UIPresenter : MonoBehaviour
         _avatarButton.AddManipulator(new Clickable(OnAvatarButtonClicked));
 
         EnableLoader(true);
-
-        // TODO: Temporary fix for copy / paste in Web builds
-        root.Query<TextField>().ForEach(v => v.AddManipulator(new WebGLSupport.WebGLInputManipulator()));
     }
 
     private void Update()
