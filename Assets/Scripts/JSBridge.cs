@@ -1,7 +1,11 @@
-using System;
 using JetBrains.Annotations;
 using UnityEngine;
 
+/// <summary>
+/// Used for interacting with the unity renderer from JavaScript.
+///
+/// Usage: unityInstance.SendMessage('JSBridge', 'MethodName', 'value');
+/// </summary>
 public class JSBridge : MonoBehaviour
 {
     [SerializeField] private Bootstrap bootstrap;
@@ -10,6 +14,13 @@ public class JSBridge : MonoBehaviour
     public void ParseFromURL()
     {
         bootstrap.ParseFromURL();
+        bootstrap.InvokeReload();
+    }
+
+    [UsedImplicitly]
+    public void SetMode(string value)
+    {
+        bootstrap.Config.SetMode(value);
         bootstrap.InvokeReload();
     }
 

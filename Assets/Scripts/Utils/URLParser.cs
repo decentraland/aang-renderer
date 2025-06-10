@@ -27,13 +27,7 @@ namespace Utils
                 switch (key)
                 {
                     case "mode":
-                        config.Mode = value switch
-                        {
-                            "profile" => PreviewMode.Profile,
-                            "authentication" => PreviewMode.Authentication,
-                            "builder" => PreviewMode.Builder,
-                            _ => PreviewMode.Marketplace
-                        };
+                        config.SetMode(value);
                         break;
                     case "profile":
                         config.Profile = value;

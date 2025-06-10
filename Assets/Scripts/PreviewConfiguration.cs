@@ -3,7 +3,25 @@ using UnityEngine;
 
 public class PreviewConfiguration
 {
-    public PreviewMode Mode { get; set; } = PreviewMode.Profile;
+    /// <summary>
+    /// The mode in which the preview will run.
+    /// </summary>
+    public PreviewMode Mode { get; private set; } = PreviewMode.Profile;
+
+    /// <summary>
+    /// Converts the string value to the appropriate mode. Defaults to Marketplace.
+    /// </summary>
+    /// <param name="value"></param>
+    public void SetMode(string value)
+    {
+        Mode = value switch
+        {
+            "profile" => PreviewMode.Profile,
+            "authentication" => PreviewMode.Authentication,
+            "builder" => PreviewMode.Builder,
+            _ => PreviewMode.Marketplace
+        };
+    }
 
     /// <summary>
     /// An ethereum address of a profile to load as the base avatar.
