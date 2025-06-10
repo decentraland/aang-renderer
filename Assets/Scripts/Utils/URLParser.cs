@@ -65,6 +65,12 @@ namespace Utils
                     case "lowerBody":
                         config.LowerBody = value;
                         break;
+                    case "hair":
+                        config.Hair = value;
+                        break;
+                    case "facialHair":
+                        config.FacialHair = value;
+                        break;
                     case "projection":
                         config.Projection = value;
                         break;
