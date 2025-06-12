@@ -45,6 +45,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: true
 
       - name: Get commit SHA
         id: get_commit_sha
@@ -56,11 +57,10 @@ jobs:
           echo "Ref from Pull Request: ${{ github.event.pull_request.head.sha }}"
           echo "Full Commit from git rev-parse: $(git rev-parse $GITHUB_SHA)"
           echo "HEAD Commit: $(git rev-parse HEAD)"
-          
+
       - name: Get version
         id: get_version
         run: |
-          git fetch --tags
           TAG=$(git describe --tags --abbrev=0)
           VERSION=${TAG#v}
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
