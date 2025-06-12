@@ -156,7 +156,7 @@ jobs:
           POLL_TIME: 60  # Set the polling time in seconds
           GLOBAL_TIMEOUT: 10800  # Set the global timeout in seconds (e.g., 3 hours)
           TARGET: t_web
-          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+          REF_NAME: ${{ github.ref_name }}
           COMMIT_SHA: ${{ needs.prebuild.outputs.commit_sha }}
           BUILD_OPTIONS: ${{ needs.prebuild.outputs.options }}
           CLEAN_BUILD: ${{ needs.prebuild.outputs.clean_build }}
@@ -258,4 +258,4 @@ jobs:
           API_KEY: ${{ secrets.UNITY_CLOUD_API_KEY }}
           ORG_ID: ${{ secrets.UNITY_CLOUD_ORG_ID }}
           PROJECT_ID: ${{ secrets.UNITY_CLOUD_PROJECT_ID }}
-        run: python -u scripts/cloudbuild/build.py --cancel
+        run: python -u .github/scripts/build.py --cancel

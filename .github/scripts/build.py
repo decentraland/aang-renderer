@@ -64,12 +64,12 @@ def get_target(target):
         print("Response body:", response.text)
         sys.exit(1)
 
-def clone_current_target(use_cache):
+def clone_current_target(ref_name, use_cache):
     def generate_body(template_target, name, branch, options, remoteCacheStrategy):
         body = get_target(template_target)
 
         body['name'] = name
-        body['settings']['scm']['branch'] = branch
+        # body['settings']['scm']['branch'] = branch
         body['settings']['advanced']['unity']['playerExporter']['buildOptions'] = options
         body['settings']['remoteCacheStrategy'] = remoteCacheStrategy
         body['settings']['buildSchedule']['isEnabled'] = False
@@ -87,27 +87,12 @@ def clone_current_target(use_cache):
         return body
 
     # Set target name based on branch, without commit SHA
-    base_target_name  = f'{re.sub(r'^t_', '', os.getenv('TARGET'))}-{re.sub('[^A-Za-z0-9]+', '-', os.getenv('BRANCH_NAME'))}'.lower()
+    new_target_name  = f'{re.sub(r'^t_', '', os.getenv('TARGET'))}-{re.sub('[^A-Za-z0-9]+', '-', ref_name)}'.lower()
 
-    # Get the install source from the environment variable
-    install_source = os.getenv('PARAM_INSTALL_SOURCE', 'launcher')
+    # Remove dots from the tag version, as unity API does not allow . in the request
+    new_target_name = re.sub(r'\.', '_', new_target_name)
 
-    # Include install_source in the target name only if it's not 'launcher'
-    if install_source and install_source != 'launcher':
-        base_target_name = f"{base_target_name}-{install_source}"
-
-    print(f"Start clone_current_target for {base_target_name}")
-
-    if is_release_workflow:
-         # Use the tag version in the target name if it's a release workflow
-        tag_version = os.getenv('TAG_VERSION', 'unknown-version')
-        # Remove dots from the tag version, as unity API does not allow . in the request
-        sanitized_tag_version = re.sub(r'\.', '-', tag_version)
-        new_target_name = f"{base_target_name}-{sanitized_tag_version}"
-    else:
-        new_target_name = base_target_name
-
-    print(f"Updated name for target: {new_target_name}")
+    print(f"Start clone_current_target for {new_target_name}")
 
     template_target = os.getenv('TARGET')
 
@@ -115,7 +100,7 @@ def clone_current_target(use_cache):
     body = generate_body(
         template_target,
         new_target_name,
-        os.getenv('BRANCH_NAME'),
+        ref_name,
         os.getenv('BUILD_OPTIONS').split(','),
         os.getenv('CACHE_STRATEGY'))
 
@@ -134,7 +119,7 @@ def clone_current_target(use_cache):
         except ConnectionError as e:
             print(f'ConnectionError while trying to post new target: {e}. Retrying...')
             time.sleep(2)  # Add a small delay before retrying
-            clone_current_target(use_cache)  # Retry the whole process
+            clone_current_target(ref_name, use_cache)  # Retry the whole process
     else:
         if use_cache:
             body['settings']['buildTargetCopyCache'] = new_target_name
@@ -146,7 +131,7 @@ def clone_current_target(use_cache):
         except ConnectionError as e:
             print(f'ConnectionError while trying to post exisiting target: {e}. Retrying...')
             time.sleep(2)  # Add a small delay before retrying
-            clone_current_target(use_cache)  # Retry the whole process
+            clone_current_target(ref_name, use_cache)  # Retry the whole process
 
     print(f"clone_current_target response status: {response.status_code}")
     if response.status_code == 200 or response.status_code == 201:
@@ -156,11 +141,11 @@ def clone_current_target(use_cache):
     elif response.status_code == 500 and 'Build target name already in use for this project!' in response.text:
         print('Target update failed due to a possible race condition. Retrying...')
         time.sleep(2)  # Add a small delay before retrying
-        clone_current_target(True)  # Retry the whole process
+        clone_current_target(ref_name, True)  # Retry the whole process
     elif response.status_code == 400:
         print('Target update failed due to incompatible cache file. Retrying...')
         time.sleep(2)  # Add a small delay before retrying
-        clone_current_target(False)  # Retry the whole process
+        clone_current_target(ref_name, False)  # Retry the whole process
     else:
         print('Target failed to clone/update with status code:', response.status_code)
         print('Response body:', response.text)
@@ -202,14 +187,14 @@ def get_latest_build(target):
     print('Failed to get the latest build.')
     return None
     
-def run_build(branch, clean):
+def run_build(ref_name, commit_sha, clean):
     max_retries = 10
     retry_delay = 30  # seconds
 
-    print(f'Triggering build for {branch}, clean build = {clean}')
+    print(f'Triggering build for {ref_name}, clean build = {clean}')
     for attempt in range(max_retries):
         body = {
-            'branch': branch,
+            'commit': commit_sha,
             'clean' : clean
         }
         try:
@@ -458,25 +443,8 @@ def get_any_running_builds(target, trueOnError = True):
             sys.exit(1)
 
 def delete_current_target():
-
-    # List of targets to delete
-    targets = ['macos', 'windows64']
-    
-    # Loop through each target
-    for target in targets:
-        base_target_name = f'{target}-{re.sub("[^A-Za-z0-9]+", "-", os.getenv("BRANCH_NAME"))}'.lower()
-        response = requests.delete(f'{URL}/buildtargets/{base_target_name}', headers=HEADERS)
-        
-        if response.status_code == 204:
-            print(f'Build target deleted successfully: "{base_target_name}"')
-        elif response.status_code == 404:
-            print(f'Build target not found: "{base_target_name} - skip deletion"')
-        else:
-            print('Build target failed to be deleted with status code:', response.status_code)
-            print('Response body:', response.text)
-            sys.exit(1)
-    
-    sys.exit(0)
+    print('Delete not supported')
+    sys.exit(1)
 
 # Entrypoint here ->
 args = parser.parse_args()
@@ -485,7 +453,7 @@ args = parser.parse_args()
 if args.delete:
     delete_current_target()
 # MODE: Resume
-elif args.resume or args.cancel:
+if args.resume or args.cancel:
     build_info = utils.read_build_info()
     if build_info is None:
         sys.exit(1)
@@ -501,8 +469,10 @@ elif args.resume or args.cancel:
 else:
 
     # Validate branch name before proceeding
-    branch_name = os.getenv('BRANCH_NAME')
-    validate_branch_name(branch_name)
+    ref_name = os.getenv('REF_NAME')
+    # validate_branch_name(branch_name)
+    
+    print(f'Ref name: {ref_name}')
 
     # Clone current target
     # This will clone the current $TARGET and replace the value in $TARGET with it
@@ -511,7 +481,7 @@ else:
     # If the target already exists, it will check if it has running builds on it
     # If it has running builds, a new target will be created with an added timestamp (Unity can't queue)
     try:
-        clone_current_target(True)
+        clone_current_target(ref_name, True)
     except Exception as e:
         print(f"Operation failed: {e}")
 
@@ -531,7 +501,7 @@ else:
         else:
             raise ValueError(f"Invalid boolean value for CLEAN_BUILD: {value}")
     # Run Build
-    id = run_build(os.getenv('BRANCH_NAME'), get_clean_build_bool())
+    id = run_build(ref_name, os.getenv('COMMIT_SHA'), get_clean_build_bool())
 
     utils.persist_build_info(os.getenv('TARGET'), id)
     print(f'For more info and live logs, go to https://cloud.unity.com/ and search for target "{os.getenv('TARGET')}" and build ID "{id}"')
