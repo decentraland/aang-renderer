@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Utils;
@@ -10,6 +12,7 @@ public class UIPresenter : MonoBehaviour
     private const string DEBUG_PASSPHRASE = "debugmesilly";
 
     [SerializeField] private PreviewLoader previewLoader;
+    [SerializeField] private Bootstrap bootstrap;
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private CameraController cameraController;
 
@@ -60,6 +63,11 @@ public class UIPresenter : MonoBehaviour
 
         _wearableButton.AddManipulator(new Clickable(OnWearableButtonClicked));
         _avatarButton.AddManipulator(new Clickable(OnAvatarButtonClicked));
+
+        if (Application.isEditor)
+        {
+            EnableDebug();
+        }
 
         EnableLoader(true);
     }
@@ -161,19 +169,43 @@ public class UIPresenter : MonoBehaviour
 
         if (_debugLoaded) return;
 
-        debugPanel.Q<Button>("LoadButton").clicked += async () =>
+        // @formatter:off
+        var dropdownOptions = new List<(string name, string url)>
         {
-            var profileID = debugPanel.Q<TextField>("PlayerID").value;
-            var wearableID = debugPanel.Q<TextField>("WearableID").value;
-            if (string.IsNullOrEmpty(wearableID))
-            {
-                wearableID = debugPanel.Q<DropdownField>("WearableDropdown").value;
-                if (wearableID == "None") wearableID = null;
-            }
-
-            await previewLoader.LoadPreview(
-                URLParser.Parse($"https://example.com/?mode=marketplace&profile={profileID}&urn={wearableID}"));
+            ("Profile", "https://example.com/?mode=profile&profile=0x3f574d05ec670fe2c92305480b175654ca512005&background=039dfc"),
+            ("Authentication", "https://example.com/?mode=authentication&profile=0x3f574d05ec670fe2c92305480b175654ca512005&background=039dfc"),
+            ("Market Emote", "https://example.com/?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0xb5e24ada4096b86ce3cf7af5119f19ed6089a80b&item=0&background=039dfc"),
+            ("Market Emote Prop", "https://example.com/?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0x97822560ec3e3522c1237f85817003211281eb79:0&background=039dfc"),
+            ("Market Emote Audio", "https://example.com/?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0xb187264af67cf6d147521626203dedcfd901ceb3:4&background=039dfc"),
+            ("Builder", "https://example.com/?mode=builder&bodyShape=urn:decentraland:off-chain:base-avatars:BaseMale&eyeColor=20B3F6&skinColor=FFE4C6&hairColor=8C2014&urn=urn:decentraland:off-chain:base-avatars:turtle_neck_sweater&urn=urn:decentraland:off-chain:base-avatars:kilt&background=4b4851"),
+            ("Builder Base64 Emote", "https://example.com/?mode=builder&bodyShape=urn:decentraland:off-chain:base-avatars:BaseMale&eyeColor=20B3F6&skinColor=FFE4C6&hairColor=8C2014&upperBody=urn:decentraland:off-chain:base-avatars:turtle_neck_sweater&lowerBody=urn:decentraland:off-chain:base-avatars:kilt&background=4b4851&base64=eyJpZCI6ImZjMTZhMjlmLTAxZjQtNDI5MC1iZTY5LThjNGQ1ZDFlZDZlZSIsIm5hbWUiOiJDaGVmZiBraXNzIiwidGh1bWJuYWlsIjoidGh1bWJuYWlsLnBuZyIsImltYWdlIjoidGh1bWJuYWlsLnBuZyIsImRlc2NyaXB0aW9uIjoiIiwiaTE4biI6W3siY29kZSI6ImVuIiwidGV4dCI6IkNoZWZmIGtpc3MifV0sImVtb3RlRGF0YUFEUjc0Ijp7ImNhdGVnb3J5Ijoic3R1bnQiLCJsb29wIjpmYWxzZSwidGFncyI6W10sInJlcHJlc2VudGF0aW9ucyI6W3siYm9keVNoYXBlcyI6WyJ1cm46ZGVjZW50cmFsYW5kOm9mZi1jaGFpbjpiYXNlLWF2YXRhcnM6QmFzZU1hbGUiXSwibWFpbkZpbGUiOiJtYWxlL2NoZWZmIGtpc3MuZ2xiIiwiY29udGVudHMiOlt7ImtleSI6Im1hbGUvY2hlZmYga2lzcy5nbGIiLCJ1cmwiOiJodHRwczovL2J1aWxkZXItYXBpLmRlY2VudHJhbGFuZC56b25lL3YxL3N0b3JhZ2UvY29udGVudHMvYmFma3JlaWV0enN2anZrcG9uNWV5d25uYmRtdGdlaHo2czVtYWNxeGd1eDVidWh6aGFhZnNiM3F0eW0ifV19LHsiYm9keVNoYXBlcyI6WyJ1cm46ZGVjZW50cmFsYW5kOm9mZi1jaGFpbjpiYXNlLWF2YXRhcnM6QmFzZUZlbWFsZSJdLCJtYWluRmlsZSI6ImZlbWFsZS9jaGVmZiBraXNzLmdsYiIsImNvbnRlbnRzIjpbeyJrZXkiOiJmZW1hbGUvY2hlZmYga2lzcy5nbGIiLCJ1cmwiOiJodHRwczovL2J1aWxkZXItYXBpLmRlY2VudHJhbGFuZC56b25lL3YxL3N0b3JhZ2UvY29udGVudHMvYmFma3JlaWV0enN2anZrcG9uNWV5d25uYmRtdGdlaHo2czVtYWNxeGd1eDVidWh6aGFhZnNiM3F0eW0ifV19XX19"),
+            ("Builder Anim Ref", "https://example.com/?mode=builder&bodyShape=urn:decentraland:off-chain:base-avatars:BaseMale&eyeColor=20B3F6&skinColor=FFE4C6&hairColor=8C2014&urn=urn:decentraland:off-chain:base-avatars:turtle_neck_sweater&urn=urn:decentraland:off-chain:base-avatars:kilt&urn=urn:decentraland:off-chain:base-avatars:keanu_hair&background=4b4851&showAnimationReference=true"),
         };
+        // @formatter:on
+
+        var dropdown = debugPanel.Q<DropdownField>("URLDropdown");
+        dropdown.choices = dropdownOptions.Select(o => o.name).ToList();
+        dropdown.RegisterValueChangedCallback(evt =>
+        {
+            var selected = dropdownOptions.Find(o => o.name == evt.newValue);
+            bootstrap.ParseFromURL(selected.url);
+            bootstrap.InvokeReload();
+        });
+
+        var methodNameField = debugPanel.Q<TextField>("MethodName");
+        var parameterField = debugPanel.Q<TextField>("Parameter");
+        debugPanel.Q<Button>("InvokeButton").clicked += () =>
+        {
+            if (string.IsNullOrEmpty(parameterField.value))
+            {
+                GameObject.Find("JSBridge").SendMessage(methodNameField.value);
+            }
+            else
+            {
+                GameObject.Find("JSBridge").SendMessage(methodNameField.value, parameterField.value);
+            }
+        };
+
         debugPanel.Q<Button>("HideButton").clicked += () => debugPanel.style.display = DisplayStyle.None;
 
         _debugLoaded = true;

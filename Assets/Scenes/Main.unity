@@ -888,6 +888,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   previewLoader: {fileID: 1088246592}
+  bootstrap: {fileID: 983774207}
   audioSource: {fileID: 330585548}
   cameraController: {fileID: 330585549}
 --- !u!1 &1155634899 stripped

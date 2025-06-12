@@ -34,6 +34,9 @@ public class PreviewLoader : MonoBehaviour
 
     public async Awaitable LoadPreview(PreviewConfiguration config)
     {
+        gameObject.SetActive(false);
+        Cleanup();
+
         switch (config.Mode)
         {
             case PreviewMode.Marketplace:
@@ -52,6 +55,8 @@ public class PreviewLoader : MonoBehaviour
             default:
                 throw new ArgumentOutOfRangeException();
         }
+
+        gameObject.SetActive(true);
     }
 
     private async Awaitable LoadForMarketplace(string profileID, string urn, string defaultEmote)
@@ -91,8 +96,6 @@ public class PreviewLoader : MonoBehaviour
         Color hairColor, Color skinColor,
         string defaultEmote, byte[] base64)
     {
-        Cleanup();
-
         var avatarColors = new AvatarColors(eyeColor, hairColor, skinColor);
 
         urns.Insert(0, bodyShape);
@@ -205,8 +208,6 @@ public class PreviewLoader : MonoBehaviour
 
             anim.Play("emote");
         }
-
-        gameObject.SetActive(true);
 
         Debug.Log("Loaded all wearables!");
     }
@@ -356,8 +357,6 @@ public class PreviewLoader : MonoBehaviour
 
     private void Cleanup()
     {
-        gameObject.SetActive(false);
-
         foreach (Transform child in avatarRoot) Destroy(child.gameObject);
         foreach (Transform child in wearableRoot) Destroy(child.gameObject);
         _wearables.Clear();

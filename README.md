@@ -101,3 +101,32 @@ For a full list of available functions check [JSBridge](Assets/Scripts/JSBridge.
 * `SetUrns`
   * The input should be either a single URN or a list of urns separated by commas.
   * Example: `unityInstance.SendMessage('JSBridge', 'SetUrns', 'urn:decentraland:off-chain:base-avatars:kilt,urn:decentraland:off-chain:base-avatars:full_beard,urn:decentraland:off-chain:base-avatars:blue_bandana');`
+
+## Taking screenshots
+
+The renderer has the ability to take a screenshot and provide the png as a base64 encoded string.
+
+To take a screenshot you call:
+```javascript
+unityInstance.SendMessage('JSBridge', 'TakeScreenshot');
+```
+
+This will not return any value. When the screenshot is taken a message is sent to the window parent which can be listened to, to retrieve the screenshot:
+
+```javascript
+window.parent.postMessage(
+{
+  type: 'unity-screenshot',
+  data: base64str
+}
+```
+
+Example:
+```javascript
+window.addEventListener('message', (event) => {
+  if (event.data?.type === 'unity-screenshot') {
+    const base64 = event.data.data;
+    console.log('Received screenshot:', base64);
+  }
+});
+```

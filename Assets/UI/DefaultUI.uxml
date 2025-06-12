@@ -22,10 +22,12 @@
         <engine:VisualElement name="Icon" class="loader__icon" />
     </engine:VisualElement>
     <engine:VisualElement name="DebugPanel" picking-mode="Ignore" style="flex-direction: column; font-size: 22px; justify-content: flex-end; align-items: stretch; position: absolute; top: 0; left: 0; bottom: 0; right: 0; display: none;">
-        <engine:Button text="Hide" name="HideButton" style="width: 100px; align-self: flex-end;" />
-        <engine:TextField label="PlayerID" name="PlayerID" value="0x3f574d05ec670fe2c92305480b175654ca512005" />
-        <engine:TextField label="WearableID" name="WearableID" />
-        <engine:DropdownField label="Wearable" name="WearableDropdown" choices="None,urn:decentraland:off-chain:base-avatars:baggy_pullover,urn:decentraland:off-chain:base-avatars:balbo_beard,urn:decentraland:off-chain:base-avatars:basketball_shorts,urn:decentraland:off-chain:base-avatars:bear_slippers,urn:decentraland:matic:collections-v2:0xbebb268219a67a80fe85fc6af9f0ad0ec0dca98c:0" index="0" />
-        <engine:Button text="Load" name="LoadButton" />
+        <engine:Button text="Hide" name="HideButton" style="width: 93px; align-self: flex-end;" />
+        <engine:VisualElement style="flex-direction: row;">
+            <engine:TextField placeholder-text="MethodName" name="MethodName" style="flex-grow: 1; flex-basis: 1px;" />
+            <engine:TextField placeholder-text="Parameter" name="Parameter" style="flex-grow: 1; flex-basis: 1px;" />
+            <engine:Button text="Invoke" name="InvokeButton" />
+        </engine:VisualElement>
+        <engine:DropdownField name="URLDropdown" style="margin-left: 0;" />
     </engine:VisualElement>
 </engine:UXML>
