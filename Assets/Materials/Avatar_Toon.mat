@@ -395,7 +395,7 @@ Material:
     - _ColorShift_Speed: 0
     - _ComposerMaskMode: 0
     - _Cull: 2
-    - _CullMode: 2
+    - _CullMode: 0
     - _CullModeForward: 2
     - _CullYPlane: 0
     - _Cutoff: 0.5
