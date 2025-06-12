@@ -63,9 +63,17 @@ jobs:
           
       - name: Get version
         id: get_version
-        uses: ./.github/actions/version
-        with:
-          commit_sha: ${{ steps.get_commit_sha.outputs.commit_sha }}
+        run: |
+          git fetch --tags
+          TAG=$(git describe --tags --abbrev=0)
+          VERSION=${TAG#v}
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          else
+            COMMIT_SHA="${{ steps.get_commit_sha.outputs.commit_sha }}"
+            SHORT_SHA=${COMMIT_SHA:0:7}
+            echo "version=$VERSION-$SHORT_SHA" >> $GITHUB_OUTPUT
+          fi
 
       - name: Set default values
         id: set_defaults
