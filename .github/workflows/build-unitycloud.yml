@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       development_build:
-        description: 'If we build a development build'
+        description: 'Development Build'
         required: false
         default: true
         type: boolean
