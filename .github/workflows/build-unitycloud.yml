@@ -8,15 +8,11 @@ on:
       - 'v*'
   workflow_dispatch:
     inputs:
-      profile:
-        description: 'Select level of profiling'
-        required: true
-        default: 'none'
-        type: choice
-        options:
-          - none
-          - profile
-          - deep
+      development_build:
+        description: 'If we build a development build'
+        required: false
+        default: true
+        type: boolean
       clean_build:
         description: 'Clean Build'
         required: false
@@ -81,16 +77,18 @@ jobs:
           # Clean build logic
           if [ "${{ github.event.inputs.clean_build }}" ]; then
             clean_build=${{ github.event.inputs.clean_build }}
-          elif [ "${{ inputs.clean_build }}" ]; then
-            clean_build=${{ inputs.clean_build }}
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            clean_build=true
+          else
+            clean_build=false
           fi
           echo "Set clean_build to: $clean_build"
           echo "clean_build=${clean_build}" >> $GITHUB_OUTPUT
 
           if [ "${{ github.event.inputs.cache_strategy }}" ]; then
             cache_strategy=${{ github.event.inputs.cache_strategy }}
-          elif [ "${{ inputs.cache_strategy }}" ]; then
-            cache_strategy=${{ inputs.cache_strategy }}
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            cache_strategy='none'
           else
             cache_strategy='library'
           fi
@@ -105,16 +103,11 @@ jobs:
           #options=("DetailedBuildReport")
           options=()
 
-          # input.profile
-          profile="${{ github.event.inputs.profile || inputs.profile }}"
+          # development build
+          development="${{ github.event.inputs.development_build }}"
 
-          if [[ "$profile" == "profile" || "$profile" == "deep" ]]; then
+          if [[ "$development" == "true" ]]; then
             options+=("Development")
-            options+=("ConnectWithProfiler")
-          fi
-
-          if [[ "$profile" == "deep" ]]; then
-            options+=("EnableDeepProfilingSupport")
           fi
 
           # Write the array as a comma-separated string
