@@ -1,9 +1,9 @@
 name: Unity Cloud Build
 
 on:
-#  push:
-#    branches:
-#      - main
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       profile:
@@ -36,13 +36,6 @@ jobs:
     name: Prebuild
     runs-on: ubuntu-latest
     timeout-minutes: 10
-#    if: |
-#      (github.ref == 'refs/heads/dev') ||
-#      (github.ref == 'refs/heads/main') ||
-#      (github.event_name == 'pull_request' && !github.event.pull_request.draft) ||
-#      (github.event_name == 'pull_request' && github.event.action == 'labeled' && github.event.label.name == 'force-build') ||
-#      (github.event_name == 'pull_request' && github.event.action == 'labeled' && github.event.label.name == 'clean-build') ||
-#      (github.event_name == 'workflow_dispatch')
     outputs:
       commit_sha: ${{ steps.get_commit_sha.outputs.commit_sha }}
       options: ${{ steps.get_options.outputs.options }}
@@ -58,24 +51,20 @@ jobs:
       - name: Get commit SHA
         id: get_commit_sha
         run: |
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo "commit_sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
-          else
-            echo "commit_sha=$GITHUB_SHA" >> $GITHUB_OUTPUT
-          fi
+          echo "commit_sha=$GITHUB_SHA" >> $GITHUB_OUTPUT
 
       - name: Debug Commit SHA
         run: |
           echo "Ref from Pull Request: ${{ github.event.pull_request.head.sha }}"
           echo "Full Commit from git rev-parse: $(git rev-parse $GITHUB_SHA)"
           echo "HEAD Commit: $(git rev-parse HEAD)"
-
-#      - name: Get version
-#        id: get_version
-#        if: ${{ github.event.inputs.version == '' && inputs.version == '' }}
-#        uses: ./.github/actions/version
-#        with:
-#          commit_sha: ${{ steps.get_commit_sha.outputs.commit_sha }}
+      
+      #      - name: Get version
+      #        id: get_version
+      #        if: ${{ github.event.inputs.version == '' && inputs.version == '' }}
+      #        uses: ./.github/actions/version
+      #        with:
+      #          commit_sha: ${{ steps.get_commit_sha.outputs.commit_sha }}
 
       - name: Set default values
         id: set_defaults
@@ -211,13 +200,7 @@ jobs:
           name: ${{ env.artifact_name }}
           path: |
             build
-            !build/**/*_BackUpThisFolder_ButDontShipItWithYourGame
-            !build/**/*_BurstDebugInformation_DoNotShip
           if-no-files-found: error
-
-      - name: Compress the build folder to upload it to S3
-        run: |
-          mkdir upload_to_s3/ && cd build && zip -r ../upload_to_s3/${{ env.artifact_name }}.zip . -x "*_BackUpThisFolder_ButDontShipItWithYourGame**" -x "*_BurstDebugInformation_DoNotShip**"
 
       - name: Set SHA, branch, and build prefix
         run: |
@@ -235,21 +218,6 @@ jobs:
             schedule) echo "BUILD_PREFIX=sc" >> $GITHUB_ENV ;;
             *) echo "BUILD_PREFIX=gn" >> $GITHUB_ENV ;;
           esac
-
-      - name: Upload artifact to S3
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.EXPLORER_TEAM_AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.EXPLORER_TEAM_AWS_SECRET_ACCESS_KEY }}
-          EXPLORER_TEAM_S3_BUCKET: ${{ secrets.EXPLORER_TEAM_S3_BUCKET }}
-          DESTINATION_PATH: "${{
-            inputs.is_release_build && format('@dcl/{0}/releases/{1}', github.event.repository.name, inputs.tag_version)
-            || format('@dcl/{0}/branch/{1}/{2}-{3}-{4}', github.event.repository.name, env.SAFE_BRANCH_NAME, env.BUILD_PREFIX, github.run_number, env.SHA_SHORT)
-          }}"
-        run: |
-          npx @dcl/cdn-uploader@next \
-            --bucket $EXPLORER_TEAM_S3_BUCKET \
-            --local-folder upload_to_s3 \
-            --bucket-folder $DESTINATION_PATH
 
       # Will run always (even if failing)
       - name: Upload cloud logs
