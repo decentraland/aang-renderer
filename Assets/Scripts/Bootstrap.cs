@@ -82,6 +82,12 @@ public class Bootstrap : MonoBehaviour
             uiPresenter.EnableZoom(Config.Mode is PreviewMode.Marketplace or PreviewMode.Builder);
             uiPresenter.EnableSwitcher(previewLoader.HasWearableOverride);
             uiPresenter.EnableAudioControls(previewLoader.HasEmoteAudio);
+
+            if (Config.Mode is PreviewMode.Marketplace && previewLoader.HasWearableOverride)
+            {
+                uiPresenter.ShowAvatar(false);
+            }
+            
         } while (_shouldReload);
 
         uiPresenter.EnableLoader(false);

@@ -28,6 +28,7 @@ public class PreviewLoader : MonoBehaviour
     private AnimationClip _emoteAnimation;
     private AudioClip _emoteAudio;
 
+    public bool IsShowingAvatar => _showingAvatar;
     public bool HasEmoteOverride => _overrideWearableCategory == "emote";
     public bool HasEmoteAudio => _emoteAudio != null;
     public bool HasWearableOverride => _overrideWearableCategory != null && !HasEmoteOverride;
@@ -357,6 +358,11 @@ public class PreviewLoader : MonoBehaviour
 
     private void Cleanup()
     {
+        ShowAvatar(false);
+        _overrideWearableCategory = null;
+        _emoteAnimation = null;
+        _emoteAudio = null;
+
         foreach (Transform child in avatarRoot) Destroy(child.gameObject);
         foreach (Transform child in wearableRoot) Destroy(child.gameObject);
         _wearables.Clear();
