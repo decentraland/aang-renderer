@@ -8,22 +8,24 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Avatar_Toon
-  m_Shader: {fileID: 4800000, guid: 7505ab9654a54d46a521c8e828565ab8, type: 3}
+  m_Shader: {fileID: 4800000, guid: 39a0f13973a45b74e9491c428916d9c2, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
-  - _IS_CLIPPING_TRANSMODE
   - _IS_OUTLINE_CLIPPING_YES
   - _OUTLINE_NML
   m_InvalidKeywords:
+  - _
   - _EMISSIVE_SIMPLE
   - _IS_ANGELRING_OFF
+  - _IS_TRANSCLIPPING_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
+  m_CustomRenderQueue: 2000
   stringTagMap:
     IgnoreProjection: False
+    RenderType: TransparentCutout
   disabledShaderPasses: []
   m_LockedProperties: 
   m_SavedProperties:
@@ -439,11 +441,11 @@ Material:
     - _EnableBlendModePreserveSpecularLighting: 1
     - _EnableFogOnTransparent: 1
     - _EnableGeometricSpecularAA: 0
-    - _EndFadeDistance: 0.8
+    - _EndFadeDistance: 100
     - _EnergyConservingSpecularColor: 1
     - _EnvironmentReflections: 1
     - _FadeDirection: 0
-    - _FadeDistance: 1
+    - _FadeDistance: 100
     - _FadeThickness: 5
     - _Farthest_Distance: 100
     - _FirstShadeOverridden: 0
@@ -473,6 +475,7 @@ Material:
     - _IridescenceMask: 1
     - _IridescenceThickness: 1
     - _IsBaseMapAlphaAsClippingMask: 1
+    - _IsEmissive: 0
     - _Is_BLD: 0
     - _Is_BakedNormal: 0
     - _Is_BlendAddToHiColor: 1
@@ -563,7 +566,7 @@ Material:
     - _SpecularRampOuterMin: 0.702
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
-    - _StartFadeDistance: 2
+    - _StartFadeDistance: 100
     - _StencilComp: 0
     - _StencilMode: 0
     - _StencilNo: 1
