@@ -13,11 +13,11 @@
       "hash": "e4587451389b6cf93b084ae434d0cc3d32a45076"
     },
     "com.decentraland.unity-shared-dependencies": {
-      "version": "git@github.com:decentraland/unity-shared-dependencies.git#feat/blend_op_support",
+      "version": "git@github.com:decentraland/unity-shared-dependencies.git#chore/bring-avatar-shaders",
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "25ddf5aba0154c258f9ea1c0f97bffc48dc2b9a9"
+      "hash": "20eb42f75598d29916f5087560aae7c5c5c5fb26"
     },
     "com.unity.burst": {
       "version": "1.8.21",
