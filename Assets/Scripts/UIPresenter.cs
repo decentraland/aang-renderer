@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Utils;
@@ -179,6 +180,7 @@ public class UIPresenter : MonoBehaviour
         // @formatter:off
         var dropdownOptions = new List<(string name, string url)>
         {
+            ("From URL", null),
             ("Profile", "https://example.com/?mode=profile&profile=0x3f574d05ec670fe2c92305480b175654ca512005&background=039dfc"),
             ("Authentication", "https://example.com/?mode=authentication&profile=0x3f574d05ec670fe2c92305480b175654ca512005&background=039dfc"),
             ("Market Wearable", "https://example.com/?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0x1b4e20251ec5da51c749f96a4993f3cebf066853&item=0&background=039dfc"),
@@ -193,6 +195,7 @@ public class UIPresenter : MonoBehaviour
 
         var dropdown = debugPanel.Q<DropdownField>("URLDropdown");
         dropdown.choices = dropdownOptions.Select(o => o.name).ToList();
+        dropdown.index = 0;
         dropdown.RegisterValueChangedCallback(evt =>
         {
             var selected = dropdownOptions.Find(o => o.name == evt.newValue);
@@ -200,17 +203,22 @@ public class UIPresenter : MonoBehaviour
             bootstrap.InvokeReload();
         });
 
-        var methodNameField = debugPanel.Q<TextField>("MethodName");
+        var methodNameDropdown = debugPanel.Q<DropdownField>("MethodNameDropdown");
+        methodNameDropdown.choices = typeof(JSBridge)
+            .GetMethods(BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.Instance).Select(m => m.Name)
+            .ToList();
+        methodNameDropdown.index = 0;
+
         var parameterField = debugPanel.Q<TextField>("Parameter");
         debugPanel.Q<Button>("InvokeButton").clicked += () =>
         {
             if (string.IsNullOrEmpty(parameterField.value))
             {
-                GameObject.Find("JSBridge").SendMessage(methodNameField.value);
+                GameObject.Find("JSBridge").SendMessage(methodNameDropdown.value);
             }
             else
             {
-                GameObject.Find("JSBridge").SendMessage(methodNameField.value, parameterField.value);
+                GameObject.Find("JSBridge").SendMessage(methodNameDropdown.value, parameterField.value);
             }
         };
 

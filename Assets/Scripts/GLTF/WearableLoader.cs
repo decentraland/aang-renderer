@@ -61,21 +61,6 @@ namespace GLTF
 
             return (mainTexture, maskTexture);
 
-            // using var mainTexWebRequest =
-            //     UnityWebRequestTexture.GetTexture(new Uri(string.Format(APIService.API_CATALYST, files[mainFile])),
-            //         true);
-            //
-            // await mainTexWebRequest.SendWebRequest();
-            //
-            // if (mainTexWebRequest.result != UnityWebRequest.Result.Success)
-            // {
-            //     Debug.LogError($"Failed to load main texture: {mainTexWebRequest.error}");
-            //     return null;
-            // }
-            //
-            // var mainTexture = DownloadHandlerTexture.GetContent(mainTexWebRequest);
-            // return texture;
-
             async Awaitable<Texture2D> LoadTexture(string file)
             {
                 using var webRequest =

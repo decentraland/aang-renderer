@@ -217,8 +217,6 @@ public class PreviewLoader : MonoBehaviour
     {
         if (!bodyGO) return;
 
-        // TODO: Shouldn't be here
-
         var meshRenderers = bodyGO.GetComponentsInChildren<SkinnedMeshRenderer>(false);
 
         var eyebrows = meshRenderers.FirstOrDefault(mr => mr.name.EndsWith("Eyebrows"));
@@ -283,7 +281,6 @@ public class PreviewLoader : MonoBehaviour
         if (WearablesConstants.FACIAL_FEATURES.Contains(category))
         {
             // This is a facial feature, only comes as a texture
-            // TODO: Assert.IsTrue(wd.MainFile.EndsWith(".glb"), "Only GLB files are supported");
             var tex = await WearableLoader.LoadFacialFeature(wd.MainFile, wd.Files);
             if (tex != null)
             {
@@ -335,7 +332,6 @@ public class PreviewLoader : MonoBehaviour
         // Apply the offset to the child transform
         root.position -= centerOffset;
     }
-
 
     private static async Awaitable<List<string>> GetUrns(PreviewConfiguration config)
     {

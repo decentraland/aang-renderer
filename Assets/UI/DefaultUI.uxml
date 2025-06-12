@@ -23,11 +23,12 @@
     </engine:VisualElement>
     <engine:VisualElement name="DebugPanel" picking-mode="Ignore" style="flex-direction: column; font-size: 22px; justify-content: flex-end; align-items: stretch; position: absolute; top: 0; left: 0; bottom: 0; right: 0; display: none;">
         <engine:Button text="Hide" name="HideButton" style="width: 93px; align-self: flex-end;" />
-        <engine:VisualElement style="flex-direction: row;">
-            <engine:TextField placeholder-text="MethodName" name="MethodName" style="flex-grow: 1; flex-basis: 1px;" />
+        <engine:VisualElement style="flex-direction: row; height: 50px;">
+            <engine:DropdownField name="MethodNameDropdown" choices="Method" index="0" style="flex-grow: 1; flex-basis: 1px; margin-left: 0;" />
+            <engine:TextField placeholder-text="MethodName" name="MethodName" style="flex-grow: 1; flex-basis: 1px; display: none;" />
             <engine:TextField placeholder-text="Parameter" name="Parameter" style="flex-grow: 1; flex-basis: 1px;" />
             <engine:Button text="Invoke" name="InvokeButton" />
         </engine:VisualElement>
-        <engine:DropdownField name="URLDropdown" style="margin-left: 0;" />
+        <engine:DropdownField name="URLDropdown" choices="From URL" index="0" style="margin-left: 0;" />
     </engine:VisualElement>
 </engine:UXML>
