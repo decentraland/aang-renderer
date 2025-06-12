@@ -1,7 +1,10 @@
 using System;
 using System.Linq;
+using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
+using UnityEngine.Rendering;
 
 /// <summary>
 /// Used for interacting with the unity renderer from JavaScript.
@@ -11,6 +14,9 @@ using UnityEngine;
 public class JSBridge : MonoBehaviour
 {
     [SerializeField] private Bootstrap bootstrap;
+
+    [DllImport("__Internal")]
+    private static extern void OnScreenshotTaken(string base64Str);
 
     [UsedImplicitly]
     public void ParseFromURL()
@@ -58,7 +64,7 @@ public class JSBridge : MonoBehaviour
     public void SetBackground(string value)
     {
         bootstrap.Config.SetBackground(value);
-        bootstrap.InvokeReload();
+        bootstrap.InvokeLightReload();
     }
 
     [UsedImplicitly]
@@ -122,6 +128,60 @@ public class JSBridge : MonoBehaviour
     {
         bootstrap.Config.TokenID = value;
         bootstrap.InvokeReload();
+    }
+
+    [UsedImplicitly]
+    public void TakeScreenshot()
+    {
+        StartCoroutine(TakeScreenshotCoroutine());
+    }
+
+    private static async Awaitable TakeScreenshotCoroutine()
+    {
+        await Awaitable.EndOfFrameAsync();
+
+        var width = Screen.width;
+        var height = Screen.height;
+
+        var rt = RenderTexture.GetTemporary(width, height, 0, GraphicsFormat.B8G8R8A8_UNorm);
+
+        ScreenCapture.CaptureScreenshotIntoRenderTexture(rt);
+
+        var gpuReadbackRequest = await AsyncGPUReadback.RequestAsync(rt);
+
+        if (gpuReadbackRequest.hasError)
+        {
+            Debug.LogError("Failed to capture screenshot");
+            OnScreenshotTaken(null);
+            return;
+        }
+
+        var sourceData = gpuReadbackRequest.GetData<byte>();
+
+        var texture = new Texture2D(width, height, TextureFormat.BGRA32, false);
+        var destinationData = texture.GetRawTextureData<byte>();
+
+        // We have to flip the pixels vertically because OpenGL reasons
+        for (var i = 0; i < sourceData.Length; i += 4)
+        {
+            var arrayIndex = i / 4;
+            var x = arrayIndex % width;
+            var y = arrayIndex / width;
+            var flippedY = (height - 1 - y);
+            var flippedIndex = x + flippedY * width;
+
+            destinationData[i] = sourceData[flippedIndex * 4];
+            destinationData[i + 1] = sourceData[flippedIndex * 4 + 1];
+            destinationData[i + 2] = sourceData[flippedIndex * 4 + 2];
+            destinationData[i + 3] = sourceData[flippedIndex * 4 + 3];
+        }
+
+        var pngBytes = texture.EncodeToPNG();
+        var base64Png = Convert.ToBase64String(pngBytes);
+
+        OnScreenshotTaken(base64Png);
+
+        RenderTexture.ReleaseTemporary(rt);
     }
 
     // private string _methodName;
