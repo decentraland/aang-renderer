@@ -33,6 +33,9 @@ public class PreviewLoader : MonoBehaviour
     public bool HasEmoteAudio => _emoteAudio != null;
     public bool HasWearableOverride => _overrideWearableCategory != null && !HasEmoteOverride;
 
+    [DllImport("__Internal")]
+    private static extern void OnRenderCompleted();
+
     public async Awaitable LoadPreview(PreviewConfiguration config)
     {
         gameObject.SetActive(false);
@@ -211,6 +214,8 @@ public class PreviewLoader : MonoBehaviour
         }
 
         Debug.Log("Loaded all wearables!");
+
+        OnRenderCompleted();
     }
 
     private void SetupFacialFeatures(GameObject bodyGO)
