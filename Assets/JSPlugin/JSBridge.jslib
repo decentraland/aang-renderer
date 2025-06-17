@@ -5,19 +5,19 @@ mergeInto(LibraryManager.library, {
       {
         type: 'unity-renderer',
         payload: {
-          type: 'unity-screenshot',
+          type: 'screenshot',
           payload: base64str
         }
       },
       '*'
     );
   },
-  OnRenderCompleted: function () {
+  OnLoadComplete: function () {
     window.parent.postMessage(
       {
         type: 'unity-renderer',
         payload: {
-          'type': 'ready',
+          'type': 'loaded',
           'payload': true
         }
       },
