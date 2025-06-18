@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 using Data;
 using GLTF;
 using JetBrains.Annotations;
@@ -32,6 +33,9 @@ public class PreviewLoader : MonoBehaviour
     public bool HasEmoteOverride => _overrideWearableCategory == "emote";
     public bool HasEmoteAudio => _emoteAudio != null;
     public bool HasWearableOverride => _overrideWearableCategory != null && !HasEmoteOverride;
+
+    [DllImport("__Internal")]
+    private static extern void OnLoadComplete();
 
     public async Awaitable LoadPreview(PreviewConfiguration config)
     {
@@ -211,6 +215,8 @@ public class PreviewLoader : MonoBehaviour
         }
 
         Debug.Log("Loaded all wearables!");
+
+        OnLoadComplete();
     }
 
     private void SetupFacialFeatures(GameObject bodyGO)
