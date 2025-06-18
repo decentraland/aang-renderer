@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
@@ -14,9 +13,6 @@ using UnityEngine.Rendering;
 public class JSBridge : MonoBehaviour
 {
     [SerializeField] private Bootstrap bootstrap;
-
-    [DllImport("__Internal")]
-    private static extern void OnScreenshotTaken(string base64Str);
 
     [UsedImplicitly]
     public void ParseFromURL()
@@ -131,6 +127,13 @@ public class JSBridge : MonoBehaviour
     }
 
     [UsedImplicitly]
+    public void SetDisableLoader(string value)
+    {
+        bootstrap.Config.DisableLoader = bool.Parse(value);
+        bootstrap.InvokeLightReload();
+    }
+
+    [UsedImplicitly]
     public void TakeScreenshot()
     {
         StartCoroutine(TakeScreenshotCoroutine());
@@ -152,7 +155,7 @@ public class JSBridge : MonoBehaviour
         if (gpuReadbackRequest.hasError)
         {
             Debug.LogError("Failed to capture screenshot");
-            OnScreenshotTaken(null);
+            NativeCalls.OnScreenshotTaken(null);
             return;
         }
 
@@ -179,21 +182,24 @@ public class JSBridge : MonoBehaviour
         var pngBytes = texture.EncodeToPNG();
         var base64Png = Convert.ToBase64String(pngBytes);
 
-        OnScreenshotTaken(base64Png);
+        NativeCalls.OnScreenshotTaken(base64Png);
 
         RenderTexture.ReleaseTemporary(rt);
     }
 
-    // private string _methodName;
-    // private string _methodValue;
-    // private void OnGUI()
-    // {
-    //     _methodName = GUILayout.TextField(_methodName);
-    //     _methodValue = GUILayout.TextField(_methodValue);
-    //
-    //     if (GUILayout.Button("Invoke"))
-    //     {
-    //         gameObject.SendMessage(_methodName, _methodValue);
-    //     }
-    // }
+    public static class NativeCalls
+    {
+#if UNITY_EDITOR
+        public static void OnScreenshotTaken(string base64Str) =>
+            Debug.Log($"NativeCall OnScreenshotTaken({base64Str.Length} bytes)");
+
+        public static void OnLoadComplete() => Debug.Log("NativeCall OnLoadComplete");
+#else
+        [DllImport("__Internal")]
+        public static extern void OnScreenshotTaken(string base64Str);
+
+        [DllImport("__Internal")]
+        public static extern void OnLoadComplete();
+#endif
+    }
 }

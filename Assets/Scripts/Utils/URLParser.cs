@@ -74,6 +74,9 @@ namespace Utils
                         APIService.Environment = value == "dev" ? "zone" : "org";
                         Debug.Log($"Using environment {APIService.Environment}");
                         break;
+                    case "disableLoader":
+                        config.DisableLoader = bool.Parse(value);
+                        break;
                     default:
                         Debug.LogWarning($"Unknown parameter in URL: {key}");
                         break;

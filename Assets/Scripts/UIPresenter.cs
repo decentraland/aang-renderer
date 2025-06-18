@@ -71,7 +71,7 @@ public class UIPresenter : MonoBehaviour
             EnableDebug();
         }
 
-        EnableLoader(true);
+        ShowLoader(true);
     }
 
     private void Update()
@@ -103,6 +103,11 @@ public class UIPresenter : MonoBehaviour
     }
 
     public void EnableLoader(bool enable)
+    {
+        _loaderIcon.style.display = enable ? DisplayStyle.Flex : DisplayStyle.None;
+    }
+
+    public void ShowLoader(bool enable)
     {
         _loader.style.display = enable ? DisplayStyle.Flex : DisplayStyle.None;
         _controls.style.display = enable ? DisplayStyle.None : DisplayStyle.Flex;
@@ -183,8 +188,8 @@ public class UIPresenter : MonoBehaviour
             ("From URL", null),
             ("Profile", "https://example.com/?mode=profile&profile=0x3f574d05ec670fe2c92305480b175654ca512005&background=039dfc"),
             ("Authentication", "https://example.com/?mode=authentication&profile=0x3f574d05ec670fe2c92305480b175654ca512005&background=039dfc"),
-            ("Market Wearable", "https://example.com/?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0x1b4e20251ec5da51c749f96a4993f3cebf066853&item=0&background=039dfc"),
-            ("Market Emote", "https://example.com/?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&contract=0xb5e24ada4096b86ce3cf7af5119f19ed6089a80b&item=0&background=039dfc"),
+            ("Market Wearable", "https://example.com/?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0x1b4e20251ec5da51c749f96a4993f3cebf066853:0&background=039dfc"),
+            ("Market Emote", "https://example.com/?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0xb5e24ada4096b86ce3cf7af5119f19ed6089a80b:0&background=039dfc"),
             ("Market Emote Prop", "https://example.com/?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0x97822560ec3e3522c1237f85817003211281eb79:0&background=039dfc"),
             ("Market Emote Audio", "https://example.com/?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0xb187264af67cf6d147521626203dedcfd901ceb3:4&background=039dfc"),
             ("Builder", "https://example.com/?mode=builder&bodyShape=urn:decentraland:off-chain:base-avatars:BaseMale&eyeColor=20B3F6&skinColor=FFE4C6&hairColor=8C2014&urn=urn:decentraland:off-chain:base-avatars:turtle_neck_sweater&urn=urn:decentraland:off-chain:base-avatars:kilt&background=4b4851"),

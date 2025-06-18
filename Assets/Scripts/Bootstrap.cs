@@ -53,6 +53,7 @@ public class Bootstrap : MonoBehaviour
         authPlatform.SetActive(Config.Mode is PreviewMode.Authentication);
         mainCamera.backgroundColor = Config.Background;
         mainCamera.orthographic = Config.Projection == "orthographic";
+        uiPresenter.EnableLoader(!Config.DisableLoader);
     }
 
     private async Awaitable Reload()
@@ -63,7 +64,7 @@ public class Bootstrap : MonoBehaviour
             return;
         }
 
-        uiPresenter.EnableLoader(true);
+        uiPresenter.ShowLoader(true);
         _loading = true;
 
         do
@@ -87,10 +88,10 @@ public class Bootstrap : MonoBehaviour
             {
                 uiPresenter.ShowAvatar(false);
             }
-            
         } while (_shouldReload);
 
-        uiPresenter.EnableLoader(false);
+        uiPresenter.ShowLoader(false);
         _loading = false;
+        JSBridge.NativeCalls.OnLoadComplete();
     }
 }

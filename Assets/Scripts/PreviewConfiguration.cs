@@ -175,6 +175,11 @@ public class PreviewConfiguration
     /// The id of the token (to preview a specific NFT).
     /// </summary>
     public string TokenID { get; set; }
+
+    /// <summary>
+    /// If the loading circle should be shown when loading content.
+    /// </summary>
+    public bool DisableLoader { get; set; }
 }
 
 public enum PreviewMode
