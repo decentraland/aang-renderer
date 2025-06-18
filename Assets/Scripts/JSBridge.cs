@@ -195,10 +195,10 @@ public class JSBridge : MonoBehaviour
 
         public static void OnLoadComplete() => Debug.Log("NativeCall OnLoadComplete");
 #else
-        [DllImport("__Internal")]
+        [System.Runtime.InteropServices.DllImport("__Internal")]
         public static extern void OnScreenshotTaken(string base64Str);
 
-        [DllImport("__Internal")]
+        [System.Runtime.InteropServices.DllImport("__Internal")]
         public static extern void OnLoadComplete();
 #endif
     }
