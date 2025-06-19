@@ -217,17 +217,26 @@ public class PreviewLoader : MonoBehaviour
 
             anim.Play("emote");
         }
-        
-        _outlineRenderers.Clear();
-        _outlineRenderers.AddRange(wearableRoot.GetComponentsInChildren<Renderer>());
-        _outlineRenderers.AddRange(avatarRoot.GetComponentsInChildren<Renderer>());
+
+        // Update outline renderers after everything is loaded
+        UpdateOutlineRenderers();
 
         Debug.Log("Loaded all wearables!");
     }
 
-    private void Update()
+    private void UpdateOutlineRenderers()
     {
-        RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.AddRange(_outlineRenderers);
+        _outlineRenderers.Clear();
+        RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.Clear();
+        
+        // Only add renderers from the active root
+        var activeRoot = _showingAvatar ? avatarRoot : wearableRoot;
+        if (activeRoot != null)
+        {
+            var renderers = activeRoot.GetComponentsInChildren<Renderer>();
+            _outlineRenderers.AddRange(renderers);
+            RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.AddRange(renderers);
+        }
     }
 
     private void SetupFacialFeatures(GameObject bodyGO)
@@ -269,6 +278,9 @@ public class PreviewLoader : MonoBehaviour
 
         avatarRoot.gameObject.SetActive(show);
         wearableRoot.gameObject.SetActive(!show);
+        
+        // Update outline renderers when switching views
+        UpdateOutlineRenderers();
     }
 
     /// <summary>
