@@ -32,8 +32,7 @@ public class Bootstrap : MonoBehaviour
         // Let's make it a bit smoother
         Application.targetFrameRate = 60;
 
-        // ParseFromURL("https://example.com/?mode=profile&profile=0x3f574d05ec670fe2c92305480b175654ca512005&background=039dfc");
-        ParseFromURL("https://aang-build-take2.vercel.app/?profile=0x2a39d4f68133491f0442496f601cde2a945b6d31&mode=profile&env=dev");
+        ParseFromURL();
 
         await Reload();
     }
