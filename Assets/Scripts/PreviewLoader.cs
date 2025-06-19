@@ -219,7 +219,8 @@ public class PreviewLoader : MonoBehaviour
         }
         
         _outlineRenderers.Clear();
-        _outlineRenderers.AddRange(gameObject.GetComponentsInChildren<Renderer>());
+        _outlineRenderers.AddRange(wearableRoot.GetComponentsInChildren<Renderer>());
+        _outlineRenderers.AddRange(avatarRoot.GetComponentsInChildren<Renderer>());
 
         Debug.Log("Loaded all wearables!");
     }
