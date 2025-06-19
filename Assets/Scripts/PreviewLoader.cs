@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Runtime.InteropServices;
 using Data;
+using DCL.Rendering.RenderGraphs.RenderFeatures.AvatarOutline;
 using GLTF;
 using JetBrains.Annotations;
 using UnityEngine;
@@ -23,6 +23,7 @@ public class PreviewLoader : MonoBehaviour
 
     private readonly Dictionary<string, GameObject> _wearables = new();
     private readonly Dictionary<string, (Texture2D main, Texture2D mask)> _facialFeatures = new();
+    private readonly List<Renderer> _outlineRenderers = new();
 
     private bool _showingAvatar;
     private string _overrideWearableCategory;
@@ -216,8 +217,16 @@ public class PreviewLoader : MonoBehaviour
 
             anim.Play("emote");
         }
+        
+        _outlineRenderers.Clear();
+        _outlineRenderers.AddRange(gameObject.GetComponentsInChildren<Renderer>());
 
         Debug.Log("Loaded all wearables!");
+    }
+
+    private void Update()
+    {
+        RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.AddRange(_outlineRenderers);
     }
 
     private void SetupFacialFeatures(GameObject bodyGO)
@@ -361,6 +370,8 @@ public class PreviewLoader : MonoBehaviour
 
     private void Cleanup()
     {
+        RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.Clear();
+        
         ShowAvatar(false);
         _overrideWearableCategory = null;
         _emoteAnimation = null;

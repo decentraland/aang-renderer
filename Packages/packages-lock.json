@@ -167,6 +167,13 @@
         "com.unity.modules.imgui": "1.0.0"
       }
     },
+    "decentraland.renderfeatures": {
+      "version": "git@github.com:decentraland/unity-explorer-packages.git?path=/RenderGraphs/RenderFeatures",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "9105fd037e1a3d97dd8e27b92c857948fc112962"
+    },
     "com.unity.modules.accessibility": {
       "version": "1.0.0",
       "depth": 0,
