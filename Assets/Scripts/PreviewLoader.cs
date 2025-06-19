@@ -25,6 +25,8 @@ public class PreviewLoader : MonoBehaviour
     private readonly Dictionary<string, (Texture2D main, Texture2D mask)> _facialFeatures = new();
     private readonly List<Renderer> _outlineRenderers = new();
 
+    [SerializeField] private bool _enableOutline = true;
+
     private bool _showingAvatar;
     private string _overrideWearableCategory;
     private AnimationClip _emoteAnimation;
@@ -34,6 +36,41 @@ public class PreviewLoader : MonoBehaviour
     public bool HasEmoteOverride => _overrideWearableCategory == "emote";
     public bool HasEmoteAudio => _emoteAudio != null;
     public bool HasWearableOverride => _overrideWearableCategory != null && !HasEmoteOverride;
+
+    private void OnEnable()
+    {
+        RefreshOutlineRenderers();
+    }
+
+    private void OnDisable()
+    {
+        ClearOutlineRenderers();
+    }
+
+    private void ClearOutlineRenderers()
+    {
+        _outlineRenderers.Clear();
+        if (RendererFeature_AvatarOutline.m_AvatarOutlineRenderers != null)
+        {
+            RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.Clear();
+        }
+    }
+
+    private void RefreshOutlineRenderers()
+    {
+        if (!_enableOutline) return;
+        
+        ClearOutlineRenderers();
+        
+        // Only add renderers from the active root
+        var activeRoot = _showingAvatar ? avatarRoot : wearableRoot;
+        if (activeRoot != null)
+        {
+            var renderers = activeRoot.GetComponentsInChildren<Renderer>(true); // Include inactive objects
+            _outlineRenderers.AddRange(renderers);
+            RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.AddRange(renderers);
+        }
+    }
 
     public async Awaitable LoadPreview(PreviewConfiguration config)
     {
@@ -218,25 +255,8 @@ public class PreviewLoader : MonoBehaviour
             anim.Play("emote");
         }
 
-        // Update outline renderers after everything is loaded
-        Update();
-
+        RefreshOutlineRenderers();
         Debug.Log("Loaded all wearables!");
-    }
-
-    private void Update()
-    {
-        _outlineRenderers.Clear();
-        RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.Clear();
-        
-        // Only add renderers from the active root
-        var activeRoot = _showingAvatar ? avatarRoot : wearableRoot;
-        if (activeRoot != null)
-        {
-            var renderers = activeRoot.GetComponentsInChildren<Renderer>();
-            _outlineRenderers.AddRange(renderers);
-            RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.AddRange(renderers);
-        }
     }
 
     private void SetupFacialFeatures(GameObject bodyGO)
@@ -279,8 +299,7 @@ public class PreviewLoader : MonoBehaviour
         avatarRoot.gameObject.SetActive(show);
         wearableRoot.gameObject.SetActive(!show);
         
-        // Update outline renderers when switching views
-        Update();
+        RefreshOutlineRenderers();
     }
 
     /// <summary>
@@ -383,7 +402,7 @@ public class PreviewLoader : MonoBehaviour
 
     private void Cleanup()
     {
-        RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.Clear();
+        ClearOutlineRenderers();
         
         ShowAvatar(false);
         _overrideWearableCategory = null;
