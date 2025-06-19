@@ -219,12 +219,12 @@ public class PreviewLoader : MonoBehaviour
         }
 
         // Update outline renderers after everything is loaded
-        UpdateOutlineRenderers();
+        Update();
 
         Debug.Log("Loaded all wearables!");
     }
 
-    private void UpdateOutlineRenderers()
+    private void Update()
     {
         _outlineRenderers.Clear();
         RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.Clear();
@@ -280,7 +280,7 @@ public class PreviewLoader : MonoBehaviour
         wearableRoot.gameObject.SetActive(!show);
         
         // Update outline renderers when switching views
-        UpdateOutlineRenderers();
+        Update();
     }
 
     /// <summary>
