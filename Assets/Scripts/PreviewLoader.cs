@@ -104,6 +104,12 @@ public class PreviewLoader : MonoBehaviour
         if (overrideURN != null) urns.Add(overrideURN);
 
         var activeEntities = (await APIService.GetActiveEntities(urns.ToArray())).ToList();
+        
+        // Verify we received all urns
+        foreach (var urn in urns.Where(urn => activeEntities.All(ae => !urn.StartsWith(ae.pointers[0], StringComparison.OrdinalIgnoreCase))))
+        {
+            Debug.LogError($"URN {urn} not found");
+        }
 
         if (base64 != null)
         {
