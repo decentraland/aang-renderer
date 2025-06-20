@@ -128,11 +128,8 @@ public class UIPresenter : MonoBehaviour
         _wearableButton.EnableInClassList(USS_SWITCHER_BUTTON_SELECTED, !show);
         _avatarButton.EnableInClassList(USS_SWITCHER_BUTTON_SELECTED, show);
 
-        if (previewLoader.IsShowingAvatar != show)
-        {
-            previewLoader.ShowAvatar(show);
-            _previewRotator.ResetRotation();
-        }
+        previewLoader.ShowAvatar(show);
+        _previewRotator.ResetRotation();
     }
 
     private void OnMuteEmoteClicked()

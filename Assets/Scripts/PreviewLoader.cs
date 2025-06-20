@@ -105,9 +105,10 @@ public class PreviewLoader : MonoBehaviour
         if (overrideURN != null) urns.Add(overrideURN);
 
         var activeEntities = (await APIService.GetActiveEntities(urns.ToArray())).ToList();
-        
+
         // Verify we received all urns
-        foreach (var urn in urns.Where(urn => activeEntities.All(ae => !urn.StartsWith(ae.pointers[0], StringComparison.OrdinalIgnoreCase))))
+        foreach (var urn in urns.Where(urn =>
+                     activeEntities.All(ae => !urn.StartsWith(ae.pointers[0], StringComparison.OrdinalIgnoreCase))))
         {
             Debug.LogError($"URN {urn} not found");
         }
@@ -189,9 +190,6 @@ public class PreviewLoader : MonoBehaviour
         // CenterMeshes(avatarRoot);
         if (hasWearableOverride) CenterMeshes(wearableRoot);
 
-        // Switch to avatar view if there's no wearable override
-        if (!hasWearableOverride) ShowAvatar(true);
-
         // Audio event 
         audioSource.clip = _emoteAudio;
 
@@ -217,10 +215,6 @@ public class PreviewLoader : MonoBehaviour
 
             anim.Play("emote");
         }
-        
-        _outlineRenderers.Clear();
-        _outlineRenderers.AddRange(wearableRoot.GetComponentsInChildren<Renderer>());
-        _outlineRenderers.AddRange(avatarRoot.GetComponentsInChildren<Renderer>());
 
         Debug.Log("Loaded all wearables!");
     }
@@ -264,11 +258,13 @@ public class PreviewLoader : MonoBehaviour
     /// </summary>
     public void ShowAvatar(bool show)
     {
-        if (_showingAvatar == show) return;
-        _showingAvatar = show;
-
         avatarRoot.gameObject.SetActive(show);
         wearableRoot.gameObject.SetActive(!show);
+
+        _outlineRenderers.Clear();
+        _outlineRenderers.AddRange(show
+            ? avatarRoot.GetComponentsInChildren<Renderer>()
+            : wearableRoot.GetComponentsInChildren<Renderer>());
     }
 
     /// <summary>
@@ -372,8 +368,7 @@ public class PreviewLoader : MonoBehaviour
     private void Cleanup()
     {
         RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.Clear();
-        
-        ShowAvatar(false);
+
         _overrideWearableCategory = null;
         _emoteAnimation = null;
         _emoteAudio = null;
@@ -381,5 +376,8 @@ public class PreviewLoader : MonoBehaviour
         foreach (Transform child in avatarRoot) Destroy(child.gameObject);
         foreach (Transform child in wearableRoot) Destroy(child.gameObject);
         _wearables.Clear();
+        
+        avatarRoot.gameObject.SetActive(false);
+        wearableRoot.gameObject.SetActive(false);
     }
 }
