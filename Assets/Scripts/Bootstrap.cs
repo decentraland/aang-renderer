@@ -54,6 +54,7 @@ public class Bootstrap : MonoBehaviour
         mainCamera.backgroundColor = Config.Background;
         mainCamera.orthographic = Config.Projection == "orthographic";
         uiPresenter.EnableLoader(!Config.DisableLoader);
+        mainCamera.GetComponent<CameraController>().SetMode(Config.Mode);
     }
 
     private async Awaitable Reload()

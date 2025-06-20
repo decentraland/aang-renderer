@@ -20,6 +20,7 @@ public class PreviewLoader : MonoBehaviour
     [SerializeField] private Transform avatarRoot;
     [SerializeField] private Transform wearableRoot;
     [SerializeField] private AudioSource audioSource;
+    [SerializeField] private float wearablePadding = 0.1f;
 
     private readonly Dictionary<string, GameObject> _wearables = new();
     private readonly Dictionary<string, (Texture2D main, Texture2D mask)> _facialFeatures = new();
@@ -187,8 +188,7 @@ public class PreviewLoader : MonoBehaviour
         SetupFacialFeatures(bodyGO);
 
         // Center the roots around the meshes
-        // CenterMeshes(avatarRoot);
-        if (hasWearableOverride) CenterMeshes(wearableRoot);
+        if (hasWearableOverride) FitToScreen(wearableRoot.gameObject);
 
         // Audio event 
         audioSource.clip = _emoteAudio;
@@ -320,30 +320,51 @@ public class PreviewLoader : MonoBehaviour
         }
     }
 
-    private void CenterMeshes(Transform root)
+    /// <summary>
+    /// Scales and re-positions root so that its mesh bounds fill the square viewport
+    /// up to the given padding (0–0.5), and are centered on screen.
+    /// Thanks ChatGPT :)
+    /// </summary>
+    private void FitToScreen(GameObject root)
     {
-        root.position = Vector3.zero;
+        // 1. Gather all renderers
+        var rends = root.GetComponentsInChildren<Renderer>();
+        if (rends.Length == 0) return;
 
-        var renderers = root.GetComponentsInChildren<Renderer>(true);
+        // 2. Compute combined world-space bounds
+        var b = rends[0].bounds;
+        for (var i = 1; i < rends.Length; i++)
+            b.Encapsulate(rends[i].bounds);
 
-        if (renderers.Length == 0)
+        // 3. Determine scale factor based on camera type
+        float scale;
+        if (mainCamera.orthographic)
         {
-            Debug.LogError("No MeshRenderers found in the child.");
-            return;
+            // world‐window size = orthographicSize*2 (square window)
+            var window = mainCamera.orthographicSize * 2f * (1 - wearablePadding * 2f);
+            scale = window / Mathf.Max(b.size.x, b.size.y);
+        }
+        else
+        {
+            // approximate square frustum height at the object's depth
+            var dist = Vector3.Distance(mainCamera.transform.position, b.center);
+            var frustH = 2f * dist * Mathf.Tan(mainCamera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+            scale = (frustH * (1 - wearablePadding * 2f)) / Mathf.Max(b.size.x, b.size.y);
         }
 
-        // Calculate the combined bounds of all MeshRenderers
-        var combinedBounds = renderers[0].bounds;
-        foreach (var meshRenderer in renderers)
-        {
-            combinedBounds.Encapsulate(meshRenderer.bounds);
-        }
+        // 4. Remember pivot‐to‐bounds‐center offset
+        var pivot = root.transform.position;
+        var offset = b.center - pivot;
 
-        // Compute the center offset relative to the child
-        var centerOffset = combinedBounds.center - root.position;
+        // 5. Apply uniform scale
+        root.transform.localScale *= scale;
 
-        // Apply the offset to the child transform
-        root.position -= centerOffset;
+        // 6. Compute where the bounds.center should land in world space
+        var depth = mainCamera.WorldToViewportPoint(b.center).z;
+        var targetCenter = mainCamera.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, depth));
+
+        // 7. Reposition the pivot so that the mesh’s center is at screen center
+        root.transform.position = targetCenter - offset * scale;
     }
 
     private static async Awaitable<List<string>> GetUrns(PreviewConfiguration config)
@@ -376,7 +397,7 @@ public class PreviewLoader : MonoBehaviour
         foreach (Transform child in avatarRoot) Destroy(child.gameObject);
         foreach (Transform child in wearableRoot) Destroy(child.gameObject);
         _wearables.Clear();
-        
+
         avatarRoot.gameObject.SetActive(false);
         wearableRoot.gameObject.SetActive(false);
     }
