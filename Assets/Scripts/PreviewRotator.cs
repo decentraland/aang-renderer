@@ -29,6 +29,12 @@ public class PreviewRotator : MonoBehaviour
     private void Awake()
     {
         _initialRotation = transform.rotation;
+
+        // Web builds have an issue where the sensitivity of mouse is way too high, so we dampen it.
+        if (!Application.isEditor)
+        {
+            dragSpeed *= 0.05f;
+        }
     }
 
     private void Update()
