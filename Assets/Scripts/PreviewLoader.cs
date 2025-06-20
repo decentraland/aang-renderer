@@ -31,7 +31,6 @@ public class PreviewLoader : MonoBehaviour
     private AnimationClip _emoteAnimation;
     private AudioClip _emoteAudio;
 
-    public bool IsShowingAvatar => _showingAvatar;
     public bool HasEmoteOverride => _overrideWearableCategory == "emote";
     public bool HasEmoteAudio => _emoteAudio != null;
     public bool HasWearableOverride => _overrideWearableCategory != null && !HasEmoteOverride;
@@ -262,9 +261,15 @@ public class PreviewLoader : MonoBehaviour
         wearableRoot.gameObject.SetActive(!show);
 
         _outlineRenderers.Clear();
-        _outlineRenderers.AddRange(show
-            ? avatarRoot.GetComponentsInChildren<Renderer>()
-            : wearableRoot.GetComponentsInChildren<Renderer>());
+        
+        var allRenderers = gameObject.GetComponentsInChildren<Renderer>();
+        foreach (var r in allRenderers)
+        {
+            if (r.material.shader.name == "DCL/DCL_Toon")
+            {
+                _outlineRenderers.Add(r);
+            }
+        }
     }
 
     /// <summary>
