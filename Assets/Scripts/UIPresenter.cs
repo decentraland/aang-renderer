@@ -115,11 +115,13 @@ public class UIPresenter : MonoBehaviour
 
     private void OnAvatarButtonClicked()
     {
+        PlayerPrefs.SetInt("PreviewAvatarShown", 1);
         ShowAvatar(true);
     }
 
     private void OnWearableButtonClicked()
     {
+        PlayerPrefs.SetInt("PreviewAvatarShown", 0);
         ShowAvatar(false);
     }
 

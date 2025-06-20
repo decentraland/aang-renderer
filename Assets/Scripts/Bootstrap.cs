@@ -84,7 +84,7 @@ public class Bootstrap : MonoBehaviour
             uiPresenter.EnableSwitcher(previewLoader.HasWearableOverride);
             uiPresenter.EnableAudioControls(previewLoader.HasEmoteAudio);
 
-            uiPresenter.ShowAvatar(!(Config.Mode is PreviewMode.Marketplace && previewLoader.HasWearableOverride));
+            uiPresenter.ShowAvatar(Config.Mode != PreviewMode.Marketplace || !previewLoader.HasWearableOverride || PlayerPrefs.GetInt("PreviewAvatarShown", 0) == 1);
         } while (_shouldReload);
 
         uiPresenter.ShowLoader(false);
