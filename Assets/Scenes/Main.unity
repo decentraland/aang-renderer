@@ -876,6 +876,7 @@ MonoBehaviour:
   avatarRoot: {fileID: 452428171}
   wearableRoot: {fileID: 1516276170}
   audioSource: {fileID: 330585548}
+  wearablePadding: 0.2
 --- !u!1 &1101889418
 GameObject:
   m_ObjectHideFlags: 0
