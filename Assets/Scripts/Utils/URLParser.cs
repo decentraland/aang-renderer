@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Web;
 
 namespace Utils
 {
@@ -20,8 +21,8 @@ namespace Utils
             foreach (var parameter in split)
             {
                 var keyValueSplit = parameter.Split('=');
-                var key = keyValueSplit[0];
-                var value = keyValueSplit[1];
+                var key = HttpUtility.UrlDecode(keyValueSplit[0]);
+                var value = keyValueSplit.Length > 1 ? HttpUtility.UrlDecode(keyValueSplit[1]) : string.Empty;
 
                 switch (key)
                 {
