@@ -39,10 +39,10 @@ public class PreviewConfiguration
     /// <summary>
     /// The base64 encoded GLB to load.
     /// </summary>
-    public byte[] Base64 { get; private set; }
+    public List<byte[]> Base64 { get; private set; } = new();
 
     /// <summary>
-    /// Converts the string base64 to a byte array, adding padding if needed
+    /// Converts the string base64 to a byte array and adds it to the list, adding padding if needed
     /// </summary>
     public void SetBase64(string value)
     {
@@ -54,7 +54,7 @@ public class PreviewConfiguration
             _ => throw new FormatException("Invalid Base64 string")
         };
 
-        Base64 = Convert.FromBase64String(sanitized);
+        Base64.Add(Convert.FromBase64String(sanitized));
     }
 
     /// <summary>

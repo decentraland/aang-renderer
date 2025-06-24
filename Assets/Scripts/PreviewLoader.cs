@@ -85,7 +85,7 @@ public class PreviewLoader : MonoBehaviour
     }
 
     private async Awaitable LoadForBuilder(string bodyShape, Color? eyeColor, Color? hairColor, Color? skinColor,
-        List<string> urns, string defaultEmote, [CanBeNull] byte[] base64)
+        List<string> urns, string defaultEmote, [CanBeNull] List<byte[]> base64)
     {
         Assert.IsNotNull(bodyShape);
         Assert.IsTrue(eyeColor.HasValue);
@@ -97,7 +97,7 @@ public class PreviewLoader : MonoBehaviour
 
     private async Awaitable LoadStuff(string bodyShape, List<string> urns, string overrideURN, Color eyeColor,
         Color hairColor, Color skinColor,
-        string defaultEmote, byte[] base64)
+        string defaultEmote, List<byte[]> base64)
     {
         var avatarColors = new AvatarColors(eyeColor, hairColor, skinColor);
 
@@ -115,19 +115,22 @@ public class PreviewLoader : MonoBehaviour
 
         if (base64 != null)
         {
-            var base64String = Encoding.UTF8.GetString(base64);
-            var base64ActiveEntity = JsonUtility.FromJson<Base64ActiveEntity>(base64String).ToActiveEntity();
-
-            if (base64ActiveEntity.IsEmote)
+            foreach (var b64 in base64)
             {
-                activeEntities.RemoveAll(ae => ae.IsEmote);
-            }
-            else
-            {
-                activeEntities.RemoveAll(ae => ae.metadata.data.category == base64ActiveEntity.metadata.data.category);
-            }
+                var base64String = Encoding.UTF8.GetString(b64);
+                var base64ActiveEntity = JsonUtility.FromJson<Base64ActiveEntity>(base64String).ToActiveEntity();
 
-            activeEntities.Add(base64ActiveEntity);
+                if (base64ActiveEntity.IsEmote)
+                {
+                    activeEntities.RemoveAll(ae => ae.IsEmote);
+                }
+                else
+                {
+                    activeEntities.RemoveAll(ae => ae.metadata.data.category == base64ActiveEntity.metadata.data.category);
+                }
+
+                activeEntities.Add(base64ActiveEntity);
+            }
         }
 
         // Load emote first
@@ -368,7 +371,7 @@ public class PreviewLoader : MonoBehaviour
         var depth = mainCamera.WorldToViewportPoint(b.center).z;
         var targetCenter = mainCamera.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, depth));
 
-        // 7. Reposition the pivot so that the mesh’s center is at screen center
+        // 7. Reposition the pivot so that the mesh's center is at screen center
         root.transform.position = targetCenter - offset * scale;
     }
 
