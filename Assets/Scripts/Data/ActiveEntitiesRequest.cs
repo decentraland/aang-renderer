@@ -14,6 +14,13 @@ namespace Data
             for (var i = 0; i < pointers.Length; i++)
             {
                 var originalPointer = pointers[i];
+                
+                // Convert dcl://base-avatars/ format to proper URN format
+                if (originalPointer.StartsWith("dcl://base-avatars/"))
+                {
+                    originalPointer = "urn:decentraland:off-chain:base-avatars:" + originalPointer.Substring("dcl://base-avatars/".Length);
+                }
+                
                 pointers[i] = originalPointer.Count(c => c == ':') == 6
                     ? originalPointer.Remove(originalPointer.LastIndexOf(':'))
                     : originalPointer;
