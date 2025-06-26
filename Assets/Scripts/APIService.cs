@@ -29,6 +29,16 @@ public static class APIService
         avatar.hair.color.a = 1f;
         avatar.skin.color.a = 1f;
 
+        // Convert dcl://base-avatars/ format to proper URN format
+        for (var i = 0; i < avatar.wearables.Length; i++)
+        {
+            if (avatar.wearables[i].StartsWith("dcl://base-avatars/"))
+            {
+                avatar.wearables[i] = "urn:decentraland:off-chain:base-avatars:" +
+                                      avatar.wearables[i].Substring("dcl://base-avatars/".Length);
+            }
+        }
+
         return avatar;
     }
 
