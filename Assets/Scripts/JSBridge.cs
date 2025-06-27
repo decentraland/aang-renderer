@@ -8,6 +8,8 @@ using UnityEngine.Rendering;
 /// <summary>
 /// Used for interacting with the unity renderer from JavaScript.
 ///
+/// Reload must be called manually for the changes to take effect.
+///
 /// Usage: unityInstance.SendMessage('JSBridge', 'MethodName', 'value');
 /// </summary>
 public class JSBridge : MonoBehaviour
@@ -15,129 +17,65 @@ public class JSBridge : MonoBehaviour
     [SerializeField] private Bootstrap bootstrap;
 
     [UsedImplicitly]
-    public void ParseFromURL()
-    {
-        bootstrap.ParseFromURL();
-        bootstrap.InvokeReload();
-    }
+    public void ParseFromURL() => bootstrap.ParseFromURL();
 
     [UsedImplicitly]
-    public void SetMode(string value)
-    {
-        bootstrap.Config.SetMode(value);
-        bootstrap.InvokeReload();
-    }
+    public void SetMode(string value) => bootstrap.Config.SetMode(value);
 
     [UsedImplicitly]
-    public void SetProfile(string value)
-    {
-        bootstrap.Config.Profile = value;
-        bootstrap.InvokeReload();
-    }
+    public void SetProfile(string value) => bootstrap.Config.Profile = value;
 
     [UsedImplicitly]
-    public void SetEmote(string value)
-    {
-        bootstrap.Config.Emote = value;
-        bootstrap.InvokeReload();
-    }
+    public void SetEmote(string value) => bootstrap.Config.Emote = value;
 
     [UsedImplicitly]
-    public void SetBase64(string value)
-    {
-        bootstrap.Config.SetBase64(value);
-        bootstrap.InvokeReload();
-    }
+    public void AddBase64(string value) => bootstrap.Config.AddBase64(value);
 
     [UsedImplicitly]
-    public void SetUrns(string value)
-    {
+    public void ClearBase64(string value) => bootstrap.Config.Base64.Clear();
+
+    [UsedImplicitly]
+    public void SetUrns(string value) =>
         bootstrap.Config.Urns = value.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
-        bootstrap.InvokeReload();
-    }
 
     [UsedImplicitly]
-    public void SetBackground(string value)
-    {
-        bootstrap.Config.SetBackground(value);
-        bootstrap.InvokeLightReload();
-    }
+    public void SetBackground(string value) => bootstrap.Config.SetBackground(value);
 
     [UsedImplicitly]
-    public void SetSkinColor(string value)
-    {
-        bootstrap.Config.SetSkinColor(value);
-        bootstrap.InvokeReload();
-    }
+    public void SetSkinColor(string value) => bootstrap.Config.SetSkinColor(value);
 
     [UsedImplicitly]
-    public void SetHairColor(string value)
-    {
-        bootstrap.Config.SetHairColor(value);
-        bootstrap.InvokeReload();
-    }
+    public void SetHairColor(string value) => bootstrap.Config.SetHairColor(value);
 
     [UsedImplicitly]
-    public void SetEyeColor(string value)
-    {
-        bootstrap.Config.SetEyeColor(value);
-        bootstrap.InvokeReload();
-    }
+    public void SetEyeColor(string value) => bootstrap.Config.SetEyeColor(value);
 
     [UsedImplicitly]
-    public void SetBodyShape(string value)
-    {
-        bootstrap.Config.BodyShape = value;
-        bootstrap.InvokeReload();
-    }
+    public void SetBodyShape(string value) => bootstrap.Config.BodyShape = value;
 
     [UsedImplicitly]
-    public void SetShowAnimationReference(string value)
-    {
-        bootstrap.Config.ShowAnimationReference = bool.Parse(value);
-        bootstrap.InvokeLightReload();
-    }
+    public void SetShowAnimationReference(string value) => bootstrap.Config.ShowAnimationReference = bool.Parse(value);
 
     [UsedImplicitly]
-    public void SetProjection(string value)
-    {
-        bootstrap.Config.Projection = value;
-        bootstrap.InvokeReload();
-    }
+    public void SetProjection(string value) => bootstrap.Config.Projection = value;
 
     [UsedImplicitly]
-    public void SetContract(string value)
-    {
-        bootstrap.Config.Contract = value;
-        bootstrap.InvokeReload();
-    }
+    public void SetContract(string value) => bootstrap.Config.Contract = value;
 
     [UsedImplicitly]
-    public void SetItemID(string value)
-    {
-        bootstrap.Config.ItemID = value;
-        bootstrap.InvokeReload();
-    }
+    public void SetItemID(string value) => bootstrap.Config.ItemID = value;
 
     [UsedImplicitly]
-    public void SetTokenID(string value)
-    {
-        bootstrap.Config.TokenID = value;
-        bootstrap.InvokeReload();
-    }
+    public void SetTokenID(string value) => bootstrap.Config.TokenID = value;
 
     [UsedImplicitly]
-    public void SetDisableLoader(string value)
-    {
-        bootstrap.Config.DisableLoader = bool.Parse(value);
-        bootstrap.InvokeLightReload();
-    }
+    public void SetDisableLoader(string value) => bootstrap.Config.DisableLoader = bool.Parse(value);
 
     [UsedImplicitly]
-    public void TakeScreenshot()
-    {
-        StartCoroutine(TakeScreenshotCoroutine());
-    }
+    public void Reload() => bootstrap.InvokeReload();
+
+    [UsedImplicitly]
+    public void TakeScreenshot() => StartCoroutine(TakeScreenshotCoroutine());
 
     private static async Awaitable TakeScreenshotCoroutine()
     {

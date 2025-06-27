@@ -39,12 +39,12 @@ public class PreviewConfiguration
     /// <summary>
     /// The base64 encoded GLB to load.
     /// </summary>
-    public List<byte[]> Base64 { get; private set; } = new();
+    public List<byte[]> Base64 { get; } = new();
 
     /// <summary>
     /// Converts the string base64 to a byte array and adds it to the list, adding padding if needed
     /// </summary>
-    public void SetBase64(string value)
+    public void AddBase64(string value)
     {
         var sanitized = (value.Length % 4) switch
         {

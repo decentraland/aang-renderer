@@ -47,16 +47,6 @@ public class Bootstrap : MonoBehaviour
         StartCoroutine(Reload());
     }
 
-    public void InvokeLightReload()
-    {
-        animationReference.SetActive(Config.ShowAnimationReference);
-        authPlatform.SetActive(Config.Mode is PreviewMode.Authentication);
-        mainCamera.backgroundColor = Config.Background;
-        mainCamera.orthographic = Config.Projection == "orthographic";
-        uiPresenter.EnableLoader(!Config.DisableLoader);
-        mainCamera.GetComponent<CameraController>().SetMode(Config.Mode);
-    }
-
     private async Awaitable Reload()
     {
         if (_loading)
@@ -71,8 +61,13 @@ public class Bootstrap : MonoBehaviour
         do
         {
             _shouldReload = false;
-
-            InvokeLightReload();
+            
+            animationReference.SetActive(Config.ShowAnimationReference);
+            authPlatform.SetActive(Config.Mode is PreviewMode.Authentication);
+            mainCamera.backgroundColor = Config.Background;
+            mainCamera.orthographic = Config.Projection == "orthographic";
+            uiPresenter.EnableLoader(!Config.DisableLoader);
+            mainCamera.GetComponent<CameraController>().SetMode(Config.Mode);
 
             await previewLoader.LoadPreview(Config);
 

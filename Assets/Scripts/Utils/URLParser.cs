@@ -60,7 +60,7 @@ namespace Utils
                         config.Projection = value;
                         break;
                     case "base64":
-                        config.SetBase64(value);
+                        config.AddBase64(value);
                         break;
                     case "contract":
                         config.Contract = value;
