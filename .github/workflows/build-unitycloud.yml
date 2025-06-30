@@ -37,7 +37,7 @@ jobs:
     outputs:
       commit_sha: ${{ steps.get_commit_sha.outputs.commit_sha }}
       options: ${{ steps.get_options.outputs.options }}
-      version: ${{ steps.get_version.outputs.full_version }}
+      version: ${{ steps.get_version.outputs.version }}
       clean_build: ${{ steps.set_defaults.outputs.clean_build }}
       cache_strategy: ${{ steps.set_defaults.outputs.cache_strategy }}
     steps:
