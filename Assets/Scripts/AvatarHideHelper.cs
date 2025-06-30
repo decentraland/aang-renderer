@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Data;
 using UnityEngine;
 
@@ -18,10 +19,19 @@ public static class AvatarHideHelper
 
         foreach (var category in WearablesConstants.CATEGORIES_PRIORITY)
         {
+            // If the avatar has a skin equipped and we are overriding something, hide the skin
+            if (category == WearablesConstants.Categories.SKIN && overrideCategory != null &&
+                overrideCategory != WearablesConstants.Categories.SKIN)
+            {
+                wearables.Remove(category);
+                hiddenCategories.Add(category);
+                continue;
+            }
+            
             if (wearables.TryGetValue(category, out var wearableDefinition))
             {
                 // Apparently there's no difference between hides and replaces
-                foreach (var toHide in wearableDefinition.Hides)
+                foreach (var toHide in wearableDefinition.Hides.Union(wearableDefinition.Replaces))
                 {
                     if (toHide == category) continue; // Safeguard so wearables don't hide themselves
 
@@ -38,30 +48,16 @@ public static class AvatarHideHelper
                     }
                 }
 
-                foreach (var toReplace in wearableDefinition.Replaces)
-                {
-                    if (toReplace == category) continue; // Safeguard so wearables don't hide themselves
-
-                    // If something is trying to hide the wearable we're overriding, hide that category instead
-                    if (toReplace == overrideCategory)
-                    {
-                        wearables.Remove(category);
-                        hiddenCategories.Add(category);
-                    }
-                    else
-                    {
-                        wearables.Remove(toReplace);
-                        hiddenCategories.Add(toReplace);
-                    }
-                }
-
                 // Skin has implicit hides
                 if (category == WearablesConstants.Categories.SKIN)
                 {
-                    foreach (var skinCategory in WearablesConstants.SKIN_IMPLICIT_CATEGORIES)
+                    if (overrideCategory is null or WearablesConstants.Categories.SKIN)
                     {
-                        wearables.Remove(skinCategory);
-                        hiddenCategories.Add(skinCategory);
+                        foreach (var skinCategory in WearablesConstants.SKIN_IMPLICIT_CATEGORIES)
+                        {
+                            wearables.Remove(skinCategory);
+                            hiddenCategories.Add(skinCategory);
+                        }
                     }
                 }
             }
