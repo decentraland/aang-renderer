@@ -228,6 +228,8 @@ public class UIPresenter : MonoBehaviour
 
         debugPanel.Q<Button>("HideButton").clicked += () => debugPanel.style.display = DisplayStyle.None;
 
+        debugPanel.Q<Label>("VersionLabel").text = Application.version;
+
         _debugLoaded = true;
     }
 }
