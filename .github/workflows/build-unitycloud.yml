@@ -64,12 +64,18 @@ jobs:
           TAG=$(git describe --tags --abbrev=0)
           VERSION=${TAG#v}
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            VERSION_OUT="version=$VERSION"
           else
             COMMIT_SHA="${{ steps.get_commit_sha.outputs.commit_sha }}"
             SHORT_SHA=${COMMIT_SHA:0:7}
-            echo "version=$VERSION-$SHORT_SHA" >> $GITHUB_OUTPUT
+            VERSION_OUT="version=$VERSION-$SHORT_SHA"
           fi
+
+          echo "TAG: $TAG"
+          echo "VERSION: $VERSION"
+          echo "VERSION_OUT: $VERSION_OUT"
+
+          echo $VERSION_OUT >> $GITHUB_OUTPUT
 
       - name: Set default values
         id: set_defaults
