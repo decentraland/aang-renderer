@@ -61,6 +61,9 @@ public class Bootstrap : MonoBehaviour
         do
         {
             _shouldReload = false;
+
+            previewRotator.enabled = false;
+            previewRotator.ResetRotation();
             
             animationReference.SetActive(Config.ShowAnimationReference);
             authPlatform.SetActive(Config.Mode is PreviewMode.Authentication);
@@ -71,9 +74,9 @@ public class Bootstrap : MonoBehaviour
 
             await previewLoader.LoadPreview(Config);
 
+            previewRotator.enabled = true;
             previewRotator.AllowVertical = Config.Mode is PreviewMode.Marketplace or PreviewMode.Builder;
             previewRotator.EnableAutoRotate = Config.Mode is PreviewMode.Marketplace && !previewLoader.HasEmoteOverride;
-            previewRotator.ResetRotation();
 
             uiPresenter.EnableEmoteControls(previewLoader.HasEmoteOverride);
             uiPresenter.EnableZoom(Config.Mode is PreviewMode.Marketplace or PreviewMode.Builder);

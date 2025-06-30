@@ -54,8 +54,8 @@ public class PreviewRotator : MonoBehaviour
         _verticalVel *= Mathf.Pow(inertiaDamp, dt);
 
         // Velocity rotation
-        transform.Rotate(mainCamera.transform.up, _horizontalVel, Space.World);
-        if (AllowVertical) transform.Rotate(mainCamera.transform.right, _verticalVel, Space.World);
+        transform.Rotate(Vector3.up, _horizontalVel, Space.World);
+        if (AllowVertical) transform.Rotate(Vector3.right, _verticalVel, Space.World);
 
         // Auto rotation
         if (Time.time - _lastDragTime > autoRotateDelay)

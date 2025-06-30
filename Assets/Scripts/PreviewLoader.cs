@@ -125,7 +125,8 @@ public class PreviewLoader : MonoBehaviour
                 }
                 else
                 {
-                    activeEntities.RemoveAll(ae => ae.metadata.data.category == base64ActiveEntity.metadata.data.category);
+                    activeEntities.RemoveAll(ae =>
+                        ae.metadata.data.category == base64ActiveEntity.metadata.data.category);
                 }
 
                 activeEntities.Add(base64ActiveEntity);
@@ -164,7 +165,7 @@ public class PreviewLoader : MonoBehaviour
                          wd.Pointer == overrideURN)
             .ToDictionary(wd => wd.Category);
 
-        var hiddenCategories = AvatarHideHelper.HideWearables(wearableDefinitions);
+        var hiddenCategories = AvatarHideHelper.HideWearables(wearableDefinitions, _overrideWearableCategory);
 
         // Load all wearables and body shape
         await Task.WhenAll(wearableDefinitions
@@ -189,7 +190,7 @@ public class PreviewLoader : MonoBehaviour
         SetupFacialFeatures(bodyGO);
 
         // Center the roots around the meshes
-        if (hasWearableOverride) FitToScreen(wearableRoot.gameObject);
+        if (hasWearableOverride) FitWearableToScreen();
 
         // Audio event 
         audioSource.clip = _emoteAudio;
@@ -263,7 +264,7 @@ public class PreviewLoader : MonoBehaviour
         wearableRoot.gameObject.SetActive(!show);
 
         _outlineRenderers.Clear();
-        
+
         var allRenderers = gameObject.GetComponentsInChildren<Renderer>();
         foreach (var r in allRenderers)
         {
@@ -332,16 +333,29 @@ public class PreviewLoader : MonoBehaviour
     /// up to the given padding (0–0.5), and are centered on screen.
     /// Thanks ChatGPT :)
     /// </summary>
-    private void FitToScreen(GameObject root)
+    private void FitWearableToScreen()
     {
+        // Reset root
+        wearableRoot.localPosition = Vector3.zero;
+        wearableRoot.localRotation = Quaternion.identity;
+        wearableRoot.localScale = Vector3.one;
+
         // 1. Gather all renderers
-        var rends = root.GetComponentsInChildren<Renderer>();
+        var rends = wearableRoot.gameObject.GetComponentsInChildren<Renderer>();
         if (rends.Length == 0) return;
 
         // 2. Compute combined world-space bounds
         var b = rends[0].bounds;
         for (var i = 1; i < rends.Length; i++)
             b.Encapsulate(rends[i].bounds);
+
+        // Make bounds a cube using the largest dimension
+        var maxSize = Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z));
+        b = new Bounds(b.center, Vector3.one * maxSize);
+
+        // Bounds center should be at 0,0,0 as that's what we rotate around
+        wearableRoot.position = -b.center;
+        b.center = Vector3.zero;
 
         // 3. Determine scale factor based on camera type
         float scale;
@@ -360,18 +374,18 @@ public class PreviewLoader : MonoBehaviour
         }
 
         // 4. Remember pivot‐to‐bounds‐center offset
-        var pivot = root.transform.position;
+        var pivot = wearableRoot.position;
         var offset = b.center - pivot;
 
         // 5. Apply uniform scale
-        root.transform.localScale *= scale;
+        wearableRoot.localScale *= scale;
 
         // 6. Compute where the bounds.center should land in world space
         var depth = mainCamera.WorldToViewportPoint(b.center).z;
         var targetCenter = mainCamera.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, depth));
 
         // 7. Reposition the pivot so that the mesh's center is at screen center
-        root.transform.position = targetCenter - offset * scale;
+        wearableRoot.position = targetCenter - offset * scale;
     }
 
     private static async Awaitable<List<string>> GetUrns(PreviewConfiguration config)

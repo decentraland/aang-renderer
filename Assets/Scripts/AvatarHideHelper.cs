@@ -9,8 +9,10 @@ public static class AvatarHideHelper
     /// Processes the wearables that are currently equipped and hides the ones that should be hidden.
     /// </summary>
     /// <param name="wearables">Currently equipped wearables</param>
+    /// <param name="overrideCategory">The category that has been overridden and should never be hidden</param>
     /// <returns>A set of all the categories that were hidden.</returns>
-    public static HashSet<string> HideWearables(Dictionary<string, WearableDefinition> wearables)
+    public static HashSet<string> HideWearables(Dictionary<string, WearableDefinition> wearables,
+        string overrideCategory = null)
     {
         var hiddenCategories = new HashSet<string>();
 
@@ -23,16 +25,34 @@ public static class AvatarHideHelper
                 {
                     if (toHide == category) continue; // Safeguard so wearables don't hide themselves
 
-                    wearables.Remove(toHide);
-                    hiddenCategories.Add(toHide);
+                    // If something is trying to hide the wearable we're overriding, hide that category instead
+                    if (toHide == overrideCategory)
+                    {
+                        wearables.Remove(category);
+                        hiddenCategories.Add(category);
+                    }
+                    else
+                    {
+                        wearables.Remove(toHide);
+                        hiddenCategories.Add(toHide);
+                    }
                 }
 
                 foreach (var toReplace in wearableDefinition.Replaces)
                 {
                     if (toReplace == category) continue; // Safeguard so wearables don't hide themselves
 
-                    wearables.Remove(toReplace);
-                    hiddenCategories.Add(toReplace);
+                    // If something is trying to hide the wearable we're overriding, hide that category instead
+                    if (toReplace == overrideCategory)
+                    {
+                        wearables.Remove(category);
+                        hiddenCategories.Add(category);
+                    }
+                    else
+                    {
+                        wearables.Remove(toReplace);
+                        hiddenCategories.Add(toReplace);
+                    }
                 }
 
                 // Skin has implicit hides
