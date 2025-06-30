@@ -21,7 +21,7 @@
     <engine:VisualElement name="Loader" class="loader" style="display: flex;">
         <engine:VisualElement name="Icon" class="loader__icon" />
     </engine:VisualElement>
-    <engine:VisualElement name="DebugPanel" picking-mode="Ignore" style="flex-direction: column; font-size: 22px; justify-content: flex-end; align-items: stretch; position: absolute; top: 0; left: 0; bottom: 0; right: 0; display: flex;">
+    <engine:VisualElement name="DebugPanel" picking-mode="Ignore" style="flex-direction: column; font-size: 22px; justify-content: flex-end; align-items: stretch; position: absolute; top: 0; left: 0; bottom: 0; right: 0; display: none;">
         <engine:Label text="v0.0.0" name="VersionLabel" style="align-self: flex-end;" />
         <engine:Button text="Hide" name="HideButton" style="width: 93px; align-self: flex-end;" />
         <engine:VisualElement style="flex-direction: row; height: 50px;">
