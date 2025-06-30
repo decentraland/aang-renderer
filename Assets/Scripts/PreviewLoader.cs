@@ -96,8 +96,7 @@ public class PreviewLoader : MonoBehaviour
     }
 
     private async Awaitable LoadStuff(string bodyShape, List<string> urns, string overrideURN, Color eyeColor,
-        Color hairColor, Color skinColor,
-        string defaultEmote, List<byte[]> base64)
+        Color hairColor, Color skinColor, string defaultEmote, List<byte[]> base64)
     {
         var avatarColors = new AvatarColors(eyeColor, hairColor, skinColor);
 

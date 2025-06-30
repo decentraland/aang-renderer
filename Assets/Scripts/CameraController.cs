@@ -8,10 +8,21 @@ public class CameraController : MonoBehaviour
     [SerializeField] private float maxFOV = 100f;
     [SerializeField] private float lerpSpeed = 1f;
 
+    [Header("Presets")]
     [SerializeField] private Vector3 marketplacePosition;
+    [SerializeField] private Quaternion marketplaceRotation;
+    
+    [Space]
     [SerializeField] private Vector3 authPosition;
+    [SerializeField] private Quaternion authRotation;
+
+    [Space]
     [SerializeField] private Vector3 profilePosition;
+    [SerializeField] private Quaternion profileRotation;
+
+    [Space]
     [SerializeField] private Vector3 builderPosition;
+    [SerializeField] private Quaternion builderRotation;
 
     private float _targetFOV;
     private float _initialFOV;
@@ -32,6 +43,15 @@ public class CameraController : MonoBehaviour
             PreviewMode.Authentication => authPosition,
             PreviewMode.Profile => profilePosition,
             PreviewMode.Builder => builderPosition,
+            _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
+        };
+
+        transform.rotation = mode switch
+        {
+            PreviewMode.Marketplace => marketplaceRotation,
+            PreviewMode.Authentication => authRotation,
+            PreviewMode.Profile => profileRotation,
+            PreviewMode.Builder => builderRotation,
             _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
         };
     }

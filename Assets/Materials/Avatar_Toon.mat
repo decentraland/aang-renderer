@@ -475,7 +475,6 @@ Material:
     - _IridescenceMask: 1
     - _IridescenceThickness: 1
     - _IsBaseMapAlphaAsClippingMask: 1
-    - _IsEmissive: 0
     - _Is_BLD: 0
     - _Is_BakedNormal: 0
     - _Is_BlendAddToHiColor: 1
@@ -630,10 +629,6 @@ Material:
     - _ZWriteMode: 1
     - _isUnityToonshader: 1
     - _simpleUI: 0
-    - _utsTechnique: 0
-    - _utsVersionX: 0
-    - _utsVersionY: 9
-    - _utsVersionZ: 5
     m_Colors:
     - _1st_ShadeColor: {r: 0.9490197, g: 0.9490197, b: 0.9490197, a: 1}
     - _2nd_ShadeColor: {r: 0.8000001, g: 0.8000001, b: 0.8000001, a: 1}
@@ -650,7 +645,7 @@ Material:
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissiveColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissiveColorLDR: {r: 0, g: 0, b: 0, a: 1}
-    - _Emissive_Color: {r: 0, g: 0, b: 0, a: 1}
+    - _Emissive_Color: {r: 4.237095, g: 4.237095, b: 4.237095, a: 1}
     - _FadePosition: {r: 0, g: 0, b: 0, a: 0}
     - _FirstShadeMaskColor: {r: 0, g: 1, b: 1, a: 1}
     - _HighColor: {r: 1, g: 1, b: 1, a: 1}

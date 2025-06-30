@@ -289,7 +289,7 @@ MonoBehaviour:
   m_RenderPostProcessing: 1
   m_Antialiasing: 0
   m_AntialiasingQuality: 2
-  m_StopNaN: 0
+  m_StopNaN: 1
   m_Dithering: 0
   m_ClearDepth: 1
   m_AllowXRRendering: 1
@@ -420,10 +420,14 @@ MonoBehaviour:
   minFOV: 30
   maxFOV: 100
   lerpSpeed: 10
-  marketplacePosition: {x: 0, y: 0, z: -2.56}
-  authPosition: {x: 0, y: -0.1, z: -2.92}
-  profilePosition: {x: 0, y: 0, z: -2.56}
-  builderPosition: {x: 0, y: 0.2, z: -4.57}
+  marketplacePosition: {x: 0, y: 1, z: -2.5}
+  marketplaceRotation: {x: 0.17364818, y: 0, z: 0, w: 0.9848077}
+  authPosition: {x: 0, y: 1, z: -2.92}
+  authRotation: {x: 0.17364818, y: 0, z: 0, w: 0.9848077}
+  profilePosition: {x: 0, y: 1, z: -2.5}
+  profileRotation: {x: 0.17364818, y: 0, z: 0, w: 0.9848077}
+  builderPosition: {x: 0, y: 1, z: -2.5}
+  builderRotation: {x: 0.17364818, y: 0, z: 0, w: 0.9848077}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -452,8 +456,8 @@ Light:
   m_Enabled: 1
   serializedVersion: 11
   m_Type: 1
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 1
+  m_Color: {r: 1, g: 0.9254902, b: 0.6862745, a: 1}
+  m_Intensity: 1.2
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -497,7 +501,7 @@ Light:
   m_AreaSize: {x: 1, y: 1}
   m_BounceIntensity: 1
   m_ColorTemperature: 6969
-  m_UseColorTemperature: 1
+  m_UseColorTemperature: 0
   m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1

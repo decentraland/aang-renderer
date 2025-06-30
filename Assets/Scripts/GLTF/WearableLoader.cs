@@ -17,7 +17,7 @@ namespace GLTF
         {
             var importer = new GltfImport(
                 downloadProvider: new BinaryDownloadProvider(files),
-                materialGenerator: new AvatarMaterialGenerator(avatarColors),
+                materialGenerator: new ToonMaterialGenerator(avatarColors),
                 logger: new ConsoleLogger()
             );
 
