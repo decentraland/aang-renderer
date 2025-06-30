@@ -166,6 +166,7 @@ def set_parameters(params):
     body = hardcoded_params | params
     url = f'{URL}/buildtargets/{os.getenv("TARGET")}/envvars'
     print(f"Request URL: {url}")
+    print(f"Request body: {body}")
     
     response = requests.put(url, headers=HEADERS, json=body)
     
