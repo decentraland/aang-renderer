@@ -13,6 +13,8 @@ using Debug = UnityEngine.Debug;
 
 public class PreviewLoader : MonoBehaviour
 {
+    private const bool DEBUG_ONLY_LOAD_WEARABLE = false;
+    
     private static readonly int MAIN_TEX = Shader.PropertyToID("_MainTex");
     private static readonly int MASK_TEX = Shader.PropertyToID("_MaskTex");
 
@@ -169,6 +171,7 @@ public class PreviewLoader : MonoBehaviour
 
         // Load all wearables and body shape
         await Task.WhenAll(wearableDefinitions
+            .Where(cwd => !DEBUG_ONLY_LOAD_WEARABLE || cwd.Key == _overrideWearableCategory)
             .Select(cwd => LoadWearable(cwd.Key, cwd.Value, avatarColors))
             .ToList());
 
