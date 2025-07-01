@@ -1,3 +1,4 @@
+using System;
 using GLTFast;
 using UnityEngine;
 using Utils;
@@ -64,7 +65,7 @@ public class Bootstrap : MonoBehaviour
 
             previewRotator.enabled = false;
             previewRotator.ResetRotation();
-            
+
             animationReference.SetActive(Config.ShowAnimationReference);
             authPlatform.SetActive(Config.Mode is PreviewMode.Authentication);
             mainCamera.backgroundColor = Config.Background;
@@ -72,7 +73,15 @@ public class Bootstrap : MonoBehaviour
             uiPresenter.EnableLoader(!Config.DisableLoader);
             mainCamera.GetComponent<CameraController>().SetMode(Config.Mode);
 
-            await previewLoader.LoadPreview(Config);
+            try
+            {
+                await previewLoader.LoadPreview(Config);
+            }
+            catch (Exception e)
+            {
+                JSBridge.NativeCalls.OnError(e.Message);
+                throw;
+            }
 
             previewRotator.enabled = true;
             previewRotator.AllowVertical = Config.Mode is PreviewMode.Marketplace or PreviewMode.Builder;
@@ -83,7 +92,8 @@ public class Bootstrap : MonoBehaviour
             uiPresenter.EnableSwitcher(previewLoader.HasWearableOverride);
             uiPresenter.EnableAudioControls(previewLoader.HasEmoteAudio);
 
-            uiPresenter.ShowAvatar(Config.Mode != PreviewMode.Marketplace || !previewLoader.HasWearableOverride || PlayerPrefs.GetInt("PreviewAvatarShown", 0) == 1);
+            uiPresenter.ShowAvatar(Config.Mode != PreviewMode.Marketplace || !previewLoader.HasWearableOverride ||
+                                   PlayerPrefs.GetInt("PreviewAvatarShown", 0) == 1);
         } while (_shouldReload);
 
         uiPresenter.ShowLoader(false);

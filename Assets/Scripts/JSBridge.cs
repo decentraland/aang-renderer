@@ -132,12 +132,17 @@ public class JSBridge : MonoBehaviour
             Debug.Log($"NativeCall OnScreenshotTaken({base64Str.Length} bytes)");
 
         public static void OnLoadComplete() => Debug.Log("NativeCall OnLoadComplete");
+        
+        public static void OnError(string message) => Debug.LogError($"NativeCall OnError({message})");
 #else
         [System.Runtime.InteropServices.DllImport("__Internal")]
         public static extern void OnScreenshotTaken(string base64Str);
 
         [System.Runtime.InteropServices.DllImport("__Internal")]
         public static extern void OnLoadComplete();
+
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        public static extern void OnError(string message);
 #endif
     }
 }
