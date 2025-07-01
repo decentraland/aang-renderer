@@ -10,6 +10,8 @@ namespace GLTF
 {
     public class ToonMaterialGenerator : IMaterialGenerator
     {
+        private const float EMISSIVE_MAGIC_NUMBER = 5f;
+
         private static readonly int MAIN_TEX_ID = Shader.PropertyToID("_MainTex");
         private static readonly int BASE_COLOR_ID = Shader.PropertyToID("_BaseColor");
         private static readonly int EMISSIVE_TEX_ID = Shader.PropertyToID("_Emissive_Tex");
@@ -22,8 +24,6 @@ namespace GLTF
         private static readonly int DST_BLEND_ID = Shader.PropertyToID("_DstBlend");
 
         private readonly AvatarColors _avatarColors;
-
-        private readonly float EMISSIVE_MAGIC_NUMBER = 5f;
 
         public ToonMaterialGenerator(AvatarColors avatarColors)
         {
@@ -47,10 +47,7 @@ namespace GLTF
             }
 
             // Emission
-            if (gltfMaterial.Emissive != Color.black)
-            {
-                mat.SetColor(EMISSIVE_COLOR_ID, gltfMaterial.Emissive * EMISSIVE_MAGIC_NUMBER);
-            }
+            mat.SetColor(EMISSIVE_COLOR_ID, gltfMaterial.Emissive * EMISSIVE_MAGIC_NUMBER);
 
             if (gltfMaterial.emissiveTexture.index != -1)
             {
