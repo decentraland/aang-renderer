@@ -18,6 +18,8 @@ namespace GLTF
         private static readonly int TWEAK_TRANSPARENCY_ID = Shader.PropertyToID("_Tweak_transparency");
         private static readonly int CLIPPING_LEVEL_ID = Shader.PropertyToID("_Clipping_Level");
         private static readonly int Z_WRITE_MODE_ID = Shader.PropertyToID("_ZWriteMode");
+        private static readonly int SRC_BLEND_ID = Shader.PropertyToID("_SrcBlend");
+        private static readonly int DST_BLEND_ID = Shader.PropertyToID("_DstBlend");
 
         private readonly AvatarColors _avatarColors;
 
@@ -45,7 +47,11 @@ namespace GLTF
             }
 
             // Emission
-            mat.SetColor(EMISSIVE_COLOR_ID, gltfMaterial.Emissive * EMISSIVE_MAGIC_NUMBER);
+            if (gltfMaterial.Emissive != Color.black)
+            {
+                mat.SetColor(EMISSIVE_COLOR_ID, gltfMaterial.Emissive * EMISSIVE_MAGIC_NUMBER);
+            }
+
             if (gltfMaterial.emissiveTexture.index != -1)
             {
                 mat.SetTexture(EMISSIVE_TEX_ID, gltf.GetTexture(gltfMaterial.emissiveTexture.index));
@@ -57,11 +63,13 @@ namespace GLTF
                 mat.DisableKeyword("_IS_CLIPPING_MODE");
                 mat.EnableKeyword("_IS_CLIPPING_TRANSMODE");
                 mat.SetFloat(TWEAK_TRANSPARENCY_ID, 0.0f - (1.0f - baseColor.a));
-                mat.SetFloat(CLIPPING_LEVEL_ID, gltfMaterial.alphaCutoff);
-                // TODO Do we need this?
-                // mat.SetInt(Z_WRITE_MODE_ID, (int)originalMaterial.GetFloat(Z_WRITE));
-                // mat.SetFloat(SRC_BLEND, originalMaterial.GetFloat(SRC_BLEND));
-                // mat.SetFloat(DST_BLEND, originalMaterial.GetFloat(DST_BLEND));
+                mat.SetFloat(CLIPPING_LEVEL_ID, 0);
+                mat.SetInt(Z_WRITE_MODE_ID, 0);
+
+                mat.SetFloat(SRC_BLEND_ID, (int)BlendMode.SrcAlpha);
+                mat.SetFloat(DST_BLEND_ID, (int)BlendMode.OneMinusSrcAlpha);
+
+                // I don't think we need to set this but if some transparency stuff is messed up maybe we do
                 // mat.SetFloat(ALPHA_SRC_BLEND_TARGET, originalMaterial.GetFloat(ALPHA_SRC_BLEND_ORIGINAL));
                 // mat.SetFloat(ALPHA_DST_BLEND_TARGET, originalMaterial.GetFloat(ALPHA_DST_BLEND_ORIGINAL));
                 mat.renderQueue = (int)RenderQueue.Transparent;
