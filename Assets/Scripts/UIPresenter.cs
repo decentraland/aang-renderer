@@ -241,7 +241,10 @@ public class UIPresenter : MonoBehaviour
                 GameObject.Find("JSBridge").SendMessage(methodNameDropdown.value, parameterField.value);
             }
 
-            GameObject.Find("JSBridge").SendMessage("Reload");
+            if (methodNameDropdown.value != "Reload" && methodNameDropdown.value != "TakeScreenshot")
+            {
+                GameObject.Find("JSBridge").SendMessage("Reload");
+            }
         };
 
         debugPanel.Q<Button>("HideButton").clicked += () => debugPanel.style.display = DisplayStyle.None;
