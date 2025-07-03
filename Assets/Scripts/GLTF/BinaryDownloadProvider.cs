@@ -130,7 +130,22 @@ namespace GLTF
         /// False if it is a regular JSON-based glTF file.
         /// Null if the type could not be determined.
         /// </summary>
-        public bool? IsBinary => true;
+        public bool? IsBinary
+        {
+            get
+            {
+                if (Success)
+                {
+                    return Data.Length >= 4 &&
+                           Data[0] == 0x67 && // 'g'
+                           Data[1] == 0x6C && // 'l'
+                           Data[2] == 0x54 && // 'T'
+                           Data[3] == 0x46; // 'F'
+                }
+
+                return null;
+            }
+        }
 
         /// <summary>
         /// Releases previously allocated resources.

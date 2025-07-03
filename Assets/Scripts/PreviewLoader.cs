@@ -321,7 +321,8 @@ public class PreviewLoader : MonoBehaviour
         }
         else
         {
-            Assert.IsTrue(wd.MainFile.EndsWith(".glb"), "Only GLB files are supported");
+            Assert.IsTrue(wd.MainFile.EndsWith(".glb") || wd.MainFile.EndsWith(".gltf"),
+                "Only GLB files are supported");
 
             // Normal GLB
             var go = await WearableLoader.LoadGLB(wd.Category, wd.MainFile, wd.Files, avatarColors);
