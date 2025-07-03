@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UIElements;
 
 /// <summary>
 /// Handles autorotation and inertia-based user rotation.
@@ -6,6 +7,7 @@ using UnityEngine;
 public class PreviewRotator : MonoBehaviour
 {
     [SerializeField] private Camera mainCamera;
+    [SerializeField] private UIDocument uiDocument;
 
     [Header("Drag Settings")] [SerializeField]
     private float dragSpeed = 0.2f;
@@ -41,7 +43,7 @@ public class PreviewRotator : MonoBehaviour
     {
         var dt = Time.deltaTime;
 
-        if (Input.GetMouseButton(0))
+        if (Input.GetMouseButton(0) && !IsOverUI())
         {
             var mouseDelta = Input.mousePositionDelta;
             _horizontalVel += -mouseDelta.x * dragSpeed;
@@ -67,6 +69,13 @@ public class PreviewRotator : MonoBehaviour
 
             if (EnableAutoRotate) transform.Rotate(Vector3.up, autoRotateSpeed * dt, Space.World);
         }
+    }
+
+    private bool IsOverUI()
+    {
+        var panel = uiDocument.rootVisualElement.panel;
+        var panelPos = RuntimePanelUtils.ScreenToPanel(panel, Input.mousePosition);
+        return panel.Pick(panelPos) != null;
     }
 
     public void ResetRotation()
