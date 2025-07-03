@@ -892,6 +892,7 @@ GameObject:
   - component: {fileID: 1101889420}
   - component: {fileID: 1101889419}
   - component: {fileID: 1101889421}
+  - component: {fileID: 1101889422}
   m_Layer: 5
   m_Name: UIDocument
   m_TagString: Untagged
@@ -950,6 +951,19 @@ MonoBehaviour:
   bootstrap: {fileID: 983774207}
   audioSource: {fileID: 330585548}
   cameraController: {fileID: 330585549}
+--- !u!114 &1101889422
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1101889418}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7fce1f3f7d0464990448ce5ad55a72d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  uiDocument: {fileID: 1101889419}
 --- !u!1 &1155634899 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 128174000945446214, guid: bbf00bb69105249148a4e1fe40b7ba18, type: 3}

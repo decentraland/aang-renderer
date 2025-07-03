@@ -37,6 +37,7 @@ public class PreviewLoader : MonoBehaviour
     public bool HasEmoteAudio => _emoteAudio != null;
     public bool HasWearableOverride => _overrideWearableCategory != null && !HasEmoteOverride;
     public bool HasValidRepresentation { get; private set; }
+    public bool IsAvatarMale { get; private set; }
 
     public async Awaitable LoadPreview(PreviewConfiguration config)
     {
@@ -101,6 +102,8 @@ public class PreviewLoader : MonoBehaviour
     private async Awaitable LoadStuff(string bodyShape, List<string> urns, string overrideURN, Color eyeColor,
         Color hairColor, Color skinColor, string defaultEmote, List<byte[]> base64)
     {
+        IsAvatarMale = bodyShape == "urn:decentraland:off-chain:base-avatars:BaseMale";
+        
         var avatarColors = new AvatarColors(eyeColor, hairColor, skinColor);
 
         urns.Insert(0, bodyShape);

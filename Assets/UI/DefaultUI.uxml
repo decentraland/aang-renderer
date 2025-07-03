@@ -33,4 +33,5 @@
         </engine:VisualElement>
         <engine:DropdownField name="URLDropdown" choices="From URL" index="0" style="margin-left: 0;" />
     </engine:VisualElement>
+    <engine:Label name="Tooltip" picking-mode="Ignore" class="tooltip" />
 </engine:UXML>
