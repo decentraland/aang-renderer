@@ -14,7 +14,7 @@ using Debug = UnityEngine.Debug;
 public class PreviewLoader : MonoBehaviour
 {
     private const bool DEBUG_ONLY_LOAD_WEARABLE = false;
-    
+
     private static readonly int MAIN_TEX = Shader.PropertyToID("_MainTex");
     private static readonly int MASK_TEX = Shader.PropertyToID("_MaskTex");
 
@@ -36,6 +36,7 @@ public class PreviewLoader : MonoBehaviour
     public bool HasEmoteOverride => _overrideWearableCategory == "emote";
     public bool HasEmoteAudio => _emoteAudio != null;
     public bool HasWearableOverride => _overrideWearableCategory != null && !HasEmoteOverride;
+    public bool HasValidRepresentation { get; private set; }
 
     public async Awaitable LoadPreview(PreviewConfiguration config)
     {
@@ -166,6 +167,9 @@ public class PreviewLoader : MonoBehaviour
             .Where(wd => _overrideWearableCategory == null || wd.Category != _overrideWearableCategory ||
                          wd.Pointer == overrideURN)
             .ToDictionary(wd => wd.Category);
+
+        HasValidRepresentation =
+            hasWearableOverride && wearableDefinitions.All(wd => wd.Value.HasValidRepresentation);
 
         var hiddenCategories = AvatarHideHelper.HideWearables(wearableDefinitions, _overrideWearableCategory);
 

@@ -38,6 +38,7 @@ public class UIPresenter : MonoBehaviour
     private string _currentDebugInput = "";
     private bool _debugLoaded;
     private bool _animationPlaying = true;
+    private bool _allowAvatarSwitch = true;
 
     private void Awake()
     {
@@ -102,6 +103,12 @@ public class UIPresenter : MonoBehaviour
         _muteEmoteButton.style.display = enable ? DisplayStyle.Flex : DisplayStyle.None;
     }
 
+    public void AllowAvatarSwitch(bool allow)
+    {
+        _allowAvatarSwitch = allow;
+        _avatarButton.SetEnabled(allow);
+    }
+
     public void EnableLoader(bool enable)
     {
         _loaderIcon.style.display = enable ? DisplayStyle.Flex : DisplayStyle.None;
@@ -115,12 +122,16 @@ public class UIPresenter : MonoBehaviour
 
     private void OnAvatarButtonClicked()
     {
+        if (!_allowAvatarSwitch) return;
+        
         PlayerPrefs.SetInt("PreviewAvatarShown", 1);
         ShowAvatar(true);
     }
 
     private void OnWearableButtonClicked()
     {
+        if (!_allowAvatarSwitch) return;
+        
         PlayerPrefs.SetInt("PreviewAvatarShown", 0);
         ShowAvatar(false);
     }
@@ -185,6 +196,7 @@ public class UIPresenter : MonoBehaviour
         var dropdownOptions = new List<(string name, string url)>
         {
             ("From URL", null),
+            ("Market Wearable No Male Representation", "https://example.com/?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0x64e98a568822bf15e3f38618ba50420e38b15579:0&background=039dfc"),
             ("Blue Satin Dress", "https://example.com/?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&background=039dfc&urn=urn:decentraland:matic:collections-v2:0xa826e7769bf0c712bff7b1b9e9031bfc36ed7758:0"),
             ("Black Zodiac #32", "https://example.com/?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&background=039dfc&urn=urn:decentraland:matic:collections-v2:0x97b97836fd45c5d15811779331bba4804518c7a5:0"),
             ("Retro Rollerblade Doll #31", "https://example.com/?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&background=039dfc&urn=urn:decentraland:matic:collections-v2:0x8d6c8c4cb8758fcebf614642bcec2cfa00fff478:0"),
@@ -250,6 +262,18 @@ public class UIPresenter : MonoBehaviour
         debugPanel.Q<Button>("HideButton").clicked += () => debugPanel.style.display = DisplayStyle.None;
 
         debugPanel.Q<Label>("VersionLabel").text = Application.version;
+
+        debugPanel.Q<Button>("CopyConfigButton").clicked += () =>
+        {
+            var json = URLParser.GetUrlParameters(bootstrap.Config);
+            Debug.Log(json);
+
+            // Save to clipboard
+            var te = new TextEditor();
+            te.text = json;
+            te.SelectAll();
+            te.Copy();
+        };
 
         _debugLoaded = true;
     }

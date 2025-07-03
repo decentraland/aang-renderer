@@ -19,6 +19,10 @@
     background-size: 20px 20px;
 }
 
+.switcher__button:disabled {
+    background-color: rgb(128, 128, 128);
+}
+
 .switcher__button--selected {
     background-color: rgb(231, 63, 78);
 }

@@ -15,10 +15,13 @@ namespace Data
         public string[] Hides { get; private set; }
         public string[] Replaces { get; private set; }
 
+        public bool HasValidRepresentation { get; private set; } = true;
+
         public static WearableDefinition FromActiveEntity(ActiveEntity entity, string bodyShape)
         {
             var representation =
                 entity.metadata.data.representations.FirstOrDefault(r => r.bodyShapes.Contains(bodyShape));
+            var hasCorrectRepresentation = representation != null;
             if (representation == null)
             {
                 Debug.LogError("No representation found for body shape: " + bodyShape);
@@ -29,6 +32,7 @@ namespace Data
             {
                 Pointer = entity.pointers[0],
                 Category = entity.metadata.data.category,
+                HasValidRepresentation = hasCorrectRepresentation,
                 Files = entity.content.Where(c => representation.contents.Contains(c.file))
                     .ToDictionary(c => c.file, c => c.url ?? c.hash),
                 MainFile = representation.mainFile,

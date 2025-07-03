@@ -1,3 +1,5 @@
+using System;
+using System.Text;
 using UnityEngine;
 using System.Web;
 
@@ -85,6 +87,44 @@ namespace Utils
             }
 
             return config;
+        }
+
+        /// <summary>
+        /// Converts the preview configuration into the matching set of url parameters.
+        /// Used for testing
+        /// </summary>
+        public static string GetUrlParameters(PreviewConfiguration config)
+        {
+            var sb = new StringBuilder("?");
+
+            sb.AppendFormat("mode={0}", config.Mode.ToString().ToLowerInvariant());
+            sb.AppendFormat("&profile={0}", config.Profile);
+            sb.AppendFormat("&emote={0}", config.Emote);
+            foreach (var urn in config.Urns)
+                sb.AppendFormat("&urn={0}", urn);
+            sb.AppendFormat("&background={0}", ColorUtility.ToHtmlStringRGBA(config.Background));
+            if (config.SkinColor.HasValue)
+                sb.AppendFormat("&skinColor={0}", ColorUtility.ToHtmlStringRGB(config.SkinColor.Value));
+            if (config.HairColor.HasValue)
+                sb.AppendFormat("&hairColor={0}", ColorUtility.ToHtmlStringRGB(config.HairColor.Value));
+            if (config.EyeColor.HasValue)
+                sb.AppendFormat("&eyeColor={0}", ColorUtility.ToHtmlStringRGB(config.EyeColor.Value));
+            if (!string.IsNullOrEmpty(config.BodyShape))
+                sb.AppendFormat("&bodyShape={0}", config.BodyShape);
+            sb.AppendFormat("&showAnimationReference={0}", config.ShowAnimationReference);
+            sb.AppendFormat("&projection={0}", config.Projection);
+            foreach (var bytes in config.Base64)
+                sb.AppendFormat("&base64={0}", Convert.ToBase64String(bytes));
+            if (!string.IsNullOrEmpty(config.Contract))
+                sb.AppendFormat("&contract={0}", config.Contract);
+            if (!string.IsNullOrEmpty(config.ItemID))
+                sb.AppendFormat("&item={0}", config.ItemID);
+            if (!string.IsNullOrEmpty(config.TokenID))
+                sb.AppendFormat("&token={0}", config.TokenID);
+            sb.AppendFormat("&env={0}", APIService.Environment == "zone" ? "dev" : "prod");
+            sb.AppendFormat("&disableLoader={0}", config.DisableLoader);
+
+            return sb.ToString();
         }
     }
 }
