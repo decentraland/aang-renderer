@@ -859,6 +859,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mainCamera: {fileID: 330585545}
+  uiDocument: {fileID: 1101889419}
   dragSpeed: 0.1
   inertiaDamp: 0.25
   autoRotateSpeed: 10
@@ -964,6 +965,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   uiDocument: {fileID: 1101889419}
+  tooltipDelay: 0.5
+  tooltipPadding: 10
 --- !u!1 &1155634899 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 128174000945446214, guid: bbf00bb69105249148a4e1fe40b7ba18, type: 3}
