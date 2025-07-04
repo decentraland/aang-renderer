@@ -24,7 +24,7 @@
     <engine:VisualElement name="DebugPanel" picking-mode="Ignore" style="flex-direction: column; font-size: 22px; justify-content: flex-end; align-items: stretch; position: absolute; top: 0; left: 0; bottom: 0; right: 0; display: none;">
         <engine:Label text="v0.0.0" name="VersionLabel" style="align-self: flex-end;" />
         <engine:Button text="Hide" name="HideButton" style="width: 93px; align-self: flex-end;" />
-        <engine:Button text="Copy Config" name="CopyConfigButton" style="align-self: flex-end;" />
+        <engine:Button text="Print Config" name="PrintConfigButton" style="align-self: flex-end;" />
         <engine:VisualElement style="flex-direction: row; height: 50px;">
             <engine:DropdownField name="MethodNameDropdown" choices="Method" index="0" style="flex-grow: 1; flex-basis: 1px; margin-left: 0;" />
             <engine:TextField placeholder-text="MethodName" name="MethodName" style="flex-grow: 1; flex-basis: 1px; display: none;" />
