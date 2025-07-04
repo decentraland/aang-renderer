@@ -14,6 +14,28 @@ using UnityEngine.Rendering;
 /// </summary>
 public class JSBridge : MonoBehaviour
 {
+    [System.Serializable]
+    public class OverridesData
+    {
+        public string mode;
+        public string profile;
+        public string emote;
+        public string urn;
+        public string background;
+        public string skinColor;
+        public string hairColor;
+        public string eyeColor;
+        public string bodyShape;
+        public string showAnimationReference;
+        public string projection;
+        public string base64;
+        public string contract;
+        public string item;
+        public string token;
+        public string env;
+        public string disableLoader;
+    }
+
     [SerializeField] private Bootstrap bootstrap;
 
     [UsedImplicitly]
@@ -123,6 +145,75 @@ public class JSBridge : MonoBehaviour
         NativeCalls.OnScreenshotTaken(base64Png);
 
         RenderTexture.ReleaseTemporary(rt);
+    }
+
+    [UsedImplicitly]
+    public void SetOverrides(string jsonValue)
+    {
+        try
+        {
+            var overrides = JsonUtility.FromJson<OverridesData>(jsonValue);
+            
+            if (!string.IsNullOrEmpty(overrides.mode))
+                bootstrap.Config.SetMode(overrides.mode);
+            
+            if (!string.IsNullOrEmpty(overrides.profile))
+                bootstrap.Config.Profile = overrides.profile;
+            
+            if (!string.IsNullOrEmpty(overrides.emote))
+                bootstrap.Config.Emote = overrides.emote;
+            
+            if (!string.IsNullOrEmpty(overrides.urn))
+                bootstrap.Config.Urns.Add(overrides.urn);
+            
+            if (!string.IsNullOrEmpty(overrides.background))
+                bootstrap.Config.SetBackground(overrides.background);
+            
+            if (!string.IsNullOrEmpty(overrides.skinColor))
+                bootstrap.Config.SetSkinColor(overrides.skinColor);
+            
+            if (!string.IsNullOrEmpty(overrides.hairColor))
+                bootstrap.Config.SetHairColor(overrides.hairColor);
+            
+            if (!string.IsNullOrEmpty(overrides.eyeColor))
+                bootstrap.Config.SetEyeColor(overrides.eyeColor);
+            
+            if (!string.IsNullOrEmpty(overrides.bodyShape))
+                bootstrap.Config.BodyShape = overrides.bodyShape;
+            
+            if (!string.IsNullOrEmpty(overrides.showAnimationReference))
+                bootstrap.Config.ShowAnimationReference = bool.Parse(overrides.showAnimationReference);
+            
+            if (!string.IsNullOrEmpty(overrides.projection))
+                bootstrap.Config.Projection = overrides.projection;
+            
+            if (!string.IsNullOrEmpty(overrides.base64))
+                bootstrap.Config.SetBase64(overrides.base64);
+            
+            if (!string.IsNullOrEmpty(overrides.contract))
+                bootstrap.Config.Contract = overrides.contract;
+            
+            if (!string.IsNullOrEmpty(overrides.item))
+                bootstrap.Config.ItemID = overrides.item;
+            
+            if (!string.IsNullOrEmpty(overrides.token))
+                bootstrap.Config.TokenID = overrides.token;
+            
+            if (!string.IsNullOrEmpty(overrides.env))
+            {
+                APIService.Environment = overrides.env == "dev" ? "zone" : "org";
+                Debug.Log($"Using environment {APIService.Environment}");
+            }
+            
+            if (!string.IsNullOrEmpty(overrides.disableLoader))
+                bootstrap.Config.DisableLoader = bool.Parse(overrides.disableLoader);
+            
+            bootstrap.InvokeReload();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Failed to parse overrides JSON: {ex.Message}");
+        }
     }
 
     public static class NativeCalls
