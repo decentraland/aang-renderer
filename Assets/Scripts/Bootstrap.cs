@@ -126,4 +126,14 @@ public class Bootstrap : MonoBehaviour
 
         previewLoader.Cleanup();
     }
+
+    public void EnableSound()
+    {
+        previewLoader.EnableSound();
+    }
+
+    public void DisableSound()
+    {
+        previewLoader.DisableSound();
+    }
 }
