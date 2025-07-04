@@ -86,9 +86,6 @@ public class JSBridge : MonoBehaviour
     [UsedImplicitly]
     public void DisableSound() => bootstrap.DisableSound();
 
-    [UsedImplicitly]
-    public void Cleanup() => bootstrap.Cleanup();
-
     private static async Awaitable TakeScreenshotCoroutine()
     {
         await Awaitable.EndOfFrameAsync();
