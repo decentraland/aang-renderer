@@ -20,6 +20,7 @@ public class Bootstrap : MonoBehaviour
 
     private bool _loading;
     private bool _shouldReload;
+    private bool _shouldCleanup;
 
     // ReSharper disable once AsyncVoidMethod
     private async void Start()
@@ -46,6 +47,7 @@ public class Bootstrap : MonoBehaviour
 
     public void InvokeReload()
     {
+        _shouldCleanup = false;
         StartCoroutine(Reload());
     }
 
@@ -103,6 +105,25 @@ public class Bootstrap : MonoBehaviour
 
         uiPresenter.ShowLoader(false);
         _loading = false;
+
+        if (_shouldCleanup)
+        {
+            Cleanup();
+        }
+        
         JSBridge.NativeCalls.OnLoadComplete();
+    }
+
+    public void Cleanup()
+    {
+        if (_loading)
+        {
+            _shouldCleanup = true;
+            return;
+        }
+
+        _shouldCleanup = false;
+
+        previewLoader.Cleanup();
     }
 }

@@ -103,7 +103,7 @@ public class PreviewLoader : MonoBehaviour
         Color hairColor, Color skinColor, string defaultEmote, List<byte[]> base64)
     {
         IsAvatarMale = bodyShape == "urn:decentraland:off-chain:base-avatars:BaseMale";
-        
+
         var avatarColors = new AvatarColors(eyeColor, hairColor, skinColor);
 
         urns.Insert(0, bodyShape);
@@ -418,13 +418,17 @@ public class PreviewLoader : MonoBehaviour
         return null;
     }
 
-    private void Cleanup()
+    public void Cleanup()
     {
+        _outlineRenderers.Clear();
         RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.Clear();
 
         _overrideWearableCategory = null;
         _emoteAnimation = null;
         _emoteAudio = null;
+
+        audioSource.Stop();
+        audioSource.clip = null;
 
         foreach (Transform child in avatarRoot) Destroy(child.gameObject);
         foreach (Transform child in wearableRoot) Destroy(child.gameObject);

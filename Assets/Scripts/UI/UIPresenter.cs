@@ -250,16 +250,19 @@ namespace UI
             var parameterField = debugPanel.Q<TextField>("Parameter");
             debugPanel.Q<Button>("InvokeButton").clicked += () =>
             {
-                if (string.IsNullOrEmpty(parameterField.value))
+                var methodName = methodNameDropdown.value;
+                var parameter = parameterField.value;
+
+                if (string.IsNullOrEmpty(parameter))
                 {
-                    GameObject.Find("JSBridge").SendMessage(methodNameDropdown.value);
+                    GameObject.Find("JSBridge").SendMessage(methodName);
                 }
                 else
                 {
-                    GameObject.Find("JSBridge").SendMessage(methodNameDropdown.value, parameterField.value);
+                    GameObject.Find("JSBridge").SendMessage(methodName, parameter);
                 }
 
-                if (methodNameDropdown.value != "Reload" && methodNameDropdown.value != "TakeScreenshot")
+                if (methodName != "Reload" && methodName != "TakeScreenshot" && methodName != "Cleanup")
                 {
                     GameObject.Find("JSBridge").SendMessage("Reload");
                 }

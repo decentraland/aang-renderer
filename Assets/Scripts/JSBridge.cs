@@ -75,6 +75,9 @@ public class JSBridge : MonoBehaviour
     public void Reload() => bootstrap.InvokeReload();
 
     [UsedImplicitly]
+    public void Cleanup() => bootstrap.Cleanup();
+
+    [UsedImplicitly]
     public void TakeScreenshot() => StartCoroutine(TakeScreenshotCoroutine());
 
     private static async Awaitable TakeScreenshotCoroutine()
@@ -132,7 +135,7 @@ public class JSBridge : MonoBehaviour
             Debug.Log($"NativeCall OnScreenshotTaken({base64Str.Length} bytes)");
 
         public static void OnLoadComplete() => Debug.Log("NativeCall OnLoadComplete");
-        
+
         public static void OnError(string message) => Debug.LogError($"NativeCall OnError({message})");
 #else
         [System.Runtime.InteropServices.DllImport("__Internal")]
