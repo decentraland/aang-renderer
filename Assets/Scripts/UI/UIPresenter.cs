@@ -111,7 +111,8 @@ namespace UI
             _avatarButton.SetEnabled(allow);
 
             var avatarRepresentation = previewLoader.IsAvatarMale ? "male" : "female";
-            _switcher.tooltip = allow ? string.Empty : $"This wearable does not have a <b>{avatarRepresentation}</b>\nrepresentation";
+            _switcher.tooltip =
+                allow ? string.Empty : $"This wearable does not have a <b>{avatarRepresentation}</b>\nrepresentation";
         }
 
         public void EnableLoader(bool enable)
@@ -128,7 +129,7 @@ namespace UI
         private void OnAvatarButtonClicked()
         {
             if (!_allowAvatarSwitch) return;
-        
+
             PlayerPrefs.SetInt("PreviewAvatarShown", 1);
             ShowAvatar(true);
         }
@@ -136,7 +137,7 @@ namespace UI
         private void OnWearableButtonClicked()
         {
             if (!_allowAvatarSwitch) return;
-        
+
             PlayerPrefs.SetInt("PreviewAvatarShown", 0);
             ShowAvatar(false);
         }
@@ -268,17 +269,8 @@ namespace UI
 
             debugPanel.Q<Label>("VersionLabel").text = Application.version;
 
-            debugPanel.Q<Button>("CopyConfigButton").clicked += () =>
-            {
-                var json = URLParser.GetUrlParameters(bootstrap.Config);
-                Debug.Log(json);
-
-                // Save to clipboard
-                var te = new TextEditor();
-                te.text = json;
-                te.SelectAll();
-                te.Copy();
-            };
+            debugPanel.Q<Button>("PrintConfigButton").clicked +=
+                () => Debug.Log(URLParser.GetUrlParameters(bootstrap.Config));
 
             _debugLoaded = true;
         }
