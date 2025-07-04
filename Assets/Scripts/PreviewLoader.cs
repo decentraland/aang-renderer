@@ -458,11 +458,5 @@ public class PreviewLoader : MonoBehaviour
 
         avatarRoot.gameObject.SetActive(false);
         wearableRoot.gameObject.SetActive(false);
-
-        if (audioSource != null)
-        {
-            audioSource.Stop();
-            audioSource.clip = null;
-        }
     }
 }
