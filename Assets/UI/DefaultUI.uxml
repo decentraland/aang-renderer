@@ -2,8 +2,8 @@
     <Style src="project://database/Assets/UI/DefaultStyle.uss?fileID=7433441132597879392&amp;guid=f68a6a2e06d354fd9a80fadbd46871a5&amp;type=3#DefaultStyle" />
     <engine:VisualElement name="Controls" picking-mode="Ignore" style="position: absolute; top: 0; left: 0; bottom: 0; right: 0; margin-top: 20px; margin-right: 20px; margin-bottom: 20px; margin-left: 20px; -unity-font-definition: url(&quot;project://database/Assets/UI/Font/Inter-UI-Bold%20SDF.asset?fileID=11400000&amp;guid=d16b4f6c5b0564f9aafdb059ebd77bff&amp;type=2#Inter-UI-Bold SDF&quot;);">
         <engine:VisualElement name="Switcher" class="switcher">
-            <engine:VisualElement name="WearableButton" class="switcher__button switcher__button--selected" style="background-image: url(&quot;project://database/Assets/UI/Sprites/UpperBodyIcon.png?fileID=2800000&amp;guid=485539051aef5498a9871192a27ad7ca&amp;type=3#UpperBodyIcon&quot;);" />
-            <engine:VisualElement name="AvatarButton" class="switcher__button" style="background-image: url(&quot;project://database/Assets/UI/Sprites/BodyIcon.png?fileID=2800000&amp;guid=c6339aa049f3a42c6b337d3822bf7118&amp;type=3#BodyIcon&quot;);" />
+            <engine:VisualElement name="WearableButton" tooltip="Wearable" class="switcher__button switcher__button--selected" style="background-image: url(&quot;project://database/Assets/UI/Sprites/UpperBodyIcon.png?fileID=2800000&amp;guid=485539051aef5498a9871192a27ad7ca&amp;type=3#UpperBodyIcon&quot;);" />
+            <engine:VisualElement name="AvatarButton" tooltip="Try On" class="switcher__button" style="background-image: url(&quot;project://database/Assets/UI/Sprites/BodyIcon.png?fileID=2800000&amp;guid=c6339aa049f3a42c6b337d3822bf7118&amp;type=3#BodyIcon&quot;);" />
         </engine:VisualElement>
         <engine:VisualElement name="ZoomControls" class="zoomer">
             <engine:Button name="ZoomInButton" class="zoomer__button zoomer__button--in" />
