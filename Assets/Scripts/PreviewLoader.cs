@@ -8,6 +8,7 @@ using DCL.Rendering.RenderGraphs.RenderFeatures.AvatarOutline;
 using GLTF;
 using JetBrains.Annotations;
 using UnityEngine;
+using Utils;
 using Assert = UnityEngine.Assertions.Assert;
 using Debug = UnityEngine.Debug;
 

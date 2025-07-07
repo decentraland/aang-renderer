@@ -8,15 +8,15 @@ using Utils;
 namespace UI
 {
     [RequireComponent(typeof(UIDocument))]
-    public class UIPresenter : MonoBehaviour
+    public class PreviewUIPresenter : MonoBehaviour
     {
         private const string USS_SWITCHER_BUTTON_SELECTED = "switcher__button--selected";
         private const float LOADER_SPEED = 360f;
         private const string DEBUG_PASSPHRASE = "debugmesilly";
 
         [SerializeField] private PreviewLoader previewLoader;
-        [SerializeField] private PreviewRotator _previewRotator;
-        [SerializeField] private Bootstrap bootstrap;
+        [SerializeField] private PreviewRotator previewRotator;
+        [SerializeField] private PreviewController previewController;
         [SerializeField] private AudioSource audioSource;
         [SerializeField] private CameraController cameraController;
 
@@ -149,7 +149,7 @@ namespace UI
             _avatarButton.EnableInClassList(USS_SWITCHER_BUTTON_SELECTED, show);
 
             previewLoader.ShowAvatar(show);
-            _previewRotator.ResetRotation();
+            previewRotator.ResetRotation();
         }
 
         private void OnMuteEmoteClicked()
@@ -238,8 +238,8 @@ namespace UI
             dropdown.RegisterValueChangedCallback(evt =>
             {
                 var selected = dropdownOptions.Find(o => o.name == evt.newValue);
-                bootstrap.ParseFromURL(selected.url);
-                bootstrap.InvokeReload();
+                previewController.ParseFromURL(selected.url);
+                previewController.InvokeReload();
             });
 
             var methodNameDropdown = debugPanel.Q<DropdownField>("MethodNameDropdown");
@@ -274,7 +274,7 @@ namespace UI
             debugPanel.Q<Label>("VersionLabel").text = Application.version;
 
             debugPanel.Q<Button>("PrintConfigButton").clicked +=
-                () => Debug.Log(URLParser.GetUrlParameters(bootstrap.Config));
+                () => Debug.Log(URLParser.GetUrlParameters(previewController.Config));
 
             _debugLoaded = true;
         }
