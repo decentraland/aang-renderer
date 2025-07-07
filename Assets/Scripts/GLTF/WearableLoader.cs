@@ -101,15 +101,19 @@ namespace GLTF
                 Object.Destroy(sceneChild.gameObject);
             }
 
+            var skinnedRenderer = root.GetComponentInChildren<SkinnedMeshRenderer>();
+            var armatureRoot = skinnedRenderer.rootBone.parent;
+            armatureRoot.name = "Armature"; // Force Armature name since legacy animation needs it
+
             foreach (Transform t in root)
             {
                 // Some wearables have weird scales so we normalize them
                 t.localScale = new Vector3(0.01f, 0.01f, 0.01f);
 
-                // Anything other than Armature will break the animations TODO: Find a better way to handle this
-                if (t.name.StartsWith("Armature"))
+                // If there are objects named Armature that aren't the actual armature, rename them
+                if (t.name == "Armature" && t != armatureRoot)
                 {
-                    t.name = "Armature";
+                    t.name = "Armature_ThatShouldNotBeHere";
                 }
             }
         }
