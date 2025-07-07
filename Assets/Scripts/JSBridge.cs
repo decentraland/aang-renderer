@@ -14,68 +14,68 @@ using UnityEngine.Rendering;
 /// </summary>
 public class JSBridge : MonoBehaviour
 {
-    [SerializeField] private Bootstrap bootstrap;
+    [SerializeField] private PreviewController previewController;
 
     [UsedImplicitly]
-    public void ParseFromURL() => bootstrap.ParseFromURL();
+    public void ParseFromURL() => previewController.ParseFromURL();
 
     [UsedImplicitly]
-    public void SetMode(string value) => bootstrap.Config.SetMode(value);
+    public void SetMode(string value) => previewController.Config.SetMode(value);
 
     [UsedImplicitly]
-    public void SetProfile(string value) => bootstrap.Config.Profile = value;
+    public void SetProfile(string value) => previewController.Config.Profile = value;
 
     [UsedImplicitly]
-    public void SetEmote(string value) => bootstrap.Config.Emote = value;
+    public void SetEmote(string value) => previewController.Config.Emote = value;
 
     [UsedImplicitly]
-    public void AddBase64(string value) => bootstrap.Config.AddBase64(value);
+    public void AddBase64(string value) => previewController.Config.AddBase64(value);
 
     [UsedImplicitly]
-    public void ClearBase64(string value) => bootstrap.Config.Base64.Clear();
+    public void ClearBase64(string value) => previewController.Config.Base64.Clear();
 
     [UsedImplicitly]
     public void SetUrns(string value) =>
-        bootstrap.Config.Urns = value.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+        previewController.Config.Urns = value.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
 
     [UsedImplicitly]
-    public void SetBackground(string value) => bootstrap.Config.SetBackground(value);
+    public void SetBackground(string value) => previewController.Config.SetBackground(value);
 
     [UsedImplicitly]
-    public void SetSkinColor(string value) => bootstrap.Config.SetSkinColor(value);
+    public void SetSkinColor(string value) => previewController.Config.SetSkinColor(value);
 
     [UsedImplicitly]
-    public void SetHairColor(string value) => bootstrap.Config.SetHairColor(value);
+    public void SetHairColor(string value) => previewController.Config.SetHairColor(value);
 
     [UsedImplicitly]
-    public void SetEyeColor(string value) => bootstrap.Config.SetEyeColor(value);
+    public void SetEyeColor(string value) => previewController.Config.SetEyeColor(value);
 
     [UsedImplicitly]
-    public void SetBodyShape(string value) => bootstrap.Config.BodyShape = value;
+    public void SetBodyShape(string value) => previewController.Config.BodyShape = value;
 
     [UsedImplicitly]
-    public void SetShowAnimationReference(string value) => bootstrap.Config.ShowAnimationReference = bool.Parse(value);
+    public void SetShowAnimationReference(string value) => previewController.Config.ShowAnimationReference = bool.Parse(value);
 
     [UsedImplicitly]
-    public void SetProjection(string value) => bootstrap.Config.Projection = value;
+    public void SetProjection(string value) => previewController.Config.Projection = value;
 
     [UsedImplicitly]
-    public void SetContract(string value) => bootstrap.Config.Contract = value;
+    public void SetContract(string value) => previewController.Config.Contract = value;
 
     [UsedImplicitly]
-    public void SetItemID(string value) => bootstrap.Config.ItemID = value;
+    public void SetItemID(string value) => previewController.Config.ItemID = value;
 
     [UsedImplicitly]
-    public void SetTokenID(string value) => bootstrap.Config.TokenID = value;
+    public void SetTokenID(string value) => previewController.Config.TokenID = value;
 
     [UsedImplicitly]
-    public void SetDisableLoader(string value) => bootstrap.Config.DisableLoader = bool.Parse(value);
+    public void SetDisableLoader(string value) => previewController.Config.DisableLoader = bool.Parse(value);
 
     [UsedImplicitly]
-    public void Reload() => bootstrap.InvokeReload();
+    public void Reload() => previewController.InvokeReload();
 
     [UsedImplicitly]
-    public void Cleanup() => bootstrap.Cleanup();
+    public void Cleanup() => previewController.Cleanup();
 
     [UsedImplicitly]
     public void TakeScreenshot() => StartCoroutine(TakeScreenshotCoroutine());

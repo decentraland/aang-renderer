@@ -20,6 +20,7 @@ public class PreviewConfiguration
             "profile" => PreviewMode.Profile,
             "authentication" => PreviewMode.Authentication,
             "builder" => PreviewMode.Builder,
+            "configurator" => PreviewMode.Configurator,
             _ => PreviewMode.Marketplace
         };
     }
@@ -187,5 +188,6 @@ public enum PreviewMode
     Marketplace,
     Authentication,
     Profile,
-    Builder
+    Builder,
+    Configurator
 }
