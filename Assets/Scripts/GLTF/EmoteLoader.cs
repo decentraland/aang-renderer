@@ -84,8 +84,11 @@ namespace GLTF
                 // Even though conventions say they should: https://docs.decentraland.org/creator/emotes/props-and-sounds/#naming-conventions
                 // Like this one: urn:decentraland:matic:collections-v2:0xb5e24ada4096b86ce3cf7af5119f19ed6089a80b:0
                 var avatarClip = clips.Length == 1 ? clips[0] : clips.First(c => c.name.EndsWith("_Avatar"));
-                var propClip = clips.FirstOrDefault(c =>
-                    c.name.EndsWith("_Prop", StringComparison.InvariantCultureIgnoreCase)) ?? clips.FirstOrDefault(c => !c.name.EndsWith("_Avatar"));
+                var propClip = clips.Length == 1
+                    ? null
+                    : clips.FirstOrDefault(c =>
+                          c.name.EndsWith("_Prop", StringComparison.InvariantCultureIgnoreCase)) ??
+                      clips.FirstOrDefault(c => !c.name.EndsWith("_Avatar"));
 
                 if (propClip != null)
                 {
