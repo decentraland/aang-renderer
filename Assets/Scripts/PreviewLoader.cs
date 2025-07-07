@@ -33,11 +33,18 @@ public class PreviewLoader : MonoBehaviour
     private AnimationClip _emoteAnimation;
     private AudioClip _emoteAudio;
 
+    private Vector3 _defaultAvatarPosition;
+
     public bool HasEmoteOverride => _overrideWearableCategory == "emote";
     public bool HasEmoteAudio => _emoteAudio != null;
     public bool HasWearableOverride => _overrideWearableCategory != null && !HasEmoteOverride;
     public bool HasValidRepresentation { get; private set; }
     public bool IsAvatarMale { get; private set; }
+
+    private void Awake()
+    {
+        _defaultAvatarPosition =  avatarRoot.localPosition;
+    }
 
     public async Awaitable LoadPreview(PreviewConfiguration config)
     {
@@ -185,7 +192,7 @@ public class PreviewLoader : MonoBehaviour
         // Create a copy of the overridden wearable just because that's easier to manage
         if (hasWearableOverride)
         {
-            await InstantiateAsync(_wearables[_overrideWearableCategory], new InstantiateParameters()
+            await InstantiateAsync(_wearables[_overrideWearableCategory], new InstantiateParameters
             {
                 parent = wearableRoot,
                 worldSpace = false
@@ -198,9 +205,6 @@ public class PreviewLoader : MonoBehaviour
 
         // Setup facial features
         SetupFacialFeatures(bodyGO);
-
-        // Center the roots around the meshes
-        if (hasWearableOverride) FitWearableToScreen();
 
         // Audio event 
         audioSource.clip = _emoteAudio;
@@ -231,6 +235,13 @@ public class PreviewLoader : MonoBehaviour
         Debug.Log("Loaded all wearables!");
     }
 
+    public void Recenter()
+    {
+        // Center the roots around the meshes
+        if (HasWearableOverride) CenterAndFit(wearableRoot);
+        if (HasEmoteOverride) CenterAndFit(avatarRoot);
+    }
+    
     private void Update()
     {
         RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.AddRange(_outlineRenderers);
@@ -339,64 +350,50 @@ public class PreviewLoader : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Scales and re-positions root so that its mesh bounds fill the square viewport
-    /// up to the given padding (0–0.5), and are centered on screen.
-    /// Thanks ChatGPT :)
-    /// </summary>
-    private void FitWearableToScreen()
+    private void CenterAndFit(Transform root)
     {
-        // Reset root
-        wearableRoot.localPosition = Vector3.zero;
-        wearableRoot.localRotation = Quaternion.identity;
-        wearableRoot.localScale = Vector3.one;
+        // Gather combined bounds of all Renderers under root
+        var renders = root.GetComponentsInChildren<Renderer>();
+        if (renders.Length == 0) return;
+        var combined = renders[0].bounds;
+        for (var i = 1; i < renders.Length; i++)
+            combined.Encapsulate(renders[i].bounds);
 
-        // 1. Gather all renderers
-        var rends = wearableRoot.gameObject.GetComponentsInChildren<Renderer>();
-        if (rends.Length == 0) return;
+        // Make it a cube
+        var maxSize = Mathf.Max(combined.size.x, Mathf.Max(combined.size.y, combined.size.z));
+        combined = new Bounds(combined.center, Vector3.one * maxSize);
 
-        // 2. Compute combined world-space bounds
-        var b = rends[0].bounds;
-        for (var i = 1; i < rends.Length; i++)
-            b.Encapsulate(rends[i].bounds);
+        // Get local center of bounds and move them parent position (0, 0, 0 unless something changes)
+        var localCenter = root.InverseTransformPoint(combined.center);
+        combined.center = root.parent.position;
+        
+        // Desired object size in world units with padding
+        var size = combined.size;// * (1f + wearablePadding);
 
-        // Make bounds a cube using the largest dimension
-        var maxSize = Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z));
-        b = new Bounds(b.center, Vector3.one * maxSize);
-
-        // Bounds center should be at 0,0,0 as that's what we rotate around
-        wearableRoot.position = -b.center;
-        b.center = Vector3.zero;
-
-        // 3. Determine scale factor based on camera type
-        float scale;
+        float scaleFactor;
         if (mainCamera.orthographic)
         {
-            // world‐window size = orthographicSize*2 (square window)
-            var window = mainCamera.orthographicSize * 2f * (1 - wearablePadding * 2f);
-            scale = window / Mathf.Max(b.size.x, b.size.y);
+            // World-window dimensions for orthographic camera
+            var orthoHeight = mainCamera.orthographicSize * 2f;
+            var orthoWidth = orthoHeight * mainCamera.aspect;
+            var orthoMin = Mathf.Min(orthoWidth, orthoHeight);
+            scaleFactor = orthoMin / size.x;
         }
         else
         {
-            // approximate square frustum height at the object's depth
-            var dist = Vector3.Distance(mainCamera.transform.position, b.center);
-            var frustH = 2f * dist * Mathf.Tan(mainCamera.fieldOfView * 0.5f * Mathf.Deg2Rad);
-            scale = (frustH * (1 - wearablePadding * 2f)) / Mathf.Max(b.size.x, b.size.y);
+            // Distance from camera to object after centering
+            var distance = Vector3.Distance(mainCamera.transform.position, combined.center);
+
+            // Camera frustum size at that distance
+            var frustumHeight = 2f * distance * Mathf.Tan(mainCamera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+            var frustumWidth = frustumHeight * mainCamera.aspect;
+            var frustumMin = Mathf.Min(frustumWidth, frustumHeight);
+            scaleFactor = frustumMin * (1f - wearablePadding * 2f) / size.x;
         }
 
-        // 4. Remember pivot‐to‐bounds‐center offset
-        var pivot = wearableRoot.position;
-        var offset = b.center - pivot;
-
-        // 5. Apply uniform scale
-        wearableRoot.localScale *= scale;
-
-        // 6. Compute where the bounds.center should land in world space
-        var depth = mainCamera.WorldToViewportPoint(b.center).z;
-        var targetCenter = mainCamera.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, depth));
-
-        // 7. Reposition the pivot so that the mesh's center is at screen center
-        wearableRoot.position = targetCenter - offset * scale;
+        // Apply uniform scaling and adjust position on root
+        root.localScale *= scaleFactor;
+        root.localPosition = Vector3.Scale(-localCenter, root.localScale);
     }
 
     private static async Awaitable<List<string>> GetUrns(PreviewConfiguration config)
@@ -433,8 +430,13 @@ public class PreviewLoader : MonoBehaviour
         foreach (Transform child in avatarRoot) Destroy(child.gameObject);
         foreach (Transform child in wearableRoot) Destroy(child.gameObject);
         _wearables.Clear();
+        
+        avatarRoot.gameObject.SetActive(true);
+        wearableRoot.gameObject.SetActive(true);
 
-        avatarRoot.gameObject.SetActive(false);
-        wearableRoot.gameObject.SetActive(false);
+        avatarRoot.localPosition = _defaultAvatarPosition;
+        avatarRoot.localScale = Vector3.one;
+        wearableRoot.localPosition = Vector3.zero;
+        wearableRoot.localScale = Vector3.one;
     }
 }

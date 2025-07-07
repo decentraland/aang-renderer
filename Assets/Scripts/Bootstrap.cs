@@ -61,6 +61,7 @@ public class Bootstrap : MonoBehaviour
 
         uiPresenter.ShowLoader(true);
         _loading = true;
+        mainCamera.cullingMask = 0; // Render nothing
 
         do
         {
@@ -103,8 +104,13 @@ public class Bootstrap : MonoBehaviour
             uiPresenter.ShowAvatar(!previewLoader.HasWearableOverride || wantToShowAvatar && canShowAvatar);
         } while (_shouldReload);
 
+        // Wait for 1 frame for animation to kick in before re-centering the object on screen
+        await Awaitable.NextFrameAsync();
+        previewLoader.Recenter();
+
         uiPresenter.ShowLoader(false);
         _loading = false;
+        mainCamera.cullingMask = -1; // Render everything
 
         if (_shouldCleanup)
         {
