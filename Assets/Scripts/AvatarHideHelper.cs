@@ -105,4 +105,36 @@ public static class AvatarHideHelper
                 Debug.LogWarning($"{name} has not been set-up as a valid body part");
         }
     }
+
+    /// <summary>
+    /// Hides facial features on the body shape
+    /// </summary>
+    public static void HideBodyShapeFacialFeatures(GameObject bodyShape, bool hideEyes, bool hideEyebrows, bool hideMouth)
+    {
+        var renderers = bodyShape.GetComponentsInChildren<Renderer>(true);
+
+        foreach (var renderer in renderers)
+        {
+            var name = renderer.name;
+
+            // Support for the old gltf hierarchy for ABs
+            if (name.Contains("primitive", StringComparison.OrdinalIgnoreCase))
+                name = renderer.transform.parent.name;
+
+            if (hideEyes && name.Contains("eyes", StringComparison.OrdinalIgnoreCase))
+            {
+                renderer.gameObject.SetActive(false);
+            }
+
+            if (hideEyebrows && name.Contains("eyebrows", StringComparison.OrdinalIgnoreCase))
+            {
+                renderer.gameObject.SetActive(false);
+            }
+
+            if (hideMouth && name.Contains("mouth", StringComparison.OrdinalIgnoreCase))
+            {
+                renderer.gameObject.SetActive(false);
+            }
+        }
+    }
 }

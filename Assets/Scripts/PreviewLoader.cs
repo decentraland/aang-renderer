@@ -181,6 +181,7 @@ public class PreviewLoader : MonoBehaviour
         HasValidRepresentation =
             hasWearableOverride && wearableDefinitions.All(wd => wd.Value.HasValidRepresentation);
 
+        var bodyShapeDefinition = wearableDefinitions["body_shape"]; // In case we need it for a facial feature
         var hiddenCategories = AvatarHideHelper.HideWearables(wearableDefinitions, _overrideWearableCategory, overrideURN);
 
         // Load all wearables and body shape
@@ -192,11 +193,42 @@ public class PreviewLoader : MonoBehaviour
         // Create a copy of the overridden wearable just because that's easier to manage
         if (hasWearableOverride)
         {
-            await InstantiateAsync(_wearables[_overrideWearableCategory], new InstantiateParameters
+            if (_wearables.TryGetValue(_overrideWearableCategory, out var wearable))
             {
-                parent = wearableRoot,
-                worldSpace = false
-            });
+                await InstantiateAsync(wearable, new InstantiateParameters
+                {
+                    parent = wearableRoot,
+                    worldSpace = false
+                });
+            }
+            else
+            {
+                // It's a facial feature
+
+                // Load the body TODO: We don't need to load the body again, could reuse existing one
+                var bodyShapeGO = await WearableLoader.LoadGLB(bodyShapeDefinition.Category,
+                    bodyShapeDefinition.MainFile, bodyShapeDefinition.Files, avatarColors);
+
+                // Hide everything except the head
+                AvatarHideHelper.HideBodyShape(bodyShapeGO, new HashSet<string>
+                {
+                    WearablesConstants.Categories.UPPER_BODY,
+                    WearablesConstants.Categories.LOWER_BODY,
+                    WearablesConstants.Categories.HANDS,
+                    WearablesConstants.Categories.FEET
+                }, new Dictionary<string, WearableDefinition>());
+
+                AvatarHideHelper.HideBodyShapeFacialFeatures(bodyShapeGO,
+                    _overrideWearableCategory != WearablesConstants.Categories.EYES,
+                    _overrideWearableCategory != WearablesConstants.Categories.EYEBROWS,
+                    _overrideWearableCategory != WearablesConstants.Categories.MOUTH
+                );
+
+                SetupFacialFeatures(bodyShapeGO);
+
+                bodyShapeGO.transform.SetParent(wearableRoot, false);
+                bodyShapeGO.transform.localRotation = Quaternion.Euler(-15, 0, 0); // Tilt the head back
+            }
         }
 
         // Hide stuff on body shape
