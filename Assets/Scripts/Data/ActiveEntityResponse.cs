@@ -26,6 +26,7 @@ namespace Data
         public class Metadata
         {
             public string id;
+            public string name;
             public Data data;
             public EmoteData emoteDataADR74;
 

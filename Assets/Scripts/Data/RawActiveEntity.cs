@@ -3,11 +3,16 @@ using System.Linq;
 
 namespace Data
 {
+    /// <summary>
+    /// Used when decoding base64 and as a response from wearable collections
+    /// </summary>
     [Serializable]
-    public class Base64ActiveEntity
+    public class RawActiveEntity
     {
         public string id;
         public Data data;
+        public string thumbnail;
+        public Translation[] i18n;
         public EmoteData emoteDataADR74;
 
         // JsonConvert creates empty classes so we can't just check for null
@@ -48,6 +53,13 @@ namespace Data
             }
         }
 
+        [Serializable]
+        public class Translation
+        {
+            public string code;
+            public string text;
+        }
+
         public ActiveEntity ToActiveEntity()
         {
             return new ActiveEntity
@@ -56,10 +68,14 @@ namespace Data
                 type = IsEmote ? "emote" : "wearable",
                 content = (IsEmote ? emoteDataADR74.representations : data.representations)
                     .SelectMany(r => r.contents
-                        .Select(c => new ActiveEntity.Content { file = c.key, url = c.url })).ToArray(),
+                        .Select(c => new ActiveEntity.Content { file = c.key, url = c.url }))
+                    .GroupBy(c => c.file) // This GroupBy + Select First works the same as Distinct
+                    .Select(g => g.First())
+                    .ToArray(),
                 metadata = new ActiveEntity.Metadata
                 {
                     id = id,
+                    name = i18n.First(t => t.code == "en").text,
                     data = IsEmote
                         ? null
                         : new ActiveEntity.Metadata.Data
