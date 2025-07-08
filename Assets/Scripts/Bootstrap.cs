@@ -35,6 +35,9 @@ public class Bootstrap : MonoBehaviour
         // Let's make it a bit smoother
         Application.targetFrameRate = 60;
 
+        // Disable logging in release builds
+        Debug.unityLogger.logEnabled = Debug.isDebugBuild;
+
         ParseFromURL();
 
         await Reload();
