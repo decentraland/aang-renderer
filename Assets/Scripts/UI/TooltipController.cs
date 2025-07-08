@@ -75,32 +75,35 @@ namespace UI
         private void PositionTooltip(Vector2 mousePosition)
         {
             var tooltipSize = _tooltip.contentRect.size;
-            var x = mousePosition.x + tooltipPadding;
-            var y = mousePosition.y + tooltipPadding;
+
+            var x = mousePosition.x - tooltipSize.x;
+            var y = mousePosition.y + tooltipSize.y;
+            
+            // TODO
 
             // Check if the tooltip goes off the right side of the screen
-            if (x + tooltipSize.x > _root.resolvedStyle.width)
-            {
-                x = mousePosition.x - tooltipSize.x - tooltipPadding; // Adjust to the left
-            }
-
-            // Check if the tooltip goes off the left side of the screen
-            if (x < 0)
-            {
-                x = tooltipPadding; // Ensure it stays within the left side of the screen
-            }
-
-            // Check if the tooltip goes off the bottom side of the screen
-            if (y + tooltipSize.y > _root.resolvedStyle.height)
-            {
-                y = mousePosition.y - tooltipSize.y - tooltipPadding; // Adjust to the top
-            }
-
-            // Check if the tooltip goes off the top side of the screen
-            if (y < 0)
-            {
-                y = tooltipPadding; // Ensure it stays within the top side of the screen
-            }
+            // if (x + tooltipSize.x > _root.resolvedStyle.width)
+            // {
+            //     x = mousePosition.x - tooltipSize.x - tooltipPadding; // Adjust to the left
+            // }
+            //
+            // // Check if the tooltip goes off the left side of the screen
+            // if (x < 0)
+            // {
+            //     x = tooltipPadding; // Ensure it stays within the left side of the screen
+            // }
+            //
+            // // Check if the tooltip goes off the bottom side of the screen
+            // if (y + tooltipSize.y > _root.resolvedStyle.height)
+            // {
+            //     y = mousePosition.y - tooltipSize.y - tooltipPadding; // Adjust to the top
+            // }
+            //
+            // // Check if the tooltip goes off the top side of the screen
+            // if (y < 0)
+            // {
+            //     y = tooltipPadding; // Ensure it stays within the top side of the screen
+            // }
 
             _tooltip.style.left = x;
             _tooltip.style.top = y;
