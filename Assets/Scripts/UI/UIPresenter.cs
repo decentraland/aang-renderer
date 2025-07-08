@@ -132,6 +132,7 @@ namespace UI
 
             PlayerPrefs.SetInt("PreviewAvatarShown", 1);
             ShowAvatar(true);
+            previewLoader.PlayAnimation(true);
         }
 
         private void OnWearableButtonClicked()
