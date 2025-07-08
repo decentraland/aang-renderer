@@ -86,27 +86,27 @@ public class Bootstrap : MonoBehaviour
                 JSBridge.NativeCalls.OnError(e.Message);
                 throw;
             }
-
-            previewRotator.enabled = true;
-            previewRotator.AllowVertical = Config.Mode is PreviewMode.Marketplace or PreviewMode.Builder;
-            previewRotator.EnableAutoRotate = Config.Mode is PreviewMode.Marketplace && !previewLoader.HasEmoteOverride;
-
-            uiPresenter.EnableEmoteControls(previewLoader.HasEmoteOverride);
-            uiPresenter.EnableZoom(Config.Mode is PreviewMode.Marketplace or PreviewMode.Builder);
-            uiPresenter.EnableSwitcher(previewLoader.HasWearableOverride);
-            uiPresenter.EnableAudioControls(previewLoader.HasEmoteAudio);
-
-            var wantToShowAvatar = Config.Mode != PreviewMode.Marketplace || !previewLoader.HasWearableOverride ||
-                                   PlayerPrefs.GetInt("PreviewAvatarShown", 0) == 1;
-            var canShowAvatar = Config.Mode != PreviewMode.Marketplace || previewLoader.HasValidRepresentation;
-            
-            uiPresenter.AllowAvatarSwitch(canShowAvatar);
-            uiPresenter.ShowAvatar(!previewLoader.HasWearableOverride || wantToShowAvatar && canShowAvatar);
         } while (_shouldReload);
 
         // Wait for 1 frame for animation to kick in before re-centering the object on screen
         await Awaitable.NextFrameAsync();
         previewLoader.Recenter();
+
+        previewRotator.enabled = true;
+        previewRotator.AllowVertical = Config.Mode is PreviewMode.Marketplace or PreviewMode.Builder;
+        previewRotator.EnableAutoRotate = Config.Mode is PreviewMode.Marketplace && !previewLoader.HasEmoteOverride;
+
+        uiPresenter.EnableEmoteControls(previewLoader.HasEmoteOverride);
+        uiPresenter.EnableZoom(Config.Mode is PreviewMode.Marketplace or PreviewMode.Builder);
+        uiPresenter.EnableSwitcher(previewLoader.HasWearableOverride);
+        uiPresenter.EnableAudioControls(previewLoader.HasEmoteAudio);
+
+        var wantToShowAvatar = Config.Mode != PreviewMode.Marketplace || !previewLoader.HasWearableOverride ||
+                               PlayerPrefs.GetInt("PreviewAvatarShown", 0) == 1;
+        var canShowAvatar = Config.Mode != PreviewMode.Marketplace || previewLoader.HasValidRepresentation;
+
+        uiPresenter.AllowAvatarSwitch(canShowAvatar);
+        uiPresenter.ShowAvatar(!previewLoader.HasWearableOverride || wantToShowAvatar && canShowAvatar);
 
         uiPresenter.ShowLoader(false);
         _loading = false;
