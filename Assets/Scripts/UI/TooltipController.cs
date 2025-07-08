@@ -8,7 +8,7 @@ namespace UI
     {
         [SerializeField] private UIDocument uiDocument;
         [SerializeField] private float tooltipDelay = 0.5f;
-        [SerializeField] private float tooltipPadding = 10f;
+        [SerializeField] private float tooltipPadding;
 
         private VisualElement _root;
         private Label _tooltip;
@@ -76,8 +76,8 @@ namespace UI
         {
             var tooltipSize = _tooltip.contentRect.size;
 
-            var x = mousePosition.x - tooltipSize.x;
-            var y = mousePosition.y + tooltipSize.y;
+            var x = mousePosition.x - tooltipSize.x - tooltipPadding;
+            var y = mousePosition.y + tooltipSize.y + tooltipPadding;
             
             // TODO
 

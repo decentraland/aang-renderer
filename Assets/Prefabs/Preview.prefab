@@ -358,7 +358,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   uiDocument: {fileID: 8757119511644378776}
   tooltipDelay: 0.5
-  tooltipPadding: 10
+  tooltipPadding: 0
 --- !u!1 &7410267829336859495
 GameObject:
   m_ObjectHideFlags: 0
