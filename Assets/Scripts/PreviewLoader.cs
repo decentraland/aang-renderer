@@ -181,7 +181,7 @@ public class PreviewLoader : MonoBehaviour
         HasValidRepresentation =
             hasWearableOverride && wearableDefinitions.All(wd => wd.Value.HasValidRepresentation);
 
-        var hiddenCategories = AvatarHideHelper.HideWearables(wearableDefinitions, _overrideWearableCategory);
+        var hiddenCategories = AvatarHideHelper.HideWearables(wearableDefinitions, _overrideWearableCategory, overrideURN);
 
         // Load all wearables and body shape
         await Task.WhenAll(wearableDefinitions

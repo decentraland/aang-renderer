@@ -11,9 +11,10 @@ public static class AvatarHideHelper
     /// </summary>
     /// <param name="wearables">Currently equipped wearables</param>
     /// <param name="overrideCategory">The category that has been overridden and should never be hidden</param>
+    /// <param name="overrideURN"></param>
     /// <returns>A set of all the categories that were hidden.</returns>
     public static HashSet<string> HideWearables(Dictionary<string, WearableDefinition> wearables,
-        string overrideCategory = null)
+        string overrideCategory, string overrideURN)
     {
         var hiddenCategories = new HashSet<string>();
 
@@ -24,6 +25,7 @@ public static class AvatarHideHelper
                 .Where(w => w.Value.Hides.Contains(overrideCategory) || w.Value.Replaces.Contains(overrideCategory) ||
                             (w.Key == WearablesConstants.Categories.SKIN &&
                              WearablesConstants.SKIN_IMPLICIT_CATEGORIES.Contains(overrideCategory)))
+                .Where(kvp => kvp.Value.Pointer != overrideURN) // Skip the override urn if it contains its own category
                 .Select(kvp => kvp.Key)
                 .ToArray();
 
