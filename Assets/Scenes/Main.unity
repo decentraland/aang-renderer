@@ -168,6 +168,16 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!20 &330585545 stripped
+Camera:
+  m_CorrespondingSourceObject: {fileID: 6160459649970505371, guid: c4bea3a9d3bb642d5bd110d40b94f810, type: 3}
+  m_PrefabInstance: {fileID: 3594112109999419638}
+  m_PrefabAsset: {fileID: 0}
+--- !u!82 &330585548 stripped
+AudioSource:
+  m_CorrespondingSourceObject: {fileID: 1227791072848132715, guid: c4bea3a9d3bb642d5bd110d40b94f810, type: 3}
+  m_PrefabInstance: {fileID: 3594112109999419638}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &409211379 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 9194130593162376060, guid: f79e3685e320f4a5282cdfc5876e1b9a, type: 3}
@@ -333,6 +343,7 @@ MonoBehaviour:
   facialFeaturesMat: {fileID: 2100000, guid: 640484c930a9c425791b434dd2094bff, type: 2}
   configuratorController: {fileID: 409211379}
   previewController: {fileID: 1134825229}
+  debugUrl: ?mode=configurator
 --- !u!4 &983774208
 Transform:
   m_ObjectHideFlags: 0
@@ -348,6 +359,17 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1101889419 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8757119511644378776, guid: c4bea3a9d3bb642d5bd110d40b94f810, type: 3}
+  m_PrefabInstance: {fileID: 3594112109999419638}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 19102, guid: 0000000000000000e000000000000000, type: 0}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &1134825229 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 2793310719534034194, guid: c4bea3a9d3bb642d5bd110d40b94f810, type: 3}
@@ -469,10 +491,26 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 595597309620859155, guid: f79e3685e320f4a5282cdfc5876e1b9a, type: 3}
+      propertyPath: mainCamera
+      value: 
+      objectReference: {fileID: 330585545}
+    - target: {fileID: 595597309620859155, guid: f79e3685e320f4a5282cdfc5876e1b9a, type: 3}
+      propertyPath: uiDocument
+      value: 
+      objectReference: {fileID: 1101889419}
     - target: {fileID: 6999523777997768575, guid: f79e3685e320f4a5282cdfc5876e1b9a, type: 3}
       propertyPath: m_Name
       value: Configurator
       objectReference: {fileID: 0}
+    - target: {fileID: 7023788662819359995, guid: f79e3685e320f4a5282cdfc5876e1b9a, type: 3}
+      propertyPath: mainCamera
+      value: 
+      objectReference: {fileID: 330585545}
+    - target: {fileID: 7023788662819359995, guid: f79e3685e320f4a5282cdfc5876e1b9a, type: 3}
+      propertyPath: audioSource
+      value: 
+      objectReference: {fileID: 330585548}
     - target: {fileID: 7303017525236616541, guid: f79e3685e320f4a5282cdfc5876e1b9a, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

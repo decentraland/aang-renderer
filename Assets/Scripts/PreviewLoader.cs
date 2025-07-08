@@ -75,6 +75,14 @@ public class PreviewLoader : MonoBehaviour
         gameObject.SetActive(true);
     }
 
+    public async Awaitable LoadConfigurator(string bodyShape, List<string> urns)
+    {
+        gameObject.SetActive(false);
+        Cleanup();
+        await LoadStuff(bodyShape, urns, null, Color.red, Color.red, Color.grey,"idle", null);
+        gameObject.SetActive(true);
+    }
+
     private async Awaitable LoadForMarketplace(string profileID, string urn, string defaultEmote)
     {
         Assert.IsNotNull(profileID);
@@ -134,7 +142,7 @@ public class PreviewLoader : MonoBehaviour
             foreach (var b64 in base64)
             {
                 var base64String = Encoding.UTF8.GetString(b64);
-                var base64ActiveEntity = JsonUtility.FromJson<Base64ActiveEntity>(base64String).ToActiveEntity();
+                var base64ActiveEntity = JsonUtility.FromJson<RawActiveEntity>(base64String).ToActiveEntity();
 
                 if (base64ActiveEntity.IsEmote)
                 {

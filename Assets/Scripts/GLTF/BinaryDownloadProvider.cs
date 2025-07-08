@@ -45,7 +45,7 @@ namespace GLTF
             var fileHash = _content[fileName];
             Debug.Log($"Requesting texture: {fileName} with hash: {fileHash}");
 
-            var req = new AwaitableTextureDownload(new Uri(string.Format(APIService.EndpointCatalyst, fileHash)), nonReadable);
+            var req = new AwaitableTextureDownload(new Uri(string.Format(APIService.APICatalyst, fileHash)), nonReadable);
             await req.WaitAsync();
             return req;
         }

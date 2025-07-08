@@ -1,9 +1,24 @@
-<?xml version="1.0" encoding="utf-8"?>
-<ui:UXML
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xmlns:ui="UnityEngine.UIElements"
-    xmlns:uie="UnityEditor.UIElements"
-    xsi:noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd"
->
-    
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/ConfiguratorStyle.uss?fileID=7433441132597879392&amp;guid=83de1c6279f824cdcbe4149342d94f6f&amp;type=3#ConfiguratorStyle" />
+    <ui:DropdownField label="Body shape" choices="urn:decentraland:off-chain:base-avatars:BaseMale,urn:decentraland:off-chain:base-avatars:BaseFemale" index="0" name="BodyShapeDropdown" />
+    <ui:TabView name="CategoriesTabView" view-data-key="TabbedMenu" style="position: absolute; top: 51px; right: 0; bottom: 0; left: 0;">
+        <ui:Tab label="Upper Body" name="UpperBodyTab">
+            <ui:ScrollView class="items_scroller" style="flex-grow: 1;" />
+        </ui:Tab>
+        <ui:Tab label="Lower Body" name="LowerBodyTab">
+            <ui:ScrollView class="items_scroller" />
+        </ui:Tab>
+        <ui:Tab label="Feet" name="FeetTab">
+            <ui:ScrollView class="items_scroller" />
+        </ui:Tab>
+        <ui:Tab label="Glasses" name="EyewearTab">
+            <ui:ScrollView class="items_scroller" />
+        </ui:Tab>
+        <ui:Tab label="Hands" name="HandsTab">
+            <ui:ScrollView class="items_scroller" />
+        </ui:Tab>
+        <ui:Tab label="Acessories" name="EarringsTab">
+            <ui:ScrollView class="items_scroller" />
+        </ui:Tab>
+    </ui:TabView>
 </ui:UXML>

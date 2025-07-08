@@ -42,7 +42,7 @@ namespace UI
         private bool _animationPlaying = true;
         private bool _allowAvatarSwitch = true;
 
-        private void Awake()
+        private void Start()
         {
             var root = GetComponent<UIDocument>().rootVisualElement;
             _switcher = root.Q("Switcher");
