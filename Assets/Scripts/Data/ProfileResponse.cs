@@ -18,6 +18,7 @@ namespace Data
             {
                 public string bodyShape;
                 public string[] wearables;
+                public string[] forceRender;
                 public ColorData eyes;
                 public ColorData hair;
                 public ColorData skin;

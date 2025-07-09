@@ -43,7 +43,7 @@ public class PreviewLoader : MonoBehaviour
 
     private void Awake()
     {
-        _defaultAvatarPosition =  avatarRoot.localPosition;
+        _defaultAvatarPosition = avatarRoot.localPosition;
     }
 
     public async Awaitable LoadPreview(PreviewConfiguration config)
@@ -82,7 +82,7 @@ public class PreviewLoader : MonoBehaviour
         var avatar = await APIService.GetAvatar(profileID);
 
         await LoadStuff(avatar.bodyShape, avatar.wearables.ToList(), urn, avatar.eyes.color, avatar.hair.color,
-            avatar.skin.color, defaultEmote, null);
+            avatar.skin.color, avatar.forceRender, defaultEmote, null);
     }
 
     private async Awaitable LoadForProfile(string profileID, string defaultEmote)
@@ -92,7 +92,7 @@ public class PreviewLoader : MonoBehaviour
         var avatar = await APIService.GetAvatar(profileID);
 
         await LoadStuff(avatar.bodyShape, avatar.wearables.ToList(), null, avatar.eyes.color, avatar.hair.color,
-            avatar.skin.color, defaultEmote, null);
+            avatar.skin.color, avatar.forceRender, defaultEmote, null);
     }
 
     private async Awaitable LoadForBuilder(string bodyShape, Color? eyeColor, Color? hairColor, Color? skinColor,
@@ -103,11 +103,13 @@ public class PreviewLoader : MonoBehaviour
         Assert.IsTrue(hairColor.HasValue);
         Assert.IsTrue(skinColor.HasValue);
 
-        await LoadStuff(bodyShape, urns, null, eyeColor.Value, hairColor.Value, skinColor.Value, defaultEmote, base64);
+        await LoadStuff(bodyShape, urns, null, eyeColor.Value, hairColor.Value, skinColor.Value, null, defaultEmote,
+            base64);
     }
 
     private async Awaitable LoadStuff(string bodyShape, List<string> urns, string overrideURN, Color eyeColor,
-        Color hairColor, Color skinColor, string defaultEmote, List<byte[]> base64)
+        Color hairColor, Color skinColor, [CanBeNull] string[] forceRender, string defaultEmote,
+        [CanBeNull] List<byte[]> base64)
     {
         IsAvatarMale = bodyShape == "urn:decentraland:off-chain:base-avatars:BaseMale";
 
@@ -182,7 +184,8 @@ public class PreviewLoader : MonoBehaviour
             hasWearableOverride && wearableDefinitions.All(wd => wd.Value.HasValidRepresentation);
 
         var bodyShapeDefinition = wearableDefinitions["body_shape"]; // In case we need it for a facial feature
-        var hiddenCategories = AvatarHideHelper.HideWearables(wearableDefinitions, _overrideWearableCategory, overrideURN);
+        var hiddenCategories =
+            AvatarHideHelper.HideWearables(wearableDefinitions, _overrideWearableCategory, overrideURN, forceRender);
 
         // Load all wearables and body shape
         await Task.WhenAll(wearableDefinitions
@@ -273,7 +276,7 @@ public class PreviewLoader : MonoBehaviour
         if (HasWearableOverride) CenterAndFit(wearableRoot);
         if (HasEmoteOverride) CenterAndFit(avatarRoot);
     }
-    
+
     private void Update()
     {
         RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.AddRange(_outlineRenderers);
@@ -398,9 +401,9 @@ public class PreviewLoader : MonoBehaviour
         // Get local center of bounds and move them parent position (0, 0, 0 unless something changes)
         var localCenter = root.InverseTransformPoint(combined.center);
         combined.center = root.parent.position;
-        
+
         // Desired object size in world units with padding
-        var size = combined.size;// * (1f + wearablePadding);
+        var size = combined.size; // * (1f + wearablePadding);
 
         float scaleFactor;
         if (mainCamera.orthographic)
@@ -462,7 +465,7 @@ public class PreviewLoader : MonoBehaviour
         foreach (Transform child in avatarRoot) Destroy(child.gameObject);
         foreach (Transform child in wearableRoot) Destroy(child.gameObject);
         _wearables.Clear();
-        
+
         avatarRoot.gameObject.SetActive(true);
         wearableRoot.gameObject.SetActive(true);
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Data;
+using JetBrains.Annotations;
 using UnityEngine;
 
 public static class AvatarHideHelper
@@ -14,7 +15,7 @@ public static class AvatarHideHelper
     /// <param name="overrideURN"></param>
     /// <returns>A set of all the categories that were hidden.</returns>
     public static HashSet<string> HideWearables(Dictionary<string, WearableDefinition> wearables,
-        string overrideCategory, string overrideURN)
+        string overrideCategory, string overrideURN, [CanBeNull] string[] forceRender)
     {
         var hiddenCategories = new HashSet<string>();
 
@@ -44,6 +45,9 @@ public static class AvatarHideHelper
                 {
                     if (toHide == category) continue; // Safeguard so wearables don't hide themselves
 
+                    // If wearable is forced to be rendered, never remove it
+                    if (forceRender != null && forceRender.Contains(toHide)) continue;
+                    
                     wearables.Remove(toHide);
                     hiddenCategories.Add(toHide);
                 }
@@ -62,6 +66,9 @@ public static class AvatarHideHelper
                     {
                         foreach (var skinCategory in WearablesConstants.SKIN_IMPLICIT_CATEGORIES)
                         {
+                            // If wearable is forced to be rendered, never remove it
+                            if (forceRender != null && forceRender.Contains(skinCategory)) continue;
+                            
                             wearables.Remove(skinCategory);
                             hiddenCategories.Add(skinCategory);
                         }
