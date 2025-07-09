@@ -22,6 +22,7 @@ namespace GLTF
         private static readonly int Z_WRITE_MODE_ID = Shader.PropertyToID("_ZWriteMode");
         private static readonly int SRC_BLEND_ID = Shader.PropertyToID("_SrcBlend");
         private static readonly int DST_BLEND_ID = Shader.PropertyToID("_DstBlend");
+        private static readonly int CULL_MODE_ID = Shader.PropertyToID("_CullMode");
 
         private readonly AvatarColors _avatarColors;
 
@@ -80,6 +81,9 @@ namespace GLTF
                 mat.SetInt(Z_WRITE_MODE_ID, 1);
                 mat.renderQueue = (int)RenderQueue.AlphaTest;
             }
+
+            // Backface culling
+            mat.SetInt(CULL_MODE_ID, (int)CullMode.Back);
 
             return mat;
         }
