@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Data;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Utils;
 
 namespace UI
 {
@@ -16,6 +17,9 @@ namespace UI
         private Tab eyewearTab;
         private Tab handsTab;
         private Tab earringsTab;
+
+        private VisualElement _loader;
+        private VisualElement _loaderIcon;
         
         private DropdownField bodyShapeDropdown;
 
@@ -36,9 +40,33 @@ namespace UI
             eyewearTab = categoriesTabView.Q<Tab>("EyewearTab");
             handsTab = categoriesTabView.Q<Tab>("HandsTab");
             earringsTab = categoriesTabView.Q<Tab>("EarringsTab");
+
+            categoriesTabView.activeTabChanged += OnActiveTabChanged;
+
+            upperBodyTab.selected += OnUpperBodySelected;
             
             bodyShapeDropdown = root.Q<DropdownField>("BodyShapeDropdown");
             bodyShapeDropdown.RegisterValueChangedCallback(evt => SetupChanged?.Invoke());
+
+            _loader = root.Q("Loader");
+            _loaderIcon = _loader.Q("Icon");
+        }
+
+        private void OnUpperBodySelected(Tab obj)
+        {
+            Debug.Log("OnUpperBodySelected");
+        }
+
+        private void OnActiveTabChanged(Tab previous, Tab next)
+        {
+            Debug.Log($"Selected tab prev: {previous.label},  next: {next.label}");
+        }
+
+        private void Update()
+        {
+            // Rotate the loader icon
+            _loaderIcon.RotateBy(360f * Time.deltaTime);
+
         }
 
         public void ShowLoading(bool loading)
@@ -78,8 +106,15 @@ namespace UI
             
             foreach (var activeEntity in entities)
             {
-                var item = new Button(() => SetItem(activeEntity));
-                item.text = activeEntity.metadata.name;
+                var item = new VisualElement();
+                item.AddToClassList("wearable-item");
+                item.AddManipulator(new Clickable(() => SetItem(activeEntity)));
+                item.style.height = 70;
+                item.style.width = 70;
+                item.style.backgroundColor = Color.green;
+                
+                RemoteTextureService.Instance.RequestTexture(activeEntity.metadata.thumbnail, tex => item.style.backgroundImage = tex, () => Debug.LogError("RECEIVED ERROR"));
+                
                 container.Add(item);
             }
             

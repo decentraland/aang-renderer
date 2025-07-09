@@ -21,4 +21,7 @@
             <ui:ScrollView class="items_scroller" />
         </ui:Tab>
     </ui:TabView>
+    <ui:VisualElement picking-mode="Ignore" name="Loader" class="loader" style="display: none;">
+        <ui:VisualElement picking-mode="Ignore" name="Icon" class="loader__icon" />
+    </ui:VisualElement>
 </ui:UXML>

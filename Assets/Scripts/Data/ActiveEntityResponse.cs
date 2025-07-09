@@ -27,6 +27,7 @@ namespace Data
         {
             public string id;
             public string name;
+            public string thumbnail;
             public Data data;
             public EmoteData emoteDataADR74;
 

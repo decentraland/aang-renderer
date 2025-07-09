@@ -75,6 +75,7 @@ namespace Data
                 metadata = new ActiveEntity.Metadata
                 {
                     id = id,
+                    thumbnail = thumbnail,
                     name = i18n.First(t => t.code == "en").text,
                     data = IsEmote
                         ? null
