@@ -105,6 +105,10 @@ namespace GLTF
             var armatureRoot = skinnedRenderer.rootBone.parent;
             armatureRoot.name = "Armature"; // Force Armature name since legacy animation needs it
 
+            // Some emotes like urn:decentraland:matic:collections-v2:0x705652b66a12dcf782b0b3d5673fbf0c1797eba2:3
+            // move the armature??? And not all emotes reset it in animation. Dance does, idle does not.
+            armatureRoot.localPosition = Vector3.zero; 
+
             foreach (Transform t in root)
             {
                 // Some wearables have weird scales so we normalize them
