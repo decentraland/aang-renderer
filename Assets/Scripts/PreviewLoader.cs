@@ -321,7 +321,7 @@ public class PreviewLoader : MonoBehaviour
         var allRenderers = gameObject.GetComponentsInChildren<Renderer>();
         foreach (var r in allRenderers)
         {
-            if (r.material.shader.name == "DCL/DCL_Toon")
+            if (r.material.shader.name == "DCL/DCL_Toon" && r.sharedMaterial.renderQueue is >= 2000 and < 3000)
             {
                 _outlineRenderers.Add(r);
             }
