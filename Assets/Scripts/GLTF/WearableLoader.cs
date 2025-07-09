@@ -105,9 +105,24 @@ namespace GLTF
             var armatureRoot = skinnedRenderer.rootBone.parent;
             armatureRoot.name = "Armature"; // Force Armature name since legacy animation needs it
 
+            // Fix for wearables with incorrect hierarchy. Why do we even have conventions?
+            // Offender: urn:decentraland:matic:collections-v2:0xa6a59f7a7b1401670ea09dc5554b55757163e20d:0
+            if (armatureRoot.parent != root)
+            {
+                var armatureParent = armatureRoot.parent;
+
+                while (armatureParent.childCount > 0)
+                {
+                    var child = armatureParent.GetChild(0);
+                    child.SetParent(root, true);
+                }
+
+                Object.Destroy(armatureParent.gameObject);
+            }
+
             // Some emotes like urn:decentraland:matic:collections-v2:0x705652b66a12dcf782b0b3d5673fbf0c1797eba2:3
             // move the armature??? And not all emotes reset it in animation. Dance does, idle does not.
-            armatureRoot.localPosition = Vector3.zero; 
+            armatureRoot.localPosition = Vector3.zero;
 
             foreach (Transform t in root)
             {
