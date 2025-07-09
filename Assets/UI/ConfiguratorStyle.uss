@@ -8,7 +8,6 @@
 
 .unity-tab-view__content-container {
     flex-grow: 1;
-    width: 250px;
 }
 
 .unity-tab {
@@ -17,4 +16,25 @@
 
 .unity-tab__content-container {
     flex-grow: 1;
+}
+
+.loader {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    justify-content: center;
+    align-items: center;
+}
+
+.loader__icon {
+    width: 64px;
+    height: 64px;
+    background-image: url("project://database/Assets/UI/Sprites/Spinner.png?fileID=2800000&guid=7277d900fbbbd4d2986e2ff79fd14803&type=3#Spinner");
+}
+
+.unity-scroll-view__content-container {
+    flex-direction: row;
+    flex-wrap: wrap;
 }
