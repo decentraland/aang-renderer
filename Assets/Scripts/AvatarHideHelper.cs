@@ -48,6 +48,13 @@ public static class AvatarHideHelper
                     hiddenCategories.Add(toHide);
                 }
 
+                // Deal with hands
+                if (ShouldHideHands(wearableDefinition))
+                {
+                    wearables.Remove(WearablesConstants.Categories.HANDS);
+                    hiddenCategories.Add(WearablesConstants.Categories.HANDS);
+                }
+
                 // Skin has implicit hides
                 if (category == WearablesConstants.Categories.SKIN)
                 {
@@ -64,6 +71,20 @@ public static class AvatarHideHelper
         }
 
         return hiddenCategories;
+    }
+
+    private static bool ShouldHideHands(WearableDefinition wearable)
+    {
+        // We apply this rule to hide the hands by default if the wearable is an upper body or hides the upper body
+        var isOrHidesUpperBody = wearable.Category == WearablesConstants.Categories.UPPER_BODY ||
+                                 wearable.Hides.Union(wearable.Replaces)
+                                     .Contains(WearablesConstants.Categories.UPPER_BODY);
+
+        // The rule is ignored if the wearable contains the removal of this default rule (newer upper bodies since the release of hands)
+        var removesHandDefault = wearable.RemovesDefaultHiding?.Contains(WearablesConstants.Categories.HANDS) ?? false;
+
+        // Why do we do this? Because old upper bodies contain the base hand mesh, and they might clip with the new handwear items
+        return isOrHidesUpperBody && !removesHandDefault;
     }
 
     /// <summary>
@@ -109,7 +130,8 @@ public static class AvatarHideHelper
     /// <summary>
     /// Hides facial features on the body shape
     /// </summary>
-    public static void HideBodyShapeFacialFeatures(GameObject bodyShape, bool hideEyes, bool hideEyebrows, bool hideMouth)
+    public static void HideBodyShapeFacialFeatures(GameObject bodyShape, bool hideEyes, bool hideEyebrows,
+        bool hideMouth)
     {
         var renderers = bodyShape.GetComponentsInChildren<Renderer>(true);
 

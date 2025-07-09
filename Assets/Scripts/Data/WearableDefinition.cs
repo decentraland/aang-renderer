@@ -14,6 +14,7 @@ namespace Data
 
         public string[] Hides { get; private set; }
         public string[] Replaces { get; private set; }
+        public string[] RemovesDefaultHiding { get; private set; }
 
         public bool HasValidRepresentation { get; private set; } = true;
 
@@ -32,6 +33,7 @@ namespace Data
             {
                 Pointer = entity.pointers[0],
                 Category = entity.metadata.data.category,
+                RemovesDefaultHiding = entity.metadata.data.removesDefaultHiding,
                 HasValidRepresentation = hasCorrectRepresentation,
                 Files = entity.content.Where(c => representation.contents.Contains(c.file))
                     .ToDictionary(c => c.file, c => c.url ?? c.hash),
