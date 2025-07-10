@@ -15,8 +15,9 @@ public class PreviewLoader : MonoBehaviour
 {
     private const bool DEBUG_ONLY_LOAD_WEARABLE = false;
 
-    private static readonly int MAIN_TEX = Shader.PropertyToID("_MainTex");
-    private static readonly int MASK_TEX = Shader.PropertyToID("_MaskTex");
+    private static readonly int BASE_COLOR_ID = Shader.PropertyToID("_BaseColor");
+    private static readonly int MAIN_TEX_ID = Shader.PropertyToID("_MainTex");
+    private static readonly int MASK_TEX_ID = Shader.PropertyToID("_MaskTex");
 
     [SerializeField] private Camera mainCamera;
     [SerializeField] private Transform avatarRoot;
@@ -227,7 +228,7 @@ public class PreviewLoader : MonoBehaviour
                     _overrideWearableCategory != WearablesConstants.Categories.MOUTH
                 );
 
-                SetupFacialFeatures(bodyShapeGO);
+                SetupFacialFeatures(bodyShapeGO, avatarColors);
 
                 bodyShapeGO.transform.SetParent(wearableRoot, false);
                 bodyShapeGO.transform.localRotation = Quaternion.Euler(-15, 0, 0); // Tilt the head back
@@ -239,7 +240,7 @@ public class PreviewLoader : MonoBehaviour
         AvatarHideHelper.HideBodyShape(bodyGO, hiddenCategories, wearableDefinitions);
 
         // Setup facial features
-        SetupFacialFeatures(bodyGO);
+        SetupFacialFeatures(bodyGO, avatarColors);
 
         // Audio event 
         audioSource.clip = _emoteAudio;
@@ -282,32 +283,35 @@ public class PreviewLoader : MonoBehaviour
         RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.AddRange(_outlineRenderers);
     }
 
-    private void SetupFacialFeatures(GameObject bodyGO)
+    private void SetupFacialFeatures(GameObject bodyGO, AvatarColors avatarColors)
     {
         if (!bodyGO) return;
 
         var meshRenderers = bodyGO.GetComponentsInChildren<SkinnedMeshRenderer>(false);
 
-        var eyebrows = meshRenderers.FirstOrDefault(mr => mr.name.EndsWith("Eyebrows"));
-        var eyes = meshRenderers.FirstOrDefault(mr => mr.name.EndsWith("Eyes"));
-        var mouth = meshRenderers.FirstOrDefault(mr => mr.name.EndsWith("Mouth"));
+        var eyebrows = meshRenderers.FirstOrDefault(mr => mr.name.EndsWith("Mask_Eyebrows"));
+        var eyes = meshRenderers.FirstOrDefault(mr => mr.name.EndsWith("Mask_Eyes"));
+        var mouth = meshRenderers.FirstOrDefault(mr => mr.name.EndsWith("Mask_Mouth"));
 
         if (_facialFeatures.TryGetValue(WearablesConstants.Categories.EYEBROWS, out var eyebrowsTex) && eyebrows)
         {
-            eyebrows.material.SetTexture(MAIN_TEX, eyebrowsTex.main);
-            eyebrows.material.SetTexture(MASK_TEX, eyebrowsTex.mask);
+            eyebrows.material.SetTexture(MAIN_TEX_ID, eyebrowsTex.main);
+            eyebrows.material.SetTexture(MASK_TEX_ID, eyebrowsTex.mask);
+            eyebrows.material.SetColor(BASE_COLOR_ID, avatarColors.Hair);
         }
 
         if (_facialFeatures.TryGetValue(WearablesConstants.Categories.EYES, out var eyesTex) && eyes)
         {
-            eyes.material.SetTexture(MAIN_TEX, eyesTex.main);
-            eyes.material.SetTexture(MASK_TEX, eyesTex.mask);
+            eyes.material.SetTexture(MAIN_TEX_ID, eyesTex.main);
+            eyes.material.SetTexture(MASK_TEX_ID, eyesTex.mask);
+            eyes.material.SetColor(BASE_COLOR_ID, avatarColors.Eyes);
         }
 
         if (_facialFeatures.TryGetValue(WearablesConstants.Categories.MOUTH, out var mouthTex) && mouth)
         {
-            mouth.material.SetTexture(MAIN_TEX, mouthTex.main);
-            mouth.material.SetTexture(MASK_TEX, mouthTex.mask);
+            mouth.material.SetTexture(MAIN_TEX_ID, mouthTex.main);
+            mouth.material.SetTexture(MASK_TEX_ID, mouthTex.mask);
+            mouth.material.SetColor(BASE_COLOR_ID, avatarColors.Skin);
         }
     }
 

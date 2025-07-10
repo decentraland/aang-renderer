@@ -34,7 +34,9 @@ namespace GLTF
         public Material GenerateMaterial(int materialIndex, GLTFast.Schema.Material gltfMaterial, IGltfReadable gltf,
             bool pointsSupport = false)
         {
-            var mat = new Material(GetMaterial(gltfMaterial.name)) { name = gltfMaterial.name };
+            var isFacialFeature = IsFacialFeature(gltfMaterial.name);
+            var mat = new Material(isFacialFeature ? CommonAssets.FacialFeaturesMaterial : CommonAssets.AvatarMaterial)
+                { name = gltfMaterial.name };
 
             // Base color and texture
             var baseColor = TryGetColorOverride(gltfMaterial.name, out var color)
@@ -56,7 +58,13 @@ namespace GLTF
             }
 
             // Alpha
-            if (gltfMaterial.GetAlphaMode() == GLTFast.Schema.Material.AlphaMode.Blend)
+            if (isFacialFeature)
+            {
+                mat.SetColor(BASE_COLOR_ID, color);
+                mat.SetInt(Z_WRITE_MODE_ID, 0);
+                mat.renderQueue = (int)RenderQueue.AlphaTest;
+            }
+            else if (gltfMaterial.GetAlphaMode() == GLTFast.Schema.Material.AlphaMode.Blend)
             {
                 mat.DisableKeyword("_IS_CLIPPING_MODE");
                 mat.EnableKeyword("_IS_CLIPPING_TRANSMODE");
@@ -88,33 +96,24 @@ namespace GLTF
             return mat;
         }
 
-        private Material GetMaterial(string gltfMaterialName)
+
+        private static bool IsFacialFeature(string gltfMaterialName)
         {
             return gltfMaterialName is "AvatarEyebrows_MAT" or "AvatarEyes_MAT" or "AvatarMouth_MAT"
-                or "AvatarMaskEyebrows_MAT" or "AvatarMaskEyes_MAT" or "AvatarMaskMouth_MAT"
-                ? CommonAssets.FacialFeaturesMaterial
-                : CommonAssets.AvatarMaterial;
+                or "AvatarMaskEyebrows_MAT" or "AvatarMaskEyes_MAT" or "AvatarMaskMouth_MAT";
         }
 
         private bool TryGetColorOverride(string materialName, out Color color)
         {
-            if (materialName.Contains("skin", StringComparison.OrdinalIgnoreCase) ||
-                materialName.Contains("mouth", StringComparison.OrdinalIgnoreCase))
+            if (materialName.Contains("skin", StringComparison.OrdinalIgnoreCase))
             {
                 color = _avatarColors.Skin;
                 return true;
             }
 
-            if (materialName.Contains("hair", StringComparison.OrdinalIgnoreCase) ||
-                materialName.Contains("eyebrows", StringComparison.OrdinalIgnoreCase))
+            if (materialName.Contains("hair", StringComparison.OrdinalIgnoreCase))
             {
                 color = _avatarColors.Hair;
-                return true;
-            }
-
-            if (materialName.Contains("eyes", StringComparison.OrdinalIgnoreCase))
-            {
-                color = _avatarColors.Eyes;
                 return true;
             }
 
