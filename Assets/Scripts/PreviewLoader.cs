@@ -293,25 +293,26 @@ public class PreviewLoader : MonoBehaviour
         var eyes = meshRenderers.FirstOrDefault(mr => mr.name.EndsWith("Mask_Eyes"));
         var mouth = meshRenderers.FirstOrDefault(mr => mr.name.EndsWith("Mask_Mouth"));
 
+        eyebrows?.material.SetColor(BASE_COLOR_ID, avatarColors.Hair);
+        eyes?.material.SetColor(BASE_COLOR_ID, avatarColors.Eyes);
+        mouth?.material.SetColor(BASE_COLOR_ID, avatarColors.Skin);
+
         if (_facialFeatures.TryGetValue(WearablesConstants.Categories.EYEBROWS, out var eyebrowsTex) && eyebrows)
         {
             eyebrows.material.SetTexture(MAIN_TEX_ID, eyebrowsTex.main);
             eyebrows.material.SetTexture(MASK_TEX_ID, eyebrowsTex.mask);
-            eyebrows.material.SetColor(BASE_COLOR_ID, avatarColors.Hair);
         }
 
         if (_facialFeatures.TryGetValue(WearablesConstants.Categories.EYES, out var eyesTex) && eyes)
         {
             eyes.material.SetTexture(MAIN_TEX_ID, eyesTex.main);
             eyes.material.SetTexture(MASK_TEX_ID, eyesTex.mask);
-            eyes.material.SetColor(BASE_COLOR_ID, avatarColors.Eyes);
         }
 
         if (_facialFeatures.TryGetValue(WearablesConstants.Categories.MOUTH, out var mouthTex) && mouth)
         {
             mouth.material.SetTexture(MAIN_TEX_ID, mouthTex.main);
             mouth.material.SetTexture(MASK_TEX_ID, mouthTex.mask);
-            mouth.material.SetColor(BASE_COLOR_ID, avatarColors.Skin);
         }
     }
 

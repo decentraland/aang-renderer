@@ -60,7 +60,6 @@ namespace GLTF
             // Alpha
             if (isFacialFeature)
             {
-                mat.SetColor(BASE_COLOR_ID, color);
                 mat.SetInt(Z_WRITE_MODE_ID, 0);
                 mat.renderQueue = (int)RenderQueue.AlphaTest;
             }
