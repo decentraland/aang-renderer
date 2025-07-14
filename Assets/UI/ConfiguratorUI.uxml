@@ -1,27 +1,58 @@
 <ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <ui:Template name="WearableCategoryPicker" src="project://database/Assets/UI/WearableCategoryPicker.uxml?fileID=9197481963319205126&amp;guid=ee3d5b15e073b48fdbb6cc9bf63bb2ff&amp;type=3#WearableCategoryPicker" />
+    <Style src="project://database/Assets/UI/CommonStyle.uss?fileID=7433441132597879392&amp;guid=3990756074e5d492e9a6b93221a7b815&amp;type=3#CommonStyle" />
     <Style src="project://database/Assets/UI/ConfiguratorStyle.uss?fileID=7433441132597879392&amp;guid=83de1c6279f824cdcbe4149342d94f6f&amp;type=3#ConfiguratorStyle" />
-    <ui:DropdownField label="Body shape" choices="urn:decentraland:off-chain:base-avatars:BaseMale,urn:decentraland:off-chain:base-avatars:BaseFemale" index="0" name="BodyShapeDropdown" />
-    <ui:TabView name="CategoriesTabView" view-data-key="TabbedMenu" style="position: absolute; top: 51px; right: 0; bottom: 0; left: 0;">
-        <ui:Tab label="Upper Body" name="UpperBodyTab">
-            <ui:ScrollView class="items_scroller" style="flex-grow: 1;" />
-        </ui:Tab>
-        <ui:Tab label="Lower Body" name="LowerBodyTab">
-            <ui:ScrollView class="items_scroller" />
-        </ui:Tab>
-        <ui:Tab label="Feet" name="FeetTab">
-            <ui:ScrollView class="items_scroller" />
-        </ui:Tab>
-        <ui:Tab label="Glasses" name="EyewearTab">
-            <ui:ScrollView class="items_scroller" />
-        </ui:Tab>
-        <ui:Tab label="Hands" name="HandsTab">
-            <ui:ScrollView class="items_scroller" />
-        </ui:Tab>
-        <ui:Tab label="Acessories" name="EarringsTab">
-            <ui:ScrollView class="items_scroller" />
-        </ui:Tab>
-    </ui:TabView>
     <ui:VisualElement picking-mode="Ignore" name="Loader" class="loader" style="display: none;">
         <ui:VisualElement picking-mode="Ignore" name="Icon" class="loader__icon" />
+    </ui:VisualElement>
+    <ui:VisualElement name="VisualElement" style="flex-direction: row;">
+        <ui:VisualElement name="Container" class="customization-window">
+            <ui:VisualElement name="Header" class="customization-window__header">
+                <ui:Label text="1. Chose your starting look" name="StageTitle" class="customization-window__header-title" />
+                <ui:VisualElement name="Bar" class="customization-window__header-bar" />
+            </ui:VisualElement>
+            <ui:VisualElement name="Body" class="customization-window__body">
+                <ui:VisualElement name="Content" class="customization-window__content">
+                    <ui:VisualElement name="Presets" class="presets-content" style="display: none;">
+                        <ui:VisualElement name="Header" class="presets-content__header">
+                            <ui:Label text="PRESETS" style="color: rgb(255, 255, 255); font-size: 30px; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; -unity-font-style: bold; flex-grow: 1;" />
+                            <ui:DropdownField choices="urn:decentraland:off-chain:base-avatars:BaseMale,urn:decentraland:off-chain:base-avatars:BaseFemale" index="0" name="BodyShapeDropdown" style="display: flex;" />
+                        </ui:VisualElement>
+                        <ui:VisualElement name="Body" class="presets-content__body">
+                            <UI.Elements.PreviewButtonElement />
+                            <UI.Elements.PreviewButtonElement />
+                            <UI.Elements.PreviewButtonElement />
+                            <UI.Elements.PreviewButtonElement />
+                            <UI.Elements.PreviewButtonElement />
+                            <UI.Elements.PreviewButtonElement />
+                            <UI.Elements.PreviewButtonElement />
+                            <UI.Elements.PreviewButtonElement />
+                            <UI.Elements.PreviewButtonElement />
+                            <UI.Elements.PreviewButtonElement />
+                            <UI.Elements.PreviewButtonElement />
+                            <UI.Elements.PreviewButtonElement />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:Instance template="WearableCategoryPicker" name="HeadWearables" style="display: none;" />
+                    <ui:Instance template="WearableCategoryPicker" name="BodyWearables" style="display: none;" />
+                </ui:VisualElement>
+                <ui:VisualElement name="Buttons" class="customization-window__buttons-container">
+                    <UI.Elements.DCLButtonElement text="BACK" button-type="Secondary" button-icon="Back" name="BackButton" />
+                    <ui:VisualElement name="Spreader" style="flex-grow: 1;" />
+                    <UI.Elements.DCLButtonElement text="SKIP CUSTOMIZATION" button-type="Secondary" button-icon="None" name="SkipButton" style="border-top-width: 2px; border-right-width: 2px; border-bottom-width: 2px; border-left-width: 2px;" />
+                    <UI.Elements.DCLButtonElement text="START CUSTOMIZING" button-type="Primary" button-icon="Forward" name="ConfirmButton" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement style="flex-grow: 1;" />
+        <UI.Elements.DCLDropdownElement hidden="true" name="BodyTypeDropdown">
+            <ui:VisualElement name="BodyTypePopup" class="popup-bodytype">
+                <ui:Label text="BODY TYPE" class="popup-bodytype__label" />
+                <ui:VisualElement name="ButtonContainer" class="popup-bodytype__button-container">
+                    <UI.Elements.PreviewButtonElement name="MaleBodyButton" class="popup-bodytype__button popup-bodytype__button--male" />
+                    <UI.Elements.PreviewButtonElement name="FemaleBodyButton" class="popup-bodytype__button popup-bodytype__button--female" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </UI.Elements.DCLDropdownElement>
     </ui:VisualElement>
 </ui:UXML>

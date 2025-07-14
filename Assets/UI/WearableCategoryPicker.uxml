@@ -1,0 +1,35 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <ui:VisualElement name="WearableCategoryPicker" class="wearable-category-picker">
+        <ui:VisualElement name="Sidebar" class="wearable-category-picker__sidebar">
+            <UI.Elements.WearableCategoryElement />
+            <UI.Elements.WearableCategoryElement />
+        </ui:VisualElement>
+        <ui:VisualElement name="Body" class="wearable-category-picker__body">
+            <ui:VisualElement name="Header" class="wearable-category-picker__header">
+                <ui:Label text="HAIR" name="CategoryHeader" style="font-size: 30px; color: rgb(255, 255, 255);" />
+            </ui:VisualElement>
+            <ui:VisualElement name="Items" class="wearable-category-picker__items-container" style="flex-grow: 1;">
+                <UI.Elements.WearableItemElement />
+                <UI.Elements.WearableItemElement />
+                <UI.Elements.WearableItemElement />
+                <UI.Elements.WearableItemElement />
+                <UI.Elements.WearableItemElement />
+                <UI.Elements.WearableItemElement />
+                <UI.Elements.WearableItemElement />
+                <UI.Elements.WearableItemElement />
+                <UI.Elements.WearableItemElement />
+                <UI.Elements.WearableItemElement />
+                <UI.Elements.WearableItemElement />
+                <UI.Elements.WearableItemElement />
+                <UI.Elements.WearableItemElement />
+                <UI.Elements.WearableItemElement />
+                <UI.Elements.WearableItemElement />
+                <UI.Elements.WearableItemElement />
+                <UI.Elements.WearableItemElement />
+                <UI.Elements.WearableItemElement />
+                <UI.Elements.WearableItemElement />
+                <UI.Elements.WearableItemElement />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,297 @@
+:root {
+    --dcl-color-orange: rgb(255, 116, 57);
+    --dcl-color-orange-transparent: rgba(255, 116, 57, 0);
+    --dcl-color-snow: rgb(252, 252, 252);
+    --dcl-color-ruby: rgb(255, 45, 85);
+    --dcl-color-white_70: rgba(255, 255, 255, 0.7);
+    align-items: stretch;
+    justify-content: center;
+    padding-left: 50px;
+    padding-right: 50px;
+}
+
+.dcl-clickable {
+    transition-duration: 0.2s;
+}
+
+.dcl-clickable:hover {
+    scale: 0.95;
+}
+
+.dcl-clickable:active {
+    scale: 0.9;
+}
+
+.preview-button {
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    border-bottom-right-radius: 14px;
+    border-bottom-left-radius: 14px;
+    border-top-width: 3.5px;
+    border-right-width: 3.5px;
+    border-bottom-width: 3.5px;
+    border-left-width: 3.5px;
+    border-left-color: var(--dcl-color-orange-transparent);
+    border-right-color: var(--dcl-color-orange-transparent);
+    border-top-color: var(--dcl-color-orange-transparent);
+    border-bottom-color: var(--dcl-color-orange-transparent);
+}
+
+.preview-button--selected {
+    border-left-color: var(--dcl-color-orange);
+    border-right-color: var(--dcl-color-orange);
+    border-top-color: var(--dcl-color-orange);
+    border-bottom-color: var(--dcl-color-orange);
+}
+
+.preview-button__container {
+    flex-grow: 1;
+    background-color: rgb(255, 255, 255);
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border-top-width: 3px;
+    border-right-width: 3px;
+    border-bottom-width: 3px;
+    border-left-width: 3px;
+    border-left-color: rgb(205, 198, 211);
+    border-right-color: rgb(205, 198, 211);
+    border-top-color: rgb(205, 198, 211);
+    border-bottom-color: rgb(205, 198, 211);
+    margin-top: 1px;
+    margin-right: 1px;
+    margin-bottom: 1px;
+    margin-left: 1px;
+}
+
+.dcl-button {
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
+    padding-right: 24px;
+    padding-left: 24px;
+    padding-top: 16px;
+    padding-bottom: 16px;
+}
+
+.dcl-button--primary {
+    background-color: var(--dcl-color-ruby);
+}
+
+.dcl-button--secondary {
+    background-color: rgba(0, 0, 0, 0.4);
+    border-color: var(--dcl-color-white_70);
+    border-width: 2px;
+}
+
+.dcl-button--icon-forward {
+    flex-direction: row;
+}
+
+.dcl-button--icon-back {
+    flex-direction: row-reverse;
+}
+
+.dcl-button__label {
+    font-size: 13px;
+    color: rgb(255, 255, 255);
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-left: 0;
+    padding-right: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    -unity-font-style: bold;
+}
+
+.dcl-button__icon {
+    display: none;
+    width: 11px;
+    height: 15px;
+    background-image: url("project://database/Assets/UI/Sprites/icon_arrow_right.png?fileID=2800000&guid=53552c8856695427aa658d914163aa30&type=3#icon_arrow_right");
+}
+
+.dcl-button--icon-forward > .dcl-button__icon {
+    display: flex;
+    margin-left: 12px;
+}
+
+.dcl-button--icon-back > .dcl-button__icon {
+    display: flex;
+    margin-right: 12px;
+    rotate: 180deg;
+}
+
+.wearable-category {
+    width: 138px;
+    height: 80px;
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    border-bottom-right-radius: 14px;
+    border-bottom-left-radius: 14px;
+    background-color: var(--dcl-color-orange-transparent);
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 14px;
+    margin-bottom: 4px;
+}
+
+.wearable-category--selected {
+    background-color: var(--dcl-color-orange);
+}
+
+.wearable-category__icon {
+    width: 38px;
+    height: 38px;
+    background-image: url("project://database/Assets/UI/Sprites/icon_category_eyebrows.png?fileID=2800000&guid=cee9a85e5521f4115a3369097a6a9234&type=3#icon_category_eyebrows");
+}
+
+.wearable-category__icon--eyewear {
+    background-image: url("project://database/Assets/UI/Sprites/icon_category_eyewear.png?fileID=2800000&guid=73f09b4dd72404b509177cc40e4b9d53&type=3#icon_category_eyewear");
+}
+
+.wearable-category__icon--upper_body {
+    background-image: url("project://database/Assets/UI/Sprites/icon_category_upper_body.png?fileID=2800000&guid=2cae36ab70acc41c19b4f3732ec6d31c&type=3#icon_category_upper_body");
+}
+
+.wearable-category__icon--facial_hair {
+    background-image: url("project://database/Assets/UI/Sprites/icon_category_facialhair.png?fileID=2800000&guid=20f85d5ea55bc4126b8884801721bc5c&type=3#icon_category_facialhair");
+}
+
+.wearable-category__icon--lower_body {
+    background-image: url("project://database/Assets/UI/Sprites/icon_category_lower_body.png?fileID=2800000&guid=33344ee476bf646dc96498c7d90573b8&type=3#icon_category_lower_body");
+}
+
+.wearable-category__icon--feet {
+    background-image: url("project://database/Assets/UI/Sprites/icon_category_feet.png?fileID=2800000&guid=a6a84e68b52774c64aa5b61127db772f&type=3#icon_category_feet");
+}
+
+.wearable-category__icon--hands_wear {
+    background-image: url("project://database/Assets/UI/Sprites/icon_category_hands_wear.png?fileID=2800000&guid=6bbb9d9f98c8e417092521c56ee4bcd0&type=3#icon_category_hands_wear");
+}
+
+.wearable-category__icon--earring {
+    background-image: url("project://database/Assets/UI/Sprites/icon_category_earring.png?fileID=2800000&guid=c27c8e683d22748e6a73e327d5e3aeee&type=3#icon_category_earring");
+}
+
+.wearable-category__icon--hair {
+    background-image: url("project://database/Assets/UI/Sprites/icon_category_hair.png?fileID=2800000&guid=9d0f857ae6b904a70bdbd9a3b5ef0dc9&type=3#icon_category_hair");
+}
+
+.wearable-category__icon--eyebrows {
+    background-image: url("project://database/Assets/UI/Sprites/icon_category_eyebrows.png?fileID=2800000&guid=cee9a85e5521f4115a3369097a6a9234&type=3#icon_category_eyebrows");
+}
+
+.wearable-category__icon--eyes {
+    background-image: url("project://database/Assets/UI/Sprites/icon_category_eyes.png?fileID=2800000&guid=f1f2c98fdeee04c9e9f16a5d277e4f7d&type=3#icon_category_eyes");
+}
+
+.wearable-category__icon--mouth {
+    background-image: url("project://database/Assets/UI/Sprites/icon_category_mouth.png?fileID=2800000&guid=14c6f2869abdb43ddbd3607466cb9450&type=3#icon_category_mouth");
+}
+
+.wearable-category__thumbnail-container {
+    padding-top: 5px;
+    padding-right: 5px;
+    padding-bottom: 5px;
+    padding-left: 5px;
+    width: 80px;
+    height: 80px;
+    background-color: var(--dcl-color-orange-transparent);
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+    border-bottom-right-radius: 15px;
+    border-bottom-left-radius: 15px;
+}
+
+.wearable-category:hover > .wearable-category__thumbnail-container {
+    background-color: var(--dcl-color-orange);
+}
+
+.wearable-category__thumbnail {
+    background-color: var(--dcl-color-snow);
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-bottom-left-radius: 12px;
+    border-color: var(--dcl-color-orange-transparent);
+    transition-duration: 0.2s;
+    border-top-width: 2px;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
+    height: 80px;
+    width: 80px;
+}
+
+.wearable-category-picker {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: row;
+}
+
+.dcl-dropdown {
+    height: 40px;
+    width: 66px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-bottom-left-radius: 12px;
+    background-color: rgb(255, 255, 255);
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-right: 12px;
+    padding-left: 12px;
+}
+
+.dcl-dropdown__arrow {
+    background-image: url("project://database/Assets/UI/Sprites/icon_arrow_right.png?fileID=2800000&guid=53552c8856695427aa658d914163aa30&type=3#icon_arrow_right");
+    width: 6px;
+    height: 10px;
+    -unity-background-image-tint-color: rgb(0, 0, 0);
+    rotate: 90deg;
+}
+
+.dcl-dropdown__icon {
+    width: 26px;
+    height: 26px;
+    background-color: rgba(185, 92, 92, 0.81);
+    border-top-left-radius: 7px;
+    border-top-right-radius: 7px;
+    border-bottom-right-radius: 7px;
+    border-bottom-left-radius: 7px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.dcl-dropdown__container {
+    position: absolute;
+    padding-top: 24px;
+    padding-right: 32px;
+    padding-bottom: 24px;
+    padding-left: 32px;
+    background-color: rgb(255, 255, 255);
+    right: 0;
+    top: 100%;
+    margin-top: 15px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-bottom-left-radius: 12px;
+    opacity: 1;
+    transition-property: opacity;
+    transition-duration: 0.3s;
+}
+
+.dcl-dropdown__container--hidden {
+    opacity: 0;
+    display: none;
+}

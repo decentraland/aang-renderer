@@ -8,5 +8,15 @@ namespace Utils
         {
             element.style.rotate = new StyleRotate(new Rotate(new Angle(element.style.rotate.value.angle.value + angle)));
         }
+
+        public static void SetDisplay(this VisualElement element, bool visible)
+        {
+            element.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
+        public static void SetVisibility(this VisualElement element, bool visible)
+        {
+            element.style.visibility = visible ? Visibility.Visible : Visibility.Hidden;
+        }
     }
 }

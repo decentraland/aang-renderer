@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Data;
+using UI.Elements;
+using UI.Views;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Utils;
@@ -8,70 +11,196 @@ using Utils;
 namespace UI
 {
     [RequireComponent(typeof(UIDocument))]
-    public class ConfiguratorUIPresenter: MonoBehaviour
+    public class ConfiguratorUIPresenter : MonoBehaviour
     {
-        private TabView categoriesTabView;
-        private Tab upperBodyTab;
-        private Tab lowerBodyTab;
-        private Tab feetTab;
-        private Tab eyewearTab;
-        private Tab handsTab;
-        private Tab earringsTab;
+        [SerializeField] private List<string> faceCategories;
+        [SerializeField] private List<string> bodyCategories;
 
+        private readonly Dictionary<string, string> categoryLocalizations = new()
+        {
+            { "eyewear", "EYEWEAR" },
+            { "upper_body", "UPPER BODY" },
+            { "facial_hair", "FACIAL HAIR" },
+            { "lower_body", "LOWER BODY" },
+            { "feet", "FEET" },
+            { "hands_wear", "HANDS" },
+            { "earring", "EARRINGS" },
+            { "hair", "HAIR" },
+            { "eyes", "EYES" },
+            { "eyebrows", "EYEBROWS" },
+            { "mouth", "MOUTH" },
+        };
+
+        private VisualElement _configuratorContainer;
         private VisualElement _loader;
         private VisualElement _loaderIcon;
-        
-        private DropdownField bodyShapeDropdown;
 
-        public string BodyShape => bodyShapeDropdown.value;
-        public Dictionary<string, WearableDefinition> Setup { get; } = new ();
+        private DCLButtonElement _backButton;
+        private DCLButtonElement _skipButton;
+        private DCLButtonElement _confirmButton;
 
+        private Label _stageTitle;
+
+        public string BodyShape { get; private set; } = "urn:decentraland:off-chain:base-avatars:BaseMale"; // TODO: Fix
+        public Dictionary<string, ActiveEntity> Setup { get; } = new();
+
+        private Dictionary<string, List<ActiveEntity>> _collection;
+        private List<(string category, List<ActiveEntity> entities)> _faceEntities;
+        private List<(string category, List<ActiveEntity> entities)> _bodyEntities;
+
+        // Views
+        private WearablesView _headWearablesView;
+        private WearablesView _bodyWearablesView;
+        private PresetsView _presetsView;
+        private BodyTypePopupView _bodyTypePopupView;
+
+        private Stage _currentStage = Stage.Preset;
+
+        public event Action BodyShapeChanged;
         public event Action SetupChanged;
-        
+
         private void Start()
         {
             var root = GetComponent<UIDocument>().rootVisualElement;
 
-            categoriesTabView = root.Q<TabView>("CategoriesTabView");
+            _configuratorContainer = root.Q("Container");
 
-            upperBodyTab = categoriesTabView.Q<Tab>("UpperBodyTab");
-            lowerBodyTab = categoriesTabView.Q<Tab>("LowerBodyTab");
-            feetTab = categoriesTabView.Q<Tab>("FeetTab");
-            eyewearTab = categoriesTabView.Q<Tab>("EyewearTab");
-            handsTab = categoriesTabView.Q<Tab>("HandsTab");
-            earringsTab = categoriesTabView.Q<Tab>("EarringsTab");
+            _stageTitle = root.Q<Label>("StageTitle");
 
-            categoriesTabView.activeTabChanged += OnActiveTabChanged;
+            _backButton = root.Q<DCLButtonElement>("BackButton");
+            _skipButton = root.Q<DCLButtonElement>("SkipButton");
+            _confirmButton = root.Q<DCLButtonElement>("ConfirmButton");
 
-            upperBodyTab.selected += OnUpperBodySelected;
-            
-            bodyShapeDropdown = root.Q<DropdownField>("BodyShapeDropdown");
-            bodyShapeDropdown.RegisterValueChangedCallback(evt => SetupChanged?.Invoke());
+            _backButton.Clicked += OnBackClicked;
+            _confirmButton.Clicked += OnConfirmClicked;
 
             _loader = root.Q("Loader");
             _loaderIcon = _loader.Q("Icon");
+
+            var presetsContainer = root.Q("Presets");
+            _presetsView = new PresetsView(presetsContainer);
+
+            // Dropdowns
+            var bodyTypeDropdown = root.Q<DCLDropdownElement>("BodyTypeDropdown");
+            _bodyTypePopupView = new BodyTypePopupView(bodyTypeDropdown.Q("BodyTypePopup"));
+            _bodyTypePopupView.BodyTypeChanged += OnBodyTypeChanged;
+
+            var headWearablesContainer = root.Q("HeadWearables");
+            _headWearablesView = new WearablesView(
+                headWearablesContainer,
+                headWearablesContainer.Q<Label>("CategoryHeader"),
+                headWearablesContainer.Q<VisualElement>("Sidebar"),
+                headWearablesContainer.Q("Items"),
+                categoryLocalizations
+            );
+            _headWearablesView.WearableSelected += OnWearableSelected;
+
+            var bodyWearablesContainer = root.Q("BodyWearables");
+            _bodyWearablesView = new WearablesView(
+                bodyWearablesContainer,
+                bodyWearablesContainer.Q<Label>("CategoryHeader"),
+                bodyWearablesContainer.Q<VisualElement>("Sidebar"),
+                bodyWearablesContainer.Q("Items"),
+                categoryLocalizations
+            );
+
+            _configuratorContainer.SetDisplay(false);
+            _loader.SetDisplay(true);
+            ShowStage(_currentStage = Stage.Preset);
         }
 
-        private void OnUpperBodySelected(Tab obj)
+        private void OnBodyTypeChanged(bool isMale)
         {
-            Debug.Log("OnUpperBodySelected");
+            BodyShape = isMale
+                ? "urn:decentraland:off-chain:base-avatars:BaseMale"
+                : "urn:decentraland:off-chain:base-avatars:BaseFemale";
+
+            BodyShapeChanged?.Invoke();
         }
 
-        private void OnActiveTabChanged(Tab previous, Tab next)
+        private void OnBackClicked()
         {
-            Debug.Log($"Selected tab prev: {previous.label},  next: {next.label}");
+            HideStage(_currentStage);
+            _currentStage = (Stage)((int)_currentStage - 1);
+            ShowStage(_currentStage);
+        }
+
+        private void OnConfirmClicked()
+        {
+            if (_currentStage == Stage.Body)
+            {
+                Debug.Log("DONE!");
+                return;
+            }
+
+            HideStage(_currentStage);
+            _currentStage = (Stage)((int)_currentStage + 1);
+            ShowStage(_currentStage);
+        }
+
+        private void HideStage(Stage stage)
+        {
+            switch (stage)
+            {
+                case Stage.Preset:
+                    _presetsView.Show(false);
+                    break;
+                case Stage.Face:
+                    _headWearablesView.Show(false);
+                    break;
+                case Stage.Body:
+                    _bodyWearablesView.Show(false);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(stage), stage, null);
+            }
+        }
+
+        private void ShowStage(Stage stage)
+        {
+            switch (stage)
+            {
+                case Stage.Preset:
+                    _presetsView.Show(true);
+                    _stageTitle.text = "1. Choose your starting look";
+                    _confirmButton.Text = "START CUSTOMIZING";
+                    _skipButton.style.display = DisplayStyle.Flex;
+                    _backButton.style.display = DisplayStyle.None;
+                    break;
+                case Stage.Face:
+                    _headWearablesView.Show(true);
+                    _stageTitle.text = "2. Customize your face";
+                    _confirmButton.Text = "CONFIRM FACE";
+                    _skipButton.style.display = DisplayStyle.Flex;
+                    _backButton.style.display = DisplayStyle.Flex;
+                    break;
+                case Stage.Body:
+                    _bodyWearablesView.Show(true);
+                    _stageTitle.text = "2. Customize your outfit";
+                    _confirmButton.Text = "FINISH";
+                    _skipButton.style.display = DisplayStyle.None;
+                    _backButton.style.display = DisplayStyle.Flex;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         private void Update()
         {
             // Rotate the loader icon
             _loaderIcon.RotateBy(360f * Time.deltaTime);
-
         }
 
-        public void ShowLoading(bool loading)
+        public void LoadCompleted()
         {
-            
+            _configuratorContainer.SetDisplay(true);
+            _loader.SetDisplay(false);
+        }
+
+        public void SetPresets(ProfileResponse.Avatar.AvatarData[] presets)
+        {
+            _presetsView.SetPresets(presets);
         }
 
         public void SetCollection(Dictionary<string, List<ActiveEntity>> collection)
@@ -91,44 +220,34 @@ namespace UI
                Category: eyes - 35
                Category: mouth - 20
              */
-            
-            SetupTab(upperBodyTab, collection["upper_body"]);
-            SetupTab(lowerBodyTab, collection["lower_body"]);
-            SetupTab(feetTab, collection["feet"]);
-            SetupTab(eyewearTab, collection["eyewear"]);
-            SetupTab(handsTab, collection["hands_wear"]);
-            SetupTab(earringsTab, collection["earring"]);
-        }
 
-        private void SetupTab(Tab tab, List<ActiveEntity> entities)
-        {
-            var container = tab.Q<ScrollView>();
-            
-            foreach (var activeEntity in entities)
+            _faceEntities = faceCategories.Select(cat => (cat, collection[cat].Take(20).ToList())).ToList();
+            _bodyEntities = bodyCategories.Select(cat => (cat, collection[cat].Take(20).ToList())).ToList();
+
+            // Preload thumbnails
+            foreach (var (_, entities) in _faceEntities.Union(_bodyEntities))
             {
-                var item = new VisualElement();
-                item.AddToClassList("wearable-item");
-                item.AddManipulator(new Clickable(() => SetItem(activeEntity)));
-                item.style.height = 70;
-                item.style.width = 70;
-                item.style.backgroundColor = Color.green;
-                
-                RemoteTextureService.Instance.RequestTexture(activeEntity.metadata.thumbnail, tex => item.style.backgroundImage = tex, () => Debug.LogError("RECEIVED ERROR"));
-                
-                container.Add(item);
+                foreach (var ae in entities)
+                {
+                    RemoteTextureService.Instance.PreloadTexture(ae.metadata.thumbnail);
+                }
             }
-            
-            tab.contentContainer.Add(container);
+
+            _headWearablesView.SetCollection(_faceEntities);
+            _bodyWearablesView.SetCollection(_bodyEntities);
         }
 
-        private void SetItem(ActiveEntity ae)
+        private void OnWearableSelected(string category, ActiveEntity ae)
         {
-            var definition = WearableDefinition.FromActiveEntity(ae, bodyShapeDropdown.value);
-
-            Setup[definition.Category] = definition;
-            
+            Setup[category] = ae;
             SetupChanged?.Invoke();
         }
 
+        private enum Stage
+        {
+            Preset,
+            Face,
+            Body
+        }
     }
 }

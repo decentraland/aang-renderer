@@ -79,8 +79,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5864479520054927399}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.39, y: 0.12, z: -2.93}
+  m_LocalRotation: {x: -0, y: -0.13035323, z: -0, w: 0.99146765}
+  m_LocalPosition: {x: -0.48, y: 0.12, z: -2.93}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -442,7 +442,7 @@ MonoBehaviour:
   m_Script: {fileID: 19102, guid: 0000000000000000e000000000000000, type: 0}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_PanelSettings: {fileID: 11400000, guid: 1c23324a633c04628917dd3b11e721fc, type: 2}
+  m_PanelSettings: {fileID: 11400000, guid: 90248aa02eaba4045be1b22115a12058, type: 2}
   m_ParentUI: {fileID: 0}
   sourceAsset: {fileID: 9197481963319205126, guid: 411caeadd8468415bbd51ada04aef9cf, type: 3}
   m_SortingOrder: 0
@@ -461,3 +461,50 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b3af98e890394688bbc36ea9edc05447, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  faceCategories:
+  - hair
+  - eyes
+  - eyebrows
+  - mouth
+  - facial_hair
+  bodyCategories:
+  - upper_body
+  - lower_body
+  - feet
+  - eyewear
+  - hands_wear
+  - earring
+  categoryDefinitions:
+  - name: hair
+    icon: {fileID: 0}
+    title: 
+  - name: eyes
+    icon: {fileID: 0}
+    title: 
+  - name: eyebrows
+    icon: {fileID: 0}
+    title: 
+  - name: mouth
+    icon: {fileID: 0}
+    title: 
+  - name: facial_hair
+    icon: {fileID: 0}
+    title: 
+  - name: upper_body
+    icon: {fileID: 0}
+    title: 
+  - name: 
+    icon: {fileID: 0}
+    title: 
+  - name: 
+    icon: {fileID: 0}
+    title: 
+  - name: 
+    icon: {fileID: 0}
+    title: 
+  - name: 
+    icon: {fileID: 0}
+    title: 
+  - name: 
+    icon: {fileID: 0}
+    title: 

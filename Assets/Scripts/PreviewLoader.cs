@@ -79,7 +79,7 @@ public class PreviewLoader : MonoBehaviour
     {
         gameObject.SetActive(false);
         Cleanup();
-        await LoadStuff(bodyShape, urns, null, Color.red, Color.red, Color.grey,"idle", null);
+        await LoadStuff(bodyShape, urns, null, Color.red, Color.red, Color.grey, null, "idle", null);
         gameObject.SetActive(true);
     }
 
