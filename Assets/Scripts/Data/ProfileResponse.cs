@@ -22,11 +22,19 @@ namespace Data
                 public ColorData eyes;
                 public ColorData hair;
                 public ColorData skin;
+                public Snapshot snapshots;
                 
                 [Serializable]
                 public class ColorData
                 {
                     public Color color;
+                }
+
+                [Serializable]
+                public class Snapshot
+                {
+                    public string face256;
+                    public string body;
                 }
             }
         }

@@ -63,6 +63,7 @@
     margin-right: 1px;
     margin-bottom: 1px;
     margin-left: 1px;
+    -unity-background-scale-mode: scale-to-fit;
 }
 
 .dcl-button {
@@ -264,7 +265,6 @@
 .dcl-dropdown__icon {
     width: 26px;
     height: 26px;
-    background-color: rgba(185, 92, 92, 0.81);
     border-top-left-radius: 7px;
     border-top-right-radius: 7px;
     border-bottom-right-radius: 7px;
@@ -286,12 +286,14 @@
     border-top-right-radius: 12px;
     border-bottom-right-radius: 12px;
     border-bottom-left-radius: 12px;
-    opacity: 1;
-    transition-property: opacity;
     transition-duration: 0.3s;
+    display: flex;
 }
 
 .dcl-dropdown__container--hidden {
-    opacity: 0;
     display: none;
+}
+
+.popup-color {
+    width: 316px;
 }

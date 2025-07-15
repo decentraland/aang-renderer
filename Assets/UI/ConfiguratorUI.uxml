@@ -5,8 +5,8 @@
     <ui:VisualElement picking-mode="Ignore" name="Loader" class="loader" style="display: none;">
         <ui:VisualElement picking-mode="Ignore" name="Icon" class="loader__icon" />
     </ui:VisualElement>
-    <ui:VisualElement name="VisualElement" style="flex-direction: row;">
-        <ui:VisualElement name="Container" class="customization-window">
+    <ui:VisualElement name="Container" style="flex-direction: row;">
+        <ui:VisualElement name="CustomizationWindow" class="customization-window">
             <ui:VisualElement name="Header" class="customization-window__header">
                 <ui:Label text="1. Chose your starting look" name="StageTitle" class="customization-window__header-title" />
                 <ui:VisualElement name="Bar" class="customization-window__header-bar" />
@@ -16,7 +16,6 @@
                     <ui:VisualElement name="Presets" class="presets-content" style="display: none;">
                         <ui:VisualElement name="Header" class="presets-content__header">
                             <ui:Label text="PRESETS" style="color: rgb(255, 255, 255); font-size: 30px; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; -unity-font-style: bold; flex-grow: 1;" />
-                            <ui:DropdownField choices="urn:decentraland:off-chain:base-avatars:BaseMale,urn:decentraland:off-chain:base-avatars:BaseFemale" index="0" name="BodyShapeDropdown" style="display: flex;" />
                         </ui:VisualElement>
                         <ui:VisualElement name="Body" class="presets-content__body">
                             <UI.Elements.PreviewButtonElement />
@@ -45,14 +44,34 @@
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement style="flex-grow: 1;" />
-        <UI.Elements.DCLDropdownElement hidden="true" name="BodyTypeDropdown">
-            <ui:VisualElement name="BodyTypePopup" class="popup-bodytype">
-                <ui:Label text="BODY TYPE" class="popup-bodytype__label" />
-                <ui:VisualElement name="ButtonContainer" class="popup-bodytype__button-container">
-                    <UI.Elements.PreviewButtonElement name="MaleBodyButton" class="popup-bodytype__button popup-bodytype__button--male" />
-                    <UI.Elements.PreviewButtonElement name="FemaleBodyButton" class="popup-bodytype__button popup-bodytype__button--female" />
+        <ui:VisualElement style="flex-direction: row;">
+            <UI.Elements.DCLDropdownElement hidden="true" name="BodyTypeDropdown" class="dcl-dropdown--bodyshape" style="margin-right: 12px;">
+                <ui:VisualElement name="BodyTypePopup" class="popup-bodytype">
+                    <ui:Label text="BODY TYPE" class="popup-bodytype__label" />
+                    <ui:VisualElement name="ButtonContainer" class="popup-bodytype__button-container">
+                        <UI.Elements.PreviewButtonElement name="MaleBodyButton" class="popup-bodytype__button popup-bodytype__button--male" />
+                        <UI.Elements.PreviewButtonElement name="FemaleBodyButton" class="popup-bodytype__button popup-bodytype__button--female" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
-            </ui:VisualElement>
-        </UI.Elements.DCLDropdownElement>
+            </UI.Elements.DCLDropdownElement>
+            <UI.Elements.DCLDropdownElement hidden="true" name="SkinColorDropdown">
+                <ui:VisualElement name="ColorPopup" class="popup-color">
+                    <ui:Label text="SKIN COLOR" class="popup-color__title" />
+                    <ui:Label text="PRESETS" class="popup-color__presets-label" />
+                    <ui:VisualElement name="PresetsContainer" class="popup-color__presets-container">
+                        <ui:VisualElement class="popup-color__preset" />
+                        <ui:VisualElement class="popup-color__preset" />
+                        <ui:VisualElement class="popup-color__preset" />
+                        <ui:VisualElement class="popup-color__preset" />
+                        <ui:VisualElement class="popup-color__preset" />
+                        <ui:VisualElement class="popup-color__preset" />
+                        <ui:VisualElement class="popup-color__preset" />
+                        <ui:VisualElement class="popup-color__preset" />
+                        <ui:VisualElement class="popup-color__preset" />
+                        <ui:VisualElement class="popup-color__preset" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </UI.Elements.DCLDropdownElement>
+        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

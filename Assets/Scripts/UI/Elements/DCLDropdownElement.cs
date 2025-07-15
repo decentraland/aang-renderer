@@ -11,7 +11,7 @@ namespace UI.Elements
         private const string USS_CONTAINER = USS_BLOCK + "__container";
         private const string USS_CONTAINER_HIDDEN = USS_CONTAINER + "--hidden";
 
-        private readonly VisualElement _icon;
+        public readonly VisualElement Icon;
         
         // TODO: Wat
         [UxmlAttribute]
@@ -27,8 +27,8 @@ namespace UI.Elements
         {
             AddToClassList(USS_BLOCK);
 
-            hierarchy.Add(_icon = new VisualElement {name = "icon"});
-            _icon.AddToClassList(USS_ICON);
+            hierarchy.Add(Icon = new VisualElement {name = "icon"});
+            Icon.AddToClassList(USS_ICON);
             
             var arrow = new VisualElement {name = "arrow"};
             hierarchy.Add(arrow);

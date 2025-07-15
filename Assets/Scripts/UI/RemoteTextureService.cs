@@ -7,7 +7,7 @@ namespace UI
 {
     public class RemoteTextureService : MonoBehaviour
     {
-        private const int CONCURRENT_REQUESTS = 5;
+        private const int CONCURRENT_REQUESTS = 10;
 
         private readonly Dictionary<string, Texture2D> _cachedTextures = new();
 
@@ -41,7 +41,7 @@ namespace UI
             CheckQueue();
         }
 
-        public int RequestTexture(string url, Action<Texture2D> callback, Action error = null, bool addLast = true)
+        public int RequestTexture(string url, Action<Texture2D> callback, Action error = null)
         {
             // Check if we have a cached version already
             if (_cachedTextures.TryGetValue(url, out var cachedTexture))
@@ -78,14 +78,14 @@ namespace UI
             }
 
             // Add request to front of queue
-            if (addLast)
-            {
-                _requestQueue.AddLast(url);
-            }
-            else
-            {
+            // if (addLast)
+            // {
+            //     _requestQueue.AddLast(url);
+            // }
+            // else
+            // {
+            // }
                 _requestQueue.AddFirst(url);
-            }
 
             CheckQueue();
 
@@ -94,13 +94,9 @@ namespace UI
 
         public void RemoveListener(int handle)
         {
-            foreach (var (url, listeners) in _responseListeners)
+            foreach (var (_, listeners) in _responseListeners)
             {
                 listeners.Remove(handle);
-                if (listeners.Count == 0)
-                {
-                    _responseListeners.Remove(url);
-                }
             }
         }
 
@@ -119,14 +115,14 @@ namespace UI
         {
             _requests.Add(url);
 
-            Debug.Log($"Loading texture URL: {url}");
+            // Debug.Log($"Loading texture URL: {url}");
             var request = UnityWebRequestTexture.GetTexture(url);
 
             await request.SendWebRequest();
 
             if (request.result == UnityWebRequest.Result.Success)
             {
-                Debug.Log($"Texture loaded: {url}");
+                // Debug.Log($"Texture loaded: {url}");
                 var tex = ((DownloadHandlerTexture)request.downloadHandler).texture;
                 _cachedTextures.Add(url, tex);
 

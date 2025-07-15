@@ -18,6 +18,7 @@ namespace UI.Views
 
         private List<(string category, List<ActiveEntity> wearables)> _collection;
 
+        private Dictionary<string, WearableCategoryElement> _categoryElements =  new();
         private WearableCategoryElement _selectedCategoryElement;
         private WearableItemElement _selectedWearableElement;
         private readonly Dictionary<string, ActiveEntity> _selectedItems = new();
@@ -49,6 +50,7 @@ namespace UI.Views
                 var categoryElement = new WearableCategoryElement(category);
                 categoryElement.Clicked += OnCategoryClicked;
                 _sidebar.Add(categoryElement);
+                _categoryElements[category] = categoryElement;
                 _selectedItems[category] = null;
 
                 if (categorySet) continue;
@@ -58,15 +60,31 @@ namespace UI.Views
             }
         }
 
+        public void SetSelectedItems(Dictionary<string, ActiveEntity> selectedItems)
+        {
+            foreach (var category in _selectedItems.Keys.ToList())
+            {
+                _selectedItems[category] = selectedItems.GetValueOrDefault(category);
+            }
+
+            
+            RefreshCurrentCategory();
+        }
+
         private void OnCategoryClicked(WearableCategoryElement categoryElement)
         {
             _selectedCategoryElement?.SetSelected(false);
             _selectedCategoryElement = categoryElement;
             _selectedCategoryElement.SetSelected(true);
 
-            var category = categoryElement.Category;
+            RefreshCurrentCategory();
+        }
 
-            _header.text = _categoryLocalizations[categoryElement.Category];
+        private void RefreshCurrentCategory()
+        {
+            var category = _selectedCategoryElement.Category;
+
+            _header.text = _categoryLocalizations[category];
 
             var categoryItems = _collection.First(cw => cw.category == category).wearables;
             var selectedWearable = _selectedItems[category];
@@ -108,7 +126,7 @@ namespace UI.Views
 
             _selectedCategoryElement.SetWearable(wpbe.Wearable);
 
-            WearableSelected?.Invoke(_selectedCategoryElement.Category, wpbe.Wearable);
+            WearableSelected!(_selectedCategoryElement.Category, wpbe.Wearable);
         }
     }
 }

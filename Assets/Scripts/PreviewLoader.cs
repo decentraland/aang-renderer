@@ -75,11 +75,12 @@ public class PreviewLoader : MonoBehaviour
         gameObject.SetActive(true);
     }
 
-    public async Awaitable LoadConfigurator(string bodyShape, List<string> urns)
+    public async Awaitable LoadConfigurator(string bodyShape, List<string> urns, Color eyeColor, Color hairColor,
+        Color skinColor)
     {
         gameObject.SetActive(false);
         Cleanup();
-        await LoadStuff(bodyShape, urns, null, Color.red, Color.red, Color.grey, null, "idle", null);
+        await LoadStuff(bodyShape, urns, null, eyeColor, hairColor, skinColor, null, "idle", null);
         gameObject.SetActive(true);
     }
 

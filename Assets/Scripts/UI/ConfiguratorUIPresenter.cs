@@ -16,6 +16,10 @@ namespace UI
         [SerializeField] private List<string> faceCategories;
         [SerializeField] private List<string> bodyCategories;
 
+        // TODO: Maybe move to controller?
+        [SerializeField] private Color[] presetSkinColors;
+        [SerializeField] private Color[] presetHairColors;
+
         private readonly Dictionary<string, string> categoryLocalizations = new()
         {
             { "eyewear", "EYEWEAR" },
@@ -41,9 +45,6 @@ namespace UI
 
         private Label _stageTitle;
 
-        public string BodyShape { get; private set; } = "urn:decentraland:off-chain:base-avatars:BaseMale"; // TODO: Fix
-        public Dictionary<string, ActiveEntity> Setup { get; } = new();
-
         private Dictionary<string, List<ActiveEntity>> _collection;
         private List<(string category, List<ActiveEntity> entities)> _faceEntities;
         private List<(string category, List<ActiveEntity> entities)> _bodyEntities;
@@ -52,12 +53,17 @@ namespace UI
         private WearablesView _headWearablesView;
         private WearablesView _bodyWearablesView;
         private PresetsView _presetsView;
-        private BodyTypePopupView _bodyTypePopupView;
+        private BodyShapePopupView _bodyShapePopupView;
+        private ColorPopupView _skinColorPopupView;
+        private ColorPopupView _hairColorPopupView;
 
         private Stage _currentStage = Stage.Preset;
 
-        public event Action BodyShapeChanged;
-        public event Action SetupChanged;
+        public event Action<Color> SkinColorSelected;
+        public event Action<Color> HairColorSelected;
+        public event Action<string> BodyShapeSelected;
+        public event Action<string, ActiveEntity> WearableSelected;
+        public event Action<ProfileResponse.Avatar.AvatarData> PresetSelected;
 
         private void Start()
         {
@@ -79,12 +85,22 @@ namespace UI
 
             var presetsContainer = root.Q("Presets");
             _presetsView = new PresetsView(presetsContainer);
+            _presetsView.PresetSelected += preset => PresetSelected!(preset);
 
             // Dropdowns
             var bodyTypeDropdown = root.Q<DCLDropdownElement>("BodyTypeDropdown");
-            _bodyTypePopupView = new BodyTypePopupView(bodyTypeDropdown.Q("BodyTypePopup"));
-            _bodyTypePopupView.BodyTypeChanged += OnBodyTypeChanged;
+            _bodyShapePopupView = new BodyShapePopupView(bodyTypeDropdown.Q("BodyTypePopup"));
+            _bodyShapePopupView.BodyShapeSelected += bs => BodyShapeSelected!(bs);
+            
+            var skinColorDropdown = root.Q<DCLDropdownElement>("SkinColorDropdown");
+            _skinColorPopupView = new ColorPopupView(skinColorDropdown.Q("ColorPopup"), skinColorDropdown.Icon, presetSkinColors);
+            _skinColorPopupView.ColorSelected += skinColor => SkinColorSelected!(skinColor);
 
+            // var hairColorDropdown = root.Q<DCLDropdownElement>("HairColorDropdown");
+            // _hairColorPopupView = new ColorPopupView(hairColorDropdown.Q("ColorPopup"), hairColorDropdown.Icon,
+            //     presetHairColors);
+            // _hairColorPopupView.ColorSelected += hairColor => HairColorSelected!(hairColor);
+            
             var headWearablesContainer = root.Q("HeadWearables");
             _headWearablesView = new WearablesView(
                 headWearablesContainer,
@@ -93,7 +109,7 @@ namespace UI
                 headWearablesContainer.Q("Items"),
                 categoryLocalizations
             );
-            _headWearablesView.WearableSelected += OnWearableSelected;
+            _headWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
 
             var bodyWearablesContainer = root.Q("BodyWearables");
             _bodyWearablesView = new WearablesView(
@@ -103,19 +119,11 @@ namespace UI
                 bodyWearablesContainer.Q("Items"),
                 categoryLocalizations
             );
+            _bodyWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
 
             _configuratorContainer.SetDisplay(false);
             _loader.SetDisplay(true);
             ShowStage(_currentStage = Stage.Preset);
-        }
-
-        private void OnBodyTypeChanged(bool isMale)
-        {
-            BodyShape = isMale
-                ? "urn:decentraland:off-chain:base-avatars:BaseMale"
-                : "urn:decentraland:off-chain:base-avatars:BaseFemale";
-
-            BodyShapeChanged?.Invoke();
         }
 
         private void OnBackClicked()
@@ -198,9 +206,9 @@ namespace UI
             _loader.SetDisplay(false);
         }
 
-        public void SetPresets(ProfileResponse.Avatar.AvatarData[] presets)
+        public void SetPresets(ProfileResponse.Avatar.AvatarData[] presets, int randomPresetIndex)
         {
-            _presetsView.SetPresets(presets);
+            _presetsView.SetPresets(presets, randomPresetIndex);
         }
 
         public void SetCollection(Dictionary<string, List<ActiveEntity>> collection)
@@ -224,23 +232,24 @@ namespace UI
             _faceEntities = faceCategories.Select(cat => (cat, collection[cat].Take(20).ToList())).ToList();
             _bodyEntities = bodyCategories.Select(cat => (cat, collection[cat].Take(20).ToList())).ToList();
 
-            // Preload thumbnails
-            foreach (var (_, entities) in _faceEntities.Union(_bodyEntities))
-            {
-                foreach (var ae in entities)
-                {
-                    RemoteTextureService.Instance.PreloadTexture(ae.metadata.thumbnail);
-                }
-            }
-
             _headWearablesView.SetCollection(_faceEntities);
             _bodyWearablesView.SetCollection(_bodyEntities);
         }
 
-        private void OnWearableSelected(string category, ActiveEntity ae)
+        public void SetBodyShape(string bodyShape)
         {
-            Setup[category] = ae;
-            SetupChanged?.Invoke();
+            _bodyShapePopupView.SetBodyShape(bodyShape);
+        }
+
+        public void SetSelectedItems(Dictionary<string, ActiveEntity> selectedItems)
+        {
+            _headWearablesView.SetSelectedItems(selectedItems);
+            _bodyWearablesView.SetSelectedItems(selectedItems);
+        }
+
+        public void ClearPresetSelection()
+        {
+            _presetsView.ClearSelection();
         }
 
         private enum Stage

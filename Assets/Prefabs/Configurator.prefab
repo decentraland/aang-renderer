@@ -366,6 +366,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   uiPresenter: {fileID: 759551327614069242}
   previewLoader: {fileID: 7023788662819359995}
+  presetAvatars:
+  - default70
+  - default71
+  - default72
+  - default73
+  - default74
+  - default75
+  - default81
+  - default82
+  - default83
+  - default84
+  - default85
+  - default86
+  presetSkinColors: []
+  presetHairColors: []
 --- !u!1 &8864421014122054459
 GameObject:
   m_ObjectHideFlags: 0
@@ -474,37 +489,25 @@ MonoBehaviour:
   - eyewear
   - hands_wear
   - earring
-  categoryDefinitions:
-  - name: hair
-    icon: {fileID: 0}
-    title: 
-  - name: eyes
-    icon: {fileID: 0}
-    title: 
-  - name: eyebrows
-    icon: {fileID: 0}
-    title: 
-  - name: mouth
-    icon: {fileID: 0}
-    title: 
-  - name: facial_hair
-    icon: {fileID: 0}
-    title: 
-  - name: upper_body
-    icon: {fileID: 0}
-    title: 
-  - name: 
-    icon: {fileID: 0}
-    title: 
-  - name: 
-    icon: {fileID: 0}
-    title: 
-  - name: 
-    icon: {fileID: 0}
-    title: 
-  - name: 
-    icon: {fileID: 0}
-    title: 
-  - name: 
-    icon: {fileID: 0}
-    title: 
+  presetSkinColors:
+  - {r: 1, g: 0.89411765, b: 0.7764706, a: 1}
+  - {r: 1, g: 0.8666667, b: 0.7372549, a: 1}
+  - {r: 0.9490196, g: 0.7607843, b: 0.64705884, a: 1}
+  - {r: 0.8666667, g: 0.69411767, b: 0.56078434, a: 1}
+  - {r: 0.8, g: 0.60784316, b: 0.46666667, a: 1}
+  - {r: 0.6039216, g: 0.4627451, b: 0.35686275, a: 1}
+  - {r: 0.49019608, g: 0.3647059, b: 0.2784314, a: 1}
+  - {r: 0.4392157, g: 0.29803923, b: 0.21960784, a: 1}
+  - {r: 0.32156864, g: 0.17254902, b: 0.10980392, a: 1}
+  - {r: 0.23529412, g: 0.13333334, b: 0.08627451, a: 1}
+  presetHairColors:
+  - {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
+  - {r: 0.23529412, g: 0.12941177, b: 0.043137256, a: 1}
+  - {r: 0.35686275, g: 0.19215687, b: 0.05882353, a: 1}
+  - {r: 0.48235294, g: 0.28235295, b: 0.09411765, a: 1}
+  - {r: 0.59607846, g: 0.37254903, b: 0.21568628, a: 1}
+  - {r: 0.54901963, g: 0.1254902, b: 0.078431375, a: 1}
+  - {r: 0.9137255, g: 0.50980395, b: 0.20392157, a: 1}
+  - {r: 1, g: 0.74509805, b: 0.15686275, a: 1}
+  - {r: 0.98039216, g: 0.8235294, b: 0.5058824, a: 1}
+  - {r: 0.83137256, g: 0.83137256, b: 0.83137256, a: 1}

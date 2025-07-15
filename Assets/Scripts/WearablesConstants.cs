@@ -3,6 +3,9 @@ using System.Collections.Generic;
 public static class WearablesConstants
 {
     public const string EMPTY_DEFAULT_WEARABLE = "EMPTY_DEFAULT_WEARABLE";
+    
+    public const string BODY_SHAPE_MALE = "urn:decentraland:off-chain:base-avatars:BaseMale";
+    public const string BODY_SHAPE_FEMALE = "urn:decentraland:off-chain:base-avatars:BaseFemale";
 
     //Used for hiding algorithm
     public static readonly IList<string> CATEGORIES_PRIORITY = new List<string>
