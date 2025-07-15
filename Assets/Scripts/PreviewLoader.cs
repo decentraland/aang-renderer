@@ -480,6 +480,7 @@ public class PreviewLoader : MonoBehaviour
         foreach (Transform child in avatarRoot) Destroy(child.gameObject);
         foreach (Transform child in wearableRoot) Destroy(child.gameObject);
         _wearables.Clear();
+        _facialFeatures.Clear();
 
         avatarRoot.gameObject.SetActive(true);
         wearableRoot.gameObject.SetActive(true);
