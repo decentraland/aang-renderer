@@ -1,21 +1,8 @@
-.items_scroller {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-}
-
-.unity-tab-view__content-container {
-    flex-grow: 1;
-}
-
-.unity-tab {
-    flex-grow: 1;
-}
-
-.unity-tab__content-container {
-    flex-grow: 1;
+:root {
+    align-items: stretch;
+    justify-content: center;
+    padding-left: 50px;
+    padding-right: 50px;
 }
 
 .loader {
@@ -32,11 +19,6 @@
     width: 64px;
     height: 64px;
     background-image: url("project://database/Assets/UI/Sprites/Spinner.png?fileID=2800000&guid=7277d900fbbbd4d2986e2ff79fd14803&type=3#Spinner");
-}
-
-.unity-scroll-view__content-container {
-    flex-direction: row;
-    flex-wrap: wrap;
 }
 
 .customization-window {
@@ -224,4 +206,9 @@
     justify-content: space-between;
     margin-left: 21px;
     margin-right: 21px;
+}
+
+.container {
+    flex-direction: row;
+    justify-content: center;
 }

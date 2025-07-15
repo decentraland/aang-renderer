@@ -28,6 +28,8 @@ public class PreviewRotator : MonoBehaviour
     public bool AllowVertical { get; set; } = true;
     public bool EnableAutoRotate { get; set; } = true;
 
+    private Quaternion? _targetRotation;
+
     private void Awake()
     {
         _initialRotation = transform.rotation;
@@ -42,6 +44,18 @@ public class PreviewRotator : MonoBehaviour
     private void Update()
     {
         var dt = Time.deltaTime;
+
+        if (_targetRotation.HasValue)
+        {
+            transform.rotation = Quaternion.Lerp(transform.rotation, _targetRotation.Value, returnSpeed * dt);
+
+            if (Quaternion.Angle(transform.rotation, _targetRotation.Value) < 1f)
+            {
+                _targetRotation = null;
+            }
+
+            return;
+        }
 
         if (Input.GetMouseButton(0) && !IsOverUI())
         {
@@ -71,11 +85,24 @@ public class PreviewRotator : MonoBehaviour
         }
     }
 
-    private bool IsOverUI()
+    public void LookAtCamera(bool smooth)
     {
-        var panel = uiDocument.rootVisualElement.panel;
-        var panelPos = RuntimePanelUtils.ScreenToPanel(panel, Input.mousePosition);
-        return panel.Pick(panelPos) != null;
+        var direction = mainCamera.transform.position - transform.position;
+        direction.y = 0f; // Ignore vertical difference
+        var targetRotation = Quaternion.LookRotation(direction);
+
+        _horizontalVel = 0;
+        _verticalVel = 0;
+        _lastDragTime = 0;
+
+        if (smooth)
+        {
+            _targetRotation = targetRotation;
+        }
+        else
+        {
+            transform.rotation = targetRotation;
+        }
     }
 
     public void ResetRotation()
@@ -84,5 +111,12 @@ public class PreviewRotator : MonoBehaviour
         _horizontalVel = 0;
         _verticalVel = 0;
         _lastDragTime = 0;
+    }
+
+    private bool IsOverUI()
+    {
+        var panel = uiDocument.rootVisualElement.panel;
+        var panelPos = RuntimePanelUtils.ScreenToPanel(panel, Input.mousePosition);
+        return panel.Pick(panelPos) != null;
     }
 }

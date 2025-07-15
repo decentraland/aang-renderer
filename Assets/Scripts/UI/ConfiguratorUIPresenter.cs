@@ -59,6 +59,8 @@ namespace UI
 
         private Stage _currentStage = Stage.Preset;
 
+        public event Action<Vector2> CharacterAreaCenterChanged;
+        public event Action<string> CategoryChanged;
         public event Action<Color> SkinColorSelected;
         public event Action<Color> HairColorSelected;
         public event Action<string> BodyShapeSelected;
@@ -70,6 +72,24 @@ namespace UI
             var root = GetComponent<UIDocument>().rootVisualElement;
 
             _configuratorContainer = root.Q("Container");
+            var characterArea = root.Q("CharacterArea");
+            
+            characterArea.RegisterCallback<GeometryChangedEvent, VisualElement>((_, area) =>
+            {
+                var panel = area.panel;
+                var layoutSize = panel.visualTree.layout; // This is in panel space
+
+                var elementCenter = area.worldBound.center;
+                var panelCenter = layoutSize.center;
+
+                var offsetFromCenter = elementCenter - panelCenter;
+                var normalized = new Vector2(
+                    offsetFromCenter.x / layoutSize.width,
+                    offsetFromCenter.y / layoutSize.height
+                );
+                
+                CharacterAreaCenterChanged!(normalized);
+            }, characterArea);
 
             _stageTitle = root.Q<Label>("StageTitle");
 
@@ -110,6 +130,7 @@ namespace UI
                 categoryLocalizations
             );
             _headWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
+            _headWearablesView.CategoryChanged += c => CategoryChanged!(c);
 
             var bodyWearablesContainer = root.Q("BodyWearables");
             _bodyWearablesView = new WearablesView(
@@ -120,6 +141,7 @@ namespace UI
                 categoryLocalizations
             );
             _bodyWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
+            _bodyWearablesView.CategoryChanged += c => CategoryChanged!(c);
 
             _configuratorContainer.SetDisplay(false);
             _loader.SetDisplay(true);
@@ -174,6 +196,7 @@ namespace UI
                     _confirmButton.Text = "START CUSTOMIZING";
                     _skipButton.style.display = DisplayStyle.Flex;
                     _backButton.style.display = DisplayStyle.None;
+                    CategoryChanged!(null);
                     break;
                 case Stage.Face:
                     _headWearablesView.Show(true);
@@ -181,6 +204,7 @@ namespace UI
                     _confirmButton.Text = "CONFIRM FACE";
                     _skipButton.style.display = DisplayStyle.Flex;
                     _backButton.style.display = DisplayStyle.Flex;
+                    CategoryChanged!(_headWearablesView.SelectedCategory);
                     break;
                 case Stage.Body:
                     _bodyWearablesView.Show(true);
@@ -188,6 +212,7 @@ namespace UI
                     _confirmButton.Text = "FINISH";
                     _skipButton.style.display = DisplayStyle.None;
                     _backButton.style.display = DisplayStyle.Flex;
+                    CategoryChanged!(_bodyWearablesView.SelectedCategory);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -214,14 +239,14 @@ namespace UI
         public void SetCollection(Dictionary<string, List<ActiveEntity>> collection)
         {
             /*
+               Category: body_shape - 2
+               
                Category: eyewear - 14
                Category: upper_body - 56
                Category: facial_hair - 13
-               Category: body_shape - 2
                Category: lower_body - 38
                Category: feet - 24
                Category: hands_wear - 4
-               Category: tiara - 5
                Category: earring - 12
                Category: hair - 33
                Category: eyebrows - 26

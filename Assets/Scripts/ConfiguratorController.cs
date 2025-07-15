@@ -3,9 +3,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using Data;
 using UI;
+using Unity.Cinemachine;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
+using Random = UnityEngine.Random;
 
+[DefaultExecutionOrder(10)]
 public class ConfiguratorController : MonoBehaviour
 {
     private const string BASE_COLLECTION_ID = "urn:decentraland:off-chain:base-avatars";
@@ -34,7 +37,7 @@ public class ConfiguratorController : MonoBehaviour
         uiPresenter.WearableSelected += OnWearableSelected;
         uiPresenter.PresetSelected += OnPresetSelected;
         uiPresenter.SkinColorSelected += OnSkinColorSelected;
-        
+
         // TODO: Temporary colors
         _skinColor = new Color(1f, 0.894f, 0.776f);
         _hairColor = new Color(0.549f, 0.125f, 0.078f);
@@ -60,7 +63,7 @@ public class ConfiguratorController : MonoBehaviour
         {
             _selectedItems[category] = wearable;
         }
-        
+
         uiPresenter.ClearPresetSelection();
 
         StartCoroutine(ReloadPreview());
@@ -85,7 +88,7 @@ public class ConfiguratorController : MonoBehaviour
             var wearable = _allWearables[urn];
             _selectedItems[wearable.metadata.data.category] = wearable;
         }
-        
+
         uiPresenter.SetBodyShape(_bodyShape);
         uiPresenter.SetSelectedItems(_selectedItems);
 
@@ -96,7 +99,8 @@ public class ConfiguratorController : MonoBehaviour
     {
         Debug.Log("Reloading preview...");
         // TODO: We should pass ActiveEntities directly
-        await previewLoader.LoadConfigurator(_bodyShape, _selectedItems.Values.Select(ae => ae.pointers[0]).ToList(), _eyeColor, _hairColor, _skinColor);
+        await previewLoader.LoadConfigurator(_bodyShape, _selectedItems.Values.Select(ae => ae.pointers[0]).ToList(),
+            _eyeColor, _hairColor, _skinColor);
     }
 
     private async Awaitable InitialLoad()
@@ -124,6 +128,7 @@ public class ConfiguratorController : MonoBehaviour
         {
             RemoteTextureService.Instance.PreloadTexture(preset.snapshots.body);
         }
+
         foreach (var (_, ae) in _allWearables)
         {
             RemoteTextureService.Instance.PreloadTexture(ae.metadata.thumbnail);

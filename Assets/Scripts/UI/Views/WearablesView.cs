@@ -15,14 +15,15 @@ namespace UI.Views
         private readonly VisualElement _itemsContainer;
         private readonly Dictionary<string, string> _categoryLocalizations;
 
-
         private List<(string category, List<ActiveEntity> wearables)> _collection;
 
-        private Dictionary<string, WearableCategoryElement> _categoryElements =  new();
+        private Dictionary<string, WearableCategoryElement> _categoryElements = new();
         private WearableCategoryElement _selectedCategoryElement;
         private WearableItemElement _selectedWearableElement;
         private readonly Dictionary<string, ActiveEntity> _selectedItems = new();
-
+        
+        public string SelectedCategory => _selectedCategoryElement.Category;
+        public event Action<string> CategoryChanged;
         public event Action<string, ActiveEntity> WearableSelected;
 
         public WearablesView(VisualElement root, Label header, VisualElement sidebar, VisualElement itemsContainer,
@@ -56,7 +57,9 @@ namespace UI.Views
                 if (categorySet) continue;
 
                 categorySet = true;
-                OnCategoryClicked(categoryElement);
+                _selectedCategoryElement = categoryElement;
+                _selectedCategoryElement.SetSelected(true);
+                RefreshCurrentCategory();
             }
         }
 
@@ -67,7 +70,6 @@ namespace UI.Views
                 _selectedItems[category] = selectedItems.GetValueOrDefault(category);
             }
 
-            
             RefreshCurrentCategory();
         }
 
@@ -78,6 +80,8 @@ namespace UI.Views
             _selectedCategoryElement.SetSelected(true);
 
             RefreshCurrentCategory();
+
+            CategoryChanged!(categoryElement.Category);
         }
 
         private void RefreshCurrentCategory()
