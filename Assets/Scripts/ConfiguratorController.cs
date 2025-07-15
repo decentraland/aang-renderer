@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Data;
 using UI;
-using Unity.Cinemachine;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
@@ -17,6 +16,7 @@ public class ConfiguratorController : MonoBehaviour
     [SerializeField] private PreviewLoader previewLoader;
 
     [SerializeField] private List<string> presetAvatars;
+    [SerializeField] private string[] wearableCollection;
 
     private string _bodyShape;
     private readonly Dictionary<string, ActiveEntity> _selectedItems = new();
@@ -107,10 +107,14 @@ public class ConfiguratorController : MonoBehaviour
     {
         Debug.Log("Initial loading...");
         var avatarTasks = presetAvatars.Select(LoadAvatar);
-        var allWearables = (await APIService.GetWearableCollection(BASE_COLLECTION_ID)).wearables;
+        var activeEntities = await APIService.GetActiveEntities(wearableCollection);
 
-        var activeEntities = allWearables
-            .Select(w => w.ToActiveEntity()).ToList();
+        // "Fix" thumbnails
+        foreach (var entity in activeEntities)
+        {
+            entity.metadata.thumbnail = string.Format(APIService.APICatalyst,
+                entity.content.First(c => c.file == entity.metadata.thumbnail).hash);
+        }
 
         _allWearables = activeEntities.ToDictionary(ae => ae.pointers[0], ae => ae);
 
@@ -147,6 +151,13 @@ public class ConfiguratorController : MonoBehaviour
     private static async Task<ProfileResponse.Avatar.AvatarData> LoadAvatar(string avatarID)
     {
         var avatar = await APIService.GetAvatar(avatarID);
+        
+        // Fix wearables
+        for (var i = 0; i < avatar.wearables.Length; i++)
+        {
+            avatar.wearables[i] = avatar.wearables[i].ToLowerInvariant();
+        }
+        
         return avatar;
     }
 }

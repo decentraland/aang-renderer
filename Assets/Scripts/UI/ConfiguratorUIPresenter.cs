@@ -10,7 +10,7 @@ using Utils;
 
 namespace UI
 {
-    [RequireComponent(typeof(UIDocument))]
+    [RequireComponent(typeof(UIDocument)), DefaultExecutionOrder(10)]
     public class ConfiguratorUIPresenter : MonoBehaviour
     {
         [SerializeField] private List<string> faceCategories;
@@ -254,8 +254,8 @@ namespace UI
                Category: mouth - 20
              */
 
-            _faceEntities = faceCategories.Select(cat => (cat, collection[cat].Take(20).ToList())).ToList();
-            _bodyEntities = bodyCategories.Select(cat => (cat, collection[cat].Take(20).ToList())).ToList();
+            _faceEntities = faceCategories.Select(cat => (cat, collection[cat].Prepend(null).ToList())).ToList();
+            _bodyEntities = bodyCategories.Select(cat => (cat, collection[cat].Prepend(null).ToList())).ToList();
 
             _headWearablesView.SetCollection(_faceEntities);
             _bodyWearablesView.SetCollection(_bodyEntities);

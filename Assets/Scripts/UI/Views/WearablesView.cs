@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Data;
 using UI.Elements;
+using UnityEngine;
 using UnityEngine.UIElements;
 using Utils;
 
@@ -21,7 +22,7 @@ namespace UI.Views
         private WearableCategoryElement _selectedCategoryElement;
         private WearableItemElement _selectedWearableElement;
         private readonly Dictionary<string, ActiveEntity> _selectedItems = new();
-        
+
         public string SelectedCategory => _selectedCategoryElement.Category;
         public event Action<string> CategoryChanged;
         public event Action<string, ActiveEntity> WearableSelected;
@@ -67,7 +68,9 @@ namespace UI.Views
         {
             foreach (var category in _selectedItems.Keys.ToList())
             {
-                _selectedItems[category] = selectedItems.GetValueOrDefault(category);
+                var selectedItem = selectedItems.GetValueOrDefault(category);
+                _selectedItems[category] = selectedItem;
+                _categoryElements[category].SetWearable(selectedItem);
             }
 
             RefreshCurrentCategory();
@@ -93,23 +96,28 @@ namespace UI.Views
             var categoryItems = _collection.First(cw => cw.category == category).wearables;
             var selectedWearable = _selectedItems[category];
 
+            if (categoryItems.Count > 20)
+            {
+                Debug.LogError($"Too many items in {category}: {categoryItems.Count}");
+            }
+
             var index = 0;
             foreach (var ve in _itemsContainer.Children())
             {
-                if (index == 0)
-                {
-                    ve.SetDisplay(true);
-                    var wpbe = (WearableItemElement)ve;
-                    wpbe.SetWearable(null, category);
-                }
-                else if (index < categoryItems.Count)
+                if (index < categoryItems.Count)
                 {
                     var wearable = categoryItems[index];
 
                     ve.SetDisplay(true);
                     var wpbe = (WearableItemElement)ve;
                     wpbe.SetWearable(categoryItems[index], category);
-                    wpbe.Selected = wearable == selectedWearable;
+                    var selected = wearable == selectedWearable;
+                    wpbe.Selected = selected;
+
+                    if (selected)
+                    {
+                        _selectedWearableElement = wpbe;
+                    }
                 }
                 else
                 {

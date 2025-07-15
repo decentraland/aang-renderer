@@ -120,8 +120,8 @@
 }
 
 .wearable-category-picker__body .preview-button {
-    min-height: 120px;
-    min-width: 120px;
+    height: 120px;
+    width: 120px;
 }
 
 .wearable-category-picker__header {
