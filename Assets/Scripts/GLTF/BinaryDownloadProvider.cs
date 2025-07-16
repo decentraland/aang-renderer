@@ -42,10 +42,10 @@ namespace GLTF
         public async Task<ITextureDownload> RequestTextureAsync(Uri url, bool nonReadable, bool forceLinear)
         {
             var fileName = Path.GetFileName(url.LocalPath);
-            var fileHash = _content[fileName];
-            Debug.Log($"Requesting texture: {fileName} with hash: {fileHash}");
+            var file = _content[fileName];
+            Debug.Log($"Requesting texture: {fileName} from: {file}");
 
-            var req = new AwaitableTextureDownload(new Uri(string.Format(APIService.APICatalyst, fileHash)), nonReadable);
+            var req = new AwaitableTextureDownload(new Uri(file), nonReadable);
             await req.WaitAsync();
             return req;
         }

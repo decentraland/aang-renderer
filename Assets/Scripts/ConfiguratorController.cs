@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,21 +11,18 @@ using Random = UnityEngine.Random;
 [DefaultExecutionOrder(10)]
 public class ConfiguratorController : MonoBehaviour
 {
-    private const string BASE_COLLECTION_ID = "urn:decentraland:off-chain:base-avatars";
-
     [SerializeField] private ConfiguratorUIPresenter uiPresenter;
-    [SerializeField] private PreviewLoader previewLoader;
+    [SerializeField] private AvatarLoader avatarLoader;
 
     [SerializeField] private List<string> presetAvatars;
     [SerializeField] private string[] wearableCollection;
 
-    private string _bodyShape;
-    private readonly Dictionary<string, ActiveEntity> _selectedItems = new();
+    private BodyShape _bodyShape;
+    private readonly Dictionary<string, EntityDefinition> _selectedItems = new();
     private Color _skinColor;
     private Color _hairColor;
     private Color _eyeColor;
 
-    private Dictionary<string, ActiveEntity> _allWearables;
     private ProfileResponse.Avatar.AvatarData[] _allPresets;
 
     private bool _presetsLoaded;
@@ -53,7 +51,7 @@ public class ConfiguratorController : MonoBehaviour
         StartCoroutine(ReloadPreview());
     }
 
-    private void OnWearableSelected(string category, ActiveEntity wearable)
+    private void OnWearableSelected(string category, EntityDefinition wearable)
     {
         if (wearable == null)
         {
@@ -69,7 +67,7 @@ public class ConfiguratorController : MonoBehaviour
         StartCoroutine(ReloadPreview());
     }
 
-    private void OnBodyShapeSelected(string bodyShape)
+    private void OnBodyShapeSelected(BodyShape bodyShape)
     {
         _bodyShape = bodyShape;
         uiPresenter.ClearPresetSelection();
@@ -81,12 +79,13 @@ public class ConfiguratorController : MonoBehaviour
     {
         _selectedItems.Clear();
 
-        _bodyShape = avatar.bodyShape;
+        // TODO: Fix
+        _bodyShape = avatar.bodyShape == WearablesConstants.BODY_SHAPE_MALE ? BodyShape.Male : BodyShape.Female;
 
         foreach (var urn in avatar.wearables)
         {
-            var wearable = _allWearables[urn];
-            _selectedItems[wearable.metadata.data.category] = wearable;
+            var wearable = EntityService.GetCachedEntity(urn);
+            _selectedItems[wearable.Category] = wearable;
         }
 
         uiPresenter.SetBodyShape(_bodyShape);
@@ -99,27 +98,18 @@ public class ConfiguratorController : MonoBehaviour
     {
         Debug.Log("Reloading preview...");
         // TODO: We should pass ActiveEntities directly
-        await previewLoader.LoadConfigurator(_bodyShape, _selectedItems.Values.Select(ae => ae.pointers[0]).ToList(),
-            _eyeColor, _hairColor, _skinColor);
+        
+        await avatarLoader.LoadAvatar(_bodyShape, _selectedItems.Values, EntityDefinition.FromEmbeddedEmote("idle"), Array.Empty<string>(), new AvatarColors(_eyeColor, _hairColor, _skinColor));
     }
 
     private async Awaitable InitialLoad()
     {
         Debug.Log("Initial loading...");
         var avatarTasks = presetAvatars.Select(LoadAvatar);
-        var activeEntities = await APIService.GetActiveEntities(wearableCollection);
+        var collectionEntities = await EntityService.GetEntities(wearableCollection);
 
-        // "Fix" thumbnails
-        foreach (var entity in activeEntities)
-        {
-            entity.metadata.thumbnail = string.Format(APIService.APICatalyst,
-                entity.content.First(c => c.file == entity.metadata.thumbnail).hash);
-        }
-
-        _allWearables = activeEntities.ToDictionary(ae => ae.pointers[0], ae => ae);
-
-        var allCategories = activeEntities
-            .GroupBy(ae => ae.metadata.data.category)
+        var allCategories = collectionEntities
+            .GroupBy(ed => ed.Category)
             .ToDictionary(ae => ae.Key, ae => ae.ToList());
 
         Debug.Log("Waiting for avatars...");
@@ -133,9 +123,9 @@ public class ConfiguratorController : MonoBehaviour
             RemoteTextureService.Instance.PreloadTexture(preset.snapshots.body);
         }
 
-        foreach (var (_, ae) in _allWearables)
+        foreach (var ed in collectionEntities)
         {
-            RemoteTextureService.Instance.PreloadTexture(ae.metadata.thumbnail);
+            RemoteTextureService.Instance.PreloadTexture(ed.Thumbnail);
         }
 
         // Set data

@@ -9,6 +9,7 @@ namespace Data
         public string Pointer { get; private set; }
         public string Category { get; private set; }
         public string Thumbnail { get; private set; }
+        public string BodyShape { get; private set; }
 
         public Dictionary<string, string> Files { get; private set; }
         public string MainFile { get; private set; }
@@ -35,6 +36,7 @@ namespace Data
                 Pointer = entity.pointers[0],
                 Category = entity.metadata.data.category,
                 Thumbnail = entity.metadata.thumbnail,
+                BodyShape = bodyShape,
                 RemovesDefaultHiding = entity.metadata.data.removesDefaultHiding,
                 HasValidRepresentation = hasCorrectRepresentation,
                 Files = entity.content.Where(c => representation.contents.Contains(c.file))

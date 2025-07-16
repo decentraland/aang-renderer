@@ -1,14 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Data;
 using DCL.Rendering.RenderGraphs.RenderFeatures.AvatarOutline;
 using GLTF;
 using JetBrains.Annotations;
 using UnityEngine;
-using Utils;
 using Assert = UnityEngine.Assertions.Assert;
 using Debug = UnityEngine.Debug;
 
@@ -118,167 +116,172 @@ public class PreviewLoader : MonoBehaviour
             base64);
     }
 
-    private async Awaitable LoadStuff(string bodyShape, List<string> urns, string overrideURN, Color eyeColor,
+    private async Awaitable LoadAvatar(string bodyShape, List<ActiveEntity> wearables, [CanBeNull] string overrideURN)
+    {
+        // Prepare definitions
+    }
+
+    private async Awaitable LoadStuff(string bodyShapeUrn, List<string> urns, string overrideURN, Color eyeColor,
         Color hairColor, Color skinColor, [CanBeNull] string[] forceRender, string defaultEmote,
         [CanBeNull] List<byte[]> base64)
     {
-        IsAvatarMale = bodyShape == "urn:decentraland:off-chain:base-avatars:BaseMale";
-
-        var avatarColors = new AvatarColors(eyeColor, hairColor, skinColor);
-
-        urns.Insert(0, bodyShape);
-        if (overrideURN != null) urns.Add(overrideURN);
-
-        var activeEntities = (await APIService.GetActiveEntities(urns.ToArray())).ToList();
-
-        // Verify we received all urns
-        foreach (var urn in urns.Where(urn =>
-                     activeEntities.All(ae => !urn.StartsWith(ae.pointers[0], StringComparison.OrdinalIgnoreCase))))
-        {
-            Debug.LogError($"URN {urn} not found");
-        }
-
-        if (base64 != null)
-        {
-            foreach (var b64 in base64)
-            {
-                var base64String = Encoding.UTF8.GetString(b64);
-                var base64ActiveEntity = JsonUtility.FromJson<RawActiveEntity>(base64String).ToActiveEntity();
-
-                if (base64ActiveEntity.IsEmote)
-                {
-                    activeEntities.RemoveAll(ae => ae.IsEmote);
-                }
-                else
-                {
-                    activeEntities.RemoveAll(ae =>
-                        ae.metadata.data.category == base64ActiveEntity.metadata.data.category);
-                }
-
-                activeEntities.Add(base64ActiveEntity);
-            }
-        }
-
-        // Load emote first
-        var emoteDefinition = activeEntities.Where(ae => ae.IsEmote)
-            .Select(ae => EmoteDefinition.FromActiveEntity(ae, bodyShape))
-            .FirstOrDefault();
-        var emote = emoteDefinition != null
-            ? await EmoteLoader.LoadEmote(emoteDefinition)
-            : await EmoteLoader.LoadEmbeddedEmote(defaultEmote);
-
-        _emoteAnimation = emote.anim;
-        _emoteAudio = emote.audio;
-        if (emote.prop)
-        {
-            emote.prop.transform.SetParent(avatarRoot, false);
-            _wearables["emote"] = emote.prop;
-        }
-
-        if (overrideURN != null)
-        {
-            var overrideEntity = activeEntities.First(ae => ae.pointers.Contains(overrideURN));
-            _overrideWearableCategory = overrideEntity.IsEmote ? "emote" : overrideEntity.metadata.data.category;
-        }
-
-        var hasWearableOverride = _overrideWearableCategory != null && _overrideWearableCategory != "emote";
-
-        var wearableDefinitions = activeEntities
-            .Where(ae => !ae.IsEmote)
-            .Select(ae => WearableDefinition.FromActiveEntity(ae, bodyShape))
-            // Skip the original wearable and use the override if we have one
-            .Where(wd => _overrideWearableCategory == null || wd.Category != _overrideWearableCategory ||
-                         wd.Pointer == overrideURN)
-            .ToDictionary(wd => wd.Category);
-
-        HasValidRepresentation =
-            hasWearableOverride && wearableDefinitions.All(wd => wd.Value.HasValidRepresentation);
-
-        var bodyShapeDefinition = wearableDefinitions["body_shape"]; // In case we need it for a facial feature
-        var hiddenCategories =
-            AvatarHideHelper.HideWearables(wearableDefinitions, _overrideWearableCategory, overrideURN, forceRender);
-
-        // Load all wearables and body shape
-        await Task.WhenAll(wearableDefinitions
-            .Where(cwd => !DEBUG_ONLY_LOAD_WEARABLE || cwd.Key == _overrideWearableCategory)
-            .Select(cwd => LoadWearable(cwd.Key, cwd.Value, avatarColors))
-            .ToList());
-
-        // Create a copy of the overridden wearable just because that's easier to manage
-        if (hasWearableOverride)
-        {
-            if (_wearables.TryGetValue(_overrideWearableCategory, out var wearable))
-            {
-                await InstantiateAsync(wearable, new InstantiateParameters
-                {
-                    parent = wearableRoot,
-                    worldSpace = false
-                });
-            }
-            else
-            {
-                // It's a facial feature
-
-                // Load the body TODO: We don't need to load the body again, could reuse existing one
-                var bodyShapeGO = await WearableLoader.LoadGLB(bodyShapeDefinition.Category,
-                    bodyShapeDefinition.MainFile, bodyShapeDefinition.Files, avatarColors);
-
-                // Hide everything except the head
-                AvatarHideHelper.HideBodyShape(bodyShapeGO, new HashSet<string>
-                {
-                    WearablesConstants.Categories.UPPER_BODY,
-                    WearablesConstants.Categories.LOWER_BODY,
-                    WearablesConstants.Categories.HANDS,
-                    WearablesConstants.Categories.FEET
-                }, new Dictionary<string, WearableDefinition>());
-
-                AvatarHideHelper.HideBodyShapeFacialFeatures(bodyShapeGO,
-                    _overrideWearableCategory != WearablesConstants.Categories.EYES,
-                    _overrideWearableCategory != WearablesConstants.Categories.EYEBROWS,
-                    _overrideWearableCategory != WearablesConstants.Categories.MOUTH
-                );
-
-                SetupFacialFeatures(bodyShapeGO, avatarColors);
-
-                bodyShapeGO.transform.SetParent(wearableRoot, false);
-                bodyShapeGO.transform.localRotation = Quaternion.Euler(-15, 0, 0); // Tilt the head back
-            }
-        }
-
-        // Hide stuff on body shape
-        var bodyGO = avatarRoot.Find(WearablesConstants.Categories.BODY_SHAPE)?.gameObject;
-        AvatarHideHelper.HideBodyShape(bodyGO, hiddenCategories, wearableDefinitions);
-
-        // Setup facial features
-        SetupFacialFeatures(bodyGO, avatarColors);
-
-        // Audio event 
-        audioSource.clip = _emoteAudio;
-
-        // Force play animations
-        var eventAdded = false;
-
-        foreach (var (_, go) in _wearables)
-        {
-            var anim = go.GetComponent<Animation>();
-
-            // Auto play emote audio when animation starts
-            if (_emoteAudio != null && !eventAdded)
-            {
-                eventAdded = true;
-                anim.GetClip("emote").AddEvent(new AnimationEvent
-                {
-                    time = 0,
-                    functionName = "Play"
-                });
-                var aer = go.AddComponent<AudioEventReceiver>();
-                aer.AudioSource = audioSource;
-            }
-
-            anim.Play("emote");
-        }
-
-        Debug.Log("Loaded all wearables!");
+        
+        // IsAvatarMale = bodyShapeUrn == "urn:decentraland:off-chain:base-avatars:BaseMale";
+        //
+        // var bodyShape = IsAvatarMale ? BodyShape.Male : BodyShape.Female;
+        //
+        // var avatarColors = new AvatarColors(eyeColor, hairColor, skinColor);
+        //
+        // urns.Insert(0, bodyShape);
+        // if (overrideURN != null) urns.Add(overrideURN);
+        //
+        // var activeEntities = (await APIService.GetActiveEntities(urns.ToArray())).ToList();
+        //
+        // // Verify we received all urns
+        // foreach (var urn in urns.Where(urn =>
+        //              activeEntities.All(ae => !urn.StartsWith(ae.pointers[0], StringComparison.OrdinalIgnoreCase))))
+        // {
+        //     Debug.LogError($"URN {urn} not found");
+        // }
+        //
+        // if (base64 != null)
+        // {
+        //     foreach (var b64 in base64)
+        //     {
+        //         var base64ActiveEntity = EntityDefinition.FromBase64(b64);
+        //
+        //         // TODO: This if can probably be removed, just category should work
+        //         if (base64ActiveEntity.Type == EntityType.Emote)
+        //         {
+        //             activeEntities.RemoveAll(ae => ae.Type == EntityType.Emote);
+        //         }
+        //         else
+        //         {
+        //             activeEntities.RemoveAll(ed => ed.Category == base64ActiveEntity.Category);
+        //         }
+        //
+        //         activeEntities.Add(base64ActiveEntity);
+        //     }
+        // }
+        //
+        // // Load emote first
+        // var emoteDefinition = activeEntities.FirstOrDefault(ae => ae.Type == EntityType.Emote);
+        // var emote = emoteDefinition != null
+        //     ? await GLTFLoader.LoadEmote(emoteDefinition)
+        //     : await EmoteLoader.LoadEmbeddedEmote(defaultEmote);
+        //
+        // _emoteAnimation = emote.anim;
+        // _emoteAudio = emote.audio;
+        // if (emote.prop)
+        // {
+        //     emote.prop.transform.SetParent(avatarRoot, false);
+        //     _wearables["emote"] = emote.prop;
+        // }
+        //
+        // if (overrideURN != null)
+        // {
+        //     var overrideEntity = activeEntities.First(ae => ae.pointers.Contains(overrideURN));
+        //     _overrideWearableCategory = overrideEntity.IsEmote ? "emote" : overrideEntity.metadata.data.category;
+        // }
+        //
+        // var hasWearableOverride = _overrideWearableCategory != null && _overrideWearableCategory != "emote";
+        //
+        // var wearableDefinitions = activeEntities
+        //     .Where(ae => !ae.IsEmote)
+        //     .Select(ae => WearableDefinition.FromActiveEntity(ae, bodyShape))
+        //     // Skip the original wearable and use the override if we have one
+        //     .Where(wd => _overrideWearableCategory == null || wd.Category != _overrideWearableCategory ||
+        //                  wd.Pointer == overrideURN)
+        //     .ToDictionary(wd => wd.Category);
+        //
+        // HasValidRepresentation =
+        //     hasWearableOverride && wearableDefinitions.All(wd => wd.Value.HasValidRepresentation);
+        //
+        // var bodyShapeDefinition = wearableDefinitions["body_shape"]; // In case we need it for a facial feature
+        // var hiddenCategories =
+        //     AvatarHideHelper.HideWearables(wearableDefinitions, _overrideWearableCategory, overrideURN, forceRender);
+        //
+        // // Load all wearables and body shape
+        // await Task.WhenAll(wearableDefinitions
+        //     .Where(cwd => !DEBUG_ONLY_LOAD_WEARABLE || cwd.Key == _overrideWearableCategory)
+        //     .Select(cwd => LoadWearable(cwd.Key, cwd.Value, avatarColors))
+        //     .ToList());
+        //
+        // // Create a copy of the overridden wearable just because that's easier to manage
+        // if (hasWearableOverride)
+        // {
+        //     if (_wearables.TryGetValue(_overrideWearableCategory, out var wearable))
+        //     {
+        //         await InstantiateAsync(wearable, new InstantiateParameters
+        //         {
+        //             parent = wearableRoot,
+        //             worldSpace = false
+        //         });
+        //     }
+        //     else
+        //     {
+        //         // It's a facial feature
+        //
+        //         // Load the body TODO: We don't need to load the body again, could reuse existing one
+        //         var bodyShapeGO = await WearableLoader.LoadGLB(bodyShapeDefinition.Category,
+        //             bodyShapeDefinition.MainFile, bodyShapeDefinition.Files, avatarColors);
+        //
+        //         // Hide everything except the head
+        //         AvatarHideHelper.HideBodyShape(bodyShapeGO, new HashSet<string>
+        //         {
+        //             WearablesConstants.Categories.UPPER_BODY,
+        //             WearablesConstants.Categories.LOWER_BODY,
+        //             WearablesConstants.Categories.HANDS,
+        //             WearablesConstants.Categories.FEET
+        //         }, new Dictionary<string, WearableDefinition>());
+        //
+        //         AvatarHideHelper.HideBodyShapeFacialFeatures(bodyShapeGO,
+        //             _overrideWearableCategory != WearablesConstants.Categories.EYES,
+        //             _overrideWearableCategory != WearablesConstants.Categories.EYEBROWS,
+        //             _overrideWearableCategory != WearablesConstants.Categories.MOUTH
+        //         );
+        //
+        //         SetupFacialFeatures(bodyShapeGO, avatarColors);
+        //
+        //         bodyShapeGO.transform.SetParent(wearableRoot, false);
+        //         bodyShapeGO.transform.localRotation = Quaternion.Euler(-15, 0, 0); // Tilt the head back
+        //     }
+        // }
+        //
+        // // Hide stuff on body shape
+        // var bodyGO = avatarRoot.Find(WearablesConstants.Categories.BODY_SHAPE)?.gameObject;
+        // AvatarHideHelper.HideBodyShape(bodyGO, hiddenCategories, wearableDefinitions);
+        //
+        // // Setup facial features
+        // SetupFacialFeatures(bodyGO, avatarColors);
+        //
+        // // Audio event 
+        // audioSource.clip = _emoteAudio;
+        //
+        // // Force play animations
+        // var eventAdded = false;
+        //
+        // foreach (var (_, go) in _wearables)
+        // {
+        //     var anim = go.GetComponent<Animation>();
+        //
+        //     // Auto play emote audio when animation starts
+        //     if (_emoteAudio != null && !eventAdded)
+        //     {
+        //         eventAdded = true;
+        //         anim.GetClip("emote").AddEvent(new AnimationEvent
+        //         {
+        //             time = 0,
+        //             functionName = "Play"
+        //         });
+        //         var aer = go.AddComponent<AudioEventReceiver>();
+        //         aer.AudioSource = audioSource;
+        //     }
+        //
+        //     anim.Play("emote");
+        // }
+        //
+        // Debug.Log("Loaded all wearables!");
     }
 
     public void Recenter()

@@ -8,6 +8,8 @@ public class AudioEventReceiver : MonoBehaviour
     [UsedImplicitly]
     public void Play()
     {
+        // TODO: Check if this is triggered from every animation
+        
         AudioSource.Play();
     }
 }

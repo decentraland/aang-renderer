@@ -29,7 +29,10 @@ namespace Data
             public string name;
             public string thumbnail;
             public Data data;
-            public EmoteData emoteDataADR74;
+            // ReSharper disable once InconsistentNaming
+            public Data emoteDataADR74;
+
+            public Translation[] i18n;
 
             [Serializable]
             public class Data
@@ -40,14 +43,6 @@ namespace Data
                 public string[] replaces;
                 public string[] removesDefaultHiding;
             }
-
-            [Serializable]
-            public class EmoteData
-            {
-                public string category;
-                public Representation[] representations;
-                public bool loop;
-            }
             
             [Serializable]
             public class Representation
@@ -57,6 +52,13 @@ namespace Data
                 public string[] contents;
                 public string[] overrideHides;
                 public string[] overrideReplaces;
+            }
+
+            [Serializable]
+            public class Translation
+            {
+                public string code;
+                public string text;
             }
         }
     }

@@ -14,7 +14,7 @@ namespace UI.Elements
         public Action<WearableItemElement> WearableClicked { get; set; }
 
         public string WearableCategory { get; private set; }
-        public ActiveEntity Wearable { get; private set; }
+        public EntityDefinition Wearable { get; private set; }
 
         private int textureRequestHandle = 0;
 
@@ -25,7 +25,7 @@ namespace UI.Elements
             Clicked += () => WearableClicked?.Invoke(this);
         }
 
-        public void SetWearable(ActiveEntity wearable, string wearableCategory)
+        public void SetWearable(EntityDefinition wearable, string wearableCategory)
         {
             if (textureRequestHandle > 0)
             {
@@ -49,7 +49,7 @@ namespace UI.Elements
             else
             {
                 textureRequestHandle =
-                    RemoteTextureService.Instance.RequestTexture(wearable.metadata.thumbnail, OnThumbnailLoaded,
+                    RemoteTextureService.Instance.RequestTexture(wearable.Thumbnail, OnThumbnailLoaded,
                         OnThumbnailLoadError);
             }
         }

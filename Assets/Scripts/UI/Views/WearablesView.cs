@@ -16,16 +16,16 @@ namespace UI.Views
         private readonly VisualElement _itemsContainer;
         private readonly Dictionary<string, string> _categoryLocalizations;
 
-        private List<(string category, List<ActiveEntity> wearables)> _collection;
+        private List<(string category, List<EntityDefinition> wearables)> _collection;
 
         private Dictionary<string, WearableCategoryElement> _categoryElements = new();
         private WearableCategoryElement _selectedCategoryElement;
         private WearableItemElement _selectedWearableElement;
-        private readonly Dictionary<string, ActiveEntity> _selectedItems = new();
+        private readonly Dictionary<string, EntityDefinition> _selectedItems = new();
 
         public string SelectedCategory => _selectedCategoryElement.Category;
         public event Action<string> CategoryChanged;
-        public event Action<string, ActiveEntity> WearableSelected;
+        public event Action<string, EntityDefinition> WearableSelected;
 
         public WearablesView(VisualElement root, Label header, VisualElement sidebar, VisualElement itemsContainer,
             Dictionary<string, string> categoryLocalizations) : base(root)
@@ -41,7 +41,7 @@ namespace UI.Views
             }
         }
 
-        public void SetCollection(List<(string category, List<ActiveEntity> wearables)> collection)
+        public void SetCollection(List<(string category, List<EntityDefinition> wearables)> collection)
         {
             _collection = collection;
             _sidebar.Clear();
@@ -64,7 +64,7 @@ namespace UI.Views
             }
         }
 
-        public void SetSelectedItems(Dictionary<string, ActiveEntity> selectedItems)
+        public void SetSelectedItems(Dictionary<string, EntityDefinition> selectedItems)
         {
             foreach (var category in _selectedItems.Keys.ToList())
             {

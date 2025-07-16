@@ -45,9 +45,9 @@ namespace UI
 
         private Label _stageTitle;
 
-        private Dictionary<string, List<ActiveEntity>> _collection;
-        private List<(string category, List<ActiveEntity> entities)> _faceEntities;
-        private List<(string category, List<ActiveEntity> entities)> _bodyEntities;
+        private Dictionary<string, List<EntityDefinition>> _collection;
+        private List<(string category, List<EntityDefinition> entities)> _faceEntities;
+        private List<(string category, List<EntityDefinition> entities)> _bodyEntities;
 
         // Views
         private WearablesView _headWearablesView;
@@ -63,8 +63,8 @@ namespace UI
         public event Action<string> CategoryChanged;
         public event Action<Color> SkinColorSelected;
         public event Action<Color> HairColorSelected;
-        public event Action<string> BodyShapeSelected;
-        public event Action<string, ActiveEntity> WearableSelected;
+        public event Action<BodyShape> BodyShapeSelected;
+        public event Action<string, EntityDefinition> WearableSelected;
         public event Action<ProfileResponse.Avatar.AvatarData> PresetSelected;
 
         private void Start()
@@ -236,7 +236,7 @@ namespace UI
             _presetsView.SetPresets(presets, randomPresetIndex);
         }
 
-        public void SetCollection(Dictionary<string, List<ActiveEntity>> collection)
+        public void SetCollection(Dictionary<string, List<EntityDefinition>> collection)
         {
             /*
                Category: body_shape - 2
@@ -261,12 +261,12 @@ namespace UI
             _bodyWearablesView.SetCollection(_bodyEntities);
         }
 
-        public void SetBodyShape(string bodyShape)
+        public void SetBodyShape(BodyShape bodyShape)
         {
             _bodyShapePopupView.SetBodyShape(bodyShape);
         }
 
-        public void SetSelectedItems(Dictionary<string, ActiveEntity> selectedItems)
+        public void SetSelectedItems(Dictionary<string, EntityDefinition> selectedItems)
         {
             _headWearablesView.SetSelectedItems(selectedItems);
             _bodyWearablesView.SetSelectedItems(selectedItems);

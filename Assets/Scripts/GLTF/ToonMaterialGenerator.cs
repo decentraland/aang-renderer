@@ -24,11 +24,16 @@ namespace GLTF
         private static readonly int DST_BLEND_ID = Shader.PropertyToID("_DstBlend");
         private static readonly int CULL_MODE_ID = Shader.PropertyToID("_CullMode");
 
-        private readonly AvatarColors _avatarColors;
+        //private readonly AvatarColors _avatarColors;
 
+        public ToonMaterialGenerator()
+        {
+            
+        }
+        
         public ToonMaterialGenerator(AvatarColors avatarColors)
         {
-            _avatarColors = avatarColors;
+            //_avatarColors = avatarColors;
         }
 
         public Material GenerateMaterial(int materialIndex, GLTFast.Schema.Material gltfMaterial, IGltfReadable gltf,
@@ -39,9 +44,7 @@ namespace GLTF
                 { name = gltfMaterial.name };
 
             // Base color and texture
-            var baseColor = TryGetColorOverride(gltfMaterial.name, out var color)
-                ? color
-                : gltfMaterial.pbrMetallicRoughness.BaseColor;
+            var baseColor = gltfMaterial.pbrMetallicRoughness.BaseColor;
             mat.SetColor(BASE_COLOR_ID, baseColor);
 
             if (gltfMaterial.pbrMetallicRoughness.baseColorTexture.index != -1)
@@ -102,23 +105,23 @@ namespace GLTF
                 or "AvatarMaskEyebrows_MAT" or "AvatarMaskEyes_MAT" or "AvatarMaskMouth_MAT";
         }
 
-        private bool TryGetColorOverride(string materialName, out Color color)
-        {
-            if (materialName.Contains("skin", StringComparison.OrdinalIgnoreCase))
-            {
-                color = _avatarColors.Skin;
-                return true;
-            }
-
-            if (materialName.Contains("hair", StringComparison.OrdinalIgnoreCase))
-            {
-                color = _avatarColors.Hair;
-                return true;
-            }
-
-            color = default;
-            return false;
-        }
+        // private bool TryGetColorOverride(string materialName, out Color color)
+        // {
+        //     if (materialName.Contains("skin", StringComparison.OrdinalIgnoreCase))
+        //     {
+        //         color = _avatarColors.Skin;
+        //         return true;
+        //     }
+        //
+        //     if (materialName.Contains("hair", StringComparison.OrdinalIgnoreCase))
+        //     {
+        //         color = _avatarColors.Hair;
+        //         return true;
+        //     }
+        //
+        //     color = default;
+        //     return false;
+        // }
 
         public Material GetDefaultMaterial(bool pointsSupport = false)
         {

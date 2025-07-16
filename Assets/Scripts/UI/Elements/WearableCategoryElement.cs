@@ -54,7 +54,7 @@ namespace UI.Elements
             EnableInClassList(USS_SELECTED, selected);
         }
 
-        public void SetWearable(ActiveEntity entity)
+        public void SetWearable(EntityDefinition entity)
         {
             _thumbnail.SetWearable(entity, Category);
         }

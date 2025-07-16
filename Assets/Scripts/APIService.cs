@@ -13,7 +13,6 @@ public static class APIService
     public static string APICatalyst => EndpointPeer + "/content/contents/{0}";
     private static string APIProfile => EndpointPeer + "/lambdas/profiles/{0}";
     private static string APIActiveEntities => EndpointPeer + "/content/entities/active";
-    private static string APIWearableCollection => EndpointPeer + "/lambdas/collections/wearables?collectionId={0}";
     private static string APIMarketplaceItemID => EndpointMarketplace + "/v1/items?contractAddress={0}&itemId={1}";
     private static string APIMarketplaceTokenID => EndpointMarketplace + "/v1/nfts?contractAddress={0}&tokenId={1}";
 
@@ -42,9 +41,6 @@ public static class APIService
 
         return avatar;
     }
-
-    public static Awaitable<WearableCollectionResponse> GetWearableCollection(string collectionId) =>
-        GetWithRetry<WearableCollectionResponse>(APIWearableCollection, collectionId);
 
     public static Awaitable<MarketplaceItemResponse> GetMarketplaceItemFromID(string contract, string itemID) =>
         GetWithRetry<MarketplaceItemResponse>(APIMarketplaceItemID, contract, itemID);

@@ -1,4 +1,5 @@
 using System;
+using Data;
 using UI.Elements;
 using UnityEngine.UIElements;
 
@@ -9,7 +10,7 @@ namespace UI.Views
         private readonly PreviewButtonElement _maleBodyButton;
         private readonly PreviewButtonElement _femaleBodyButton;
 
-        public event Action<string> BodyShapeSelected;
+        public event Action<BodyShape> BodyShapeSelected;
 
         public BodyShapePopupView(VisualElement root)
         {
@@ -20,24 +21,24 @@ namespace UI.Views
             _femaleBodyButton.Clicked += OnFemaleBodyClicked;
         }
 
-        public void SetBodyShape(string bodyShape)
+        public void SetBodyShape(BodyShape bodyShape)
         {
-            _femaleBodyButton.Selected = bodyShape == WearablesConstants.BODY_SHAPE_FEMALE;
-            _maleBodyButton.Selected = bodyShape == WearablesConstants.BODY_SHAPE_MALE;
+            _femaleBodyButton.Selected = bodyShape == BodyShape.Female;
+            _maleBodyButton.Selected = bodyShape == BodyShape.Male;
         }
 
         private void OnFemaleBodyClicked()
         {
             _femaleBodyButton.Selected = true;
             _maleBodyButton.Selected = false;
-            BodyShapeSelected!(WearablesConstants.BODY_SHAPE_FEMALE);
+            BodyShapeSelected!(BodyShape.Female);
         }
 
         private void OnMaleBodyClicked()
         {
             _femaleBodyButton.Selected = false;
             _maleBodyButton.Selected = true;
-            BodyShapeSelected!(WearablesConstants.BODY_SHAPE_MALE);
+            BodyShapeSelected!(BodyShape.Male);
         }
     }
 }
