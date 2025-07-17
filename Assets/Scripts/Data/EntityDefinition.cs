@@ -17,6 +17,25 @@ namespace Data
 
         [ItemCanBeNull] private readonly Dictionary<BodyShape, Representation> _representations;
 
+        public Representation[] GetAllRepresentations()
+        {
+            // TODO: Cleanup
+            if (_representations[BodyShape.Female] != null && _representations[BodyShape.Male] != null)
+            {
+                return new Representation[] { _representations[BodyShape.Female],  _representations[BodyShape.Male] };
+            } else if (_representations[BodyShape.Male] != null)
+            {
+                return new Representation[] { _representations[BodyShape.Male] };
+            } else if (_representations[BodyShape.Female] != null)
+            {
+                return new Representation[] { _representations[BodyShape.Female] };
+            }
+            else
+            {
+                return new Representation[] { };
+            }
+        }
+
         public Representation this[BodyShape shape] => _representations[shape] ?? throw new InvalidOperationException(
             $"Missing {shape} representation for {URN}");
 

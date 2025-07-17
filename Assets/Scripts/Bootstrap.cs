@@ -1,6 +1,3 @@
-using System;
-using System.Text;
-using Data;
 using GLTFast;
 using UnityEngine;
 using Utils;
@@ -9,17 +6,19 @@ public class Bootstrap : MonoBehaviour
 {
     [SerializeField] private Material baseMat;
     [SerializeField] private Material facialFeaturesMat;
+    [SerializeField] private AnimationClip idleAnimation;
 
     [SerializeField] private ConfiguratorController configuratorController;
     [SerializeField] private PreviewController previewController;
 
     [SerializeField] private string debugUrl;
 
-    private void Start()
+    private void Awake()
     {
         // Common assets
         CommonAssets.AvatarMaterial = baseMat;
         CommonAssets.FacialFeaturesMaterial = facialFeaturesMat;
+        CommonAssets.IdleAnimation = idleAnimation;
 
         // Sets uninterrupted defer agent for fastest loading
         GltfImport.SetDefaultDeferAgent(new UninterruptedDeferAgent());

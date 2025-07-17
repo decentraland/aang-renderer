@@ -116,16 +116,13 @@ public class PreviewLoader : MonoBehaviour
             base64);
     }
 
-    private async Awaitable LoadAvatar(string bodyShape, List<ActiveEntity> wearables, [CanBeNull] string overrideURN)
-    {
-        // Prepare definitions
-    }
-
-    private async Awaitable LoadStuff(string bodyShapeUrn, List<string> urns, string overrideURN, Color eyeColor,
+    private Awaitable LoadStuff(string bodyShapeUrn, List<string> urns, string overrideURN, Color eyeColor,
         Color hairColor, Color skinColor, [CanBeNull] string[] forceRender, string defaultEmote,
         [CanBeNull] List<byte[]> base64)
     {
-        
+
+        return null;
+
         // IsAvatarMale = bodyShapeUrn == "urn:decentraland:off-chain:base-avatars:BaseMale";
         //
         // var bodyShape = IsAvatarMale ? BodyShape.Male : BodyShape.Female;

@@ -7,7 +7,7 @@ using UnityEngine;
 public static class EntityService
 {
     private static readonly Dictionary<string, EntityDefinition> CACHED_ENTITIES = new();
-        
+
     public static async Awaitable<EntityDefinition[]> GetEntities(string[] urns)
     {
         var missingEntities = urns.Where(urn => !CACHED_ENTITIES.ContainsKey(urn)).ToArray();
@@ -26,7 +26,7 @@ public static class EntityService
 
         return urns.Select(urn => CACHED_ENTITIES[urn]).ToArray();
     }
-        
+
     public static EntityDefinition GetCachedEntity(string urn) => CACHED_ENTITIES[urn];
 
     public static EntityDefinition GetBodyEntity(BodyShape bodyShape)
@@ -37,5 +37,12 @@ public static class EntityService
             BodyShape.Female => CACHED_ENTITIES[WearablesConstants.BODY_SHAPE_FEMALE.ToLowerInvariant()],
             _ => throw new ArgumentOutOfRangeException(nameof(bodyShape), bodyShape, null)
         };
+    }
+
+    public static void PreloadCachedEntityAssets()
+    {
+        JSBridge.NativeCalls.PreloadURLs(string.Join(',',
+            CACHED_ENTITIES.Values.SelectMany(ed => ed.GetAllRepresentations()).SelectMany(r => r.Files.Values)
+                .Distinct()));
     }
 }

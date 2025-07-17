@@ -1,9 +1,8 @@
-using System;
 using UI;
 using Unity.Cinemachine;
 using UnityEngine;
 
-public class ConfiguratorCameraController: MonoBehaviour
+public class ConfiguratorCameraController : MonoBehaviour
 {
     [SerializeField] private PreviewRotator previewRotator;
     [SerializeField] private ConfiguratorUIPresenter uiPresenter;
@@ -13,17 +12,34 @@ public class ConfiguratorCameraController: MonoBehaviour
     [SerializeField] private CinemachineCamera lowerBodyCamera;
     [SerializeField] private CinemachinePositionComposer[] positionComposers;
 
+    private bool _hasZoomedOut;
+
     private void Start()
     {
         previewRotator.AllowVertical = false;
         previewRotator.EnableAutoRotate = false;
         previewRotator.LookAtCamera(false);
-        
+
         uiPresenter.CategoryChanged += OnCategoryChanged;
         uiPresenter.CharacterAreaCenterChanged += OnCharacterAreaCenterChanged;
-        
+
         // Set full body camera
         OnCategoryChanged(null);
+    }
+
+    private void Update()
+    {
+        switch (Input.mouseScrollDelta.y)
+        {
+            case > 0 when !fullBodyCamera.gameObject.activeSelf:
+                _hasZoomedOut = true;
+                fullBodyCamera.gameObject.SetActive(true);
+                break;
+            case < 0 when _hasZoomedOut:
+                _hasZoomedOut = false;
+                fullBodyCamera.gameObject.SetActive(false);
+                break;
+        }
     }
 
     private void OnCharacterAreaCenterChanged(Vector2 screenSpaceCenter)
@@ -36,6 +52,8 @@ public class ConfiguratorCameraController: MonoBehaviour
 
     private void OnCategoryChanged(string category)
     {
+        _hasZoomedOut = false;
+
         var useFullBodyCamera = false;
         var useHeadCamera = false;
         var useUpperBodyCamera = false;

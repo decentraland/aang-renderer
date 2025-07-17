@@ -22,6 +22,7 @@ public class ConfiguratorController : MonoBehaviour
     private Color _skinColor;
     private Color _hairColor;
     private Color _eyeColor;
+    private EntityDefinition _emoteToLoad;
 
     private ProfileResponse.Avatar.AvatarData[] _allPresets;
 
@@ -58,6 +59,8 @@ public class ConfiguratorController : MonoBehaviour
         else
         {
             _selectedItems[category] = wearable;
+
+            _emoteToLoad = GetEmote(category);
         }
 
         uiPresenter.ClearPresetSelection();
@@ -65,10 +68,36 @@ public class ConfiguratorController : MonoBehaviour
         StartCoroutine(ReloadPreview());
     }
 
+    private static EntityDefinition GetEmote(string category)
+    {
+        return EntityDefinition.FromEmbeddedEmote(category switch
+        {
+            "facial_hair" or "earring" or "hair" or "eyes" or "eyebrows" or "mouth" or "eyewear" =>
+                $"character/Accessories_v0{Random.Range(1, 4)}",
+            "upper_body" => $"character/Outfit_Upper_v0{Random.Range(1, 4)}",
+            "lower_body" => $"character/Outfit_Lower_v0{Random.Range(1, 4)}",
+            "feet" => $"character/Outfit_Shoes_v0{Random.Range(1, 3)}",
+            "hands_wear" => $"character/Outfit_Upper_v0{Random.Range(1, 4)}",
+            _ => throw new ArgumentOutOfRangeException(nameof(category), category, null)
+        });
+    }
+
+    private static EntityDefinition GetEmote(BodyShape bodyShape)
+    {
+        return EntityDefinition.FromEmbeddedEmote(bodyShape switch
+        {
+            BodyShape.Male => "character/Wave_Male",
+            BodyShape.Female => "character/Wave_Female",
+            _ => throw new ArgumentOutOfRangeException(nameof(bodyShape), bodyShape, null)
+        });
+    }
+
     private void OnBodyShapeSelected(BodyShape bodyShape)
     {
         _bodyShape = bodyShape;
         uiPresenter.ClearPresetSelection();
+
+        _emoteToLoad = GetEmote(bodyShape);
 
         StartCoroutine(ReloadPreview());
     }
@@ -79,6 +108,8 @@ public class ConfiguratorController : MonoBehaviour
 
         // TODO: Fix
         _bodyShape = avatar.bodyShape == WearablesConstants.BODY_SHAPE_MALE ? BodyShape.Male : BodyShape.Female;
+
+        _emoteToLoad = GetEmote(_bodyShape);
 
         foreach (var urn in avatar.wearables)
         {
@@ -95,9 +126,8 @@ public class ConfiguratorController : MonoBehaviour
     private async Awaitable ReloadPreview()
     {
         Debug.Log("Reloading preview...");
-        // TODO: We should pass ActiveEntities directly
-        
-        await avatarLoader.LoadAvatar(_bodyShape, _selectedItems.Values, EntityDefinition.FromEmbeddedEmote("idle"), Array.Empty<string>(), new AvatarColors(_eyeColor, _hairColor, _skinColor));
+        await avatarLoader.LoadAvatar(_bodyShape, _selectedItems.Values, _emoteToLoad, Array.Empty<string>(),
+            new AvatarColors(_eyeColor, _hairColor, _skinColor));
     }
 
     private async Awaitable InitialLoad()

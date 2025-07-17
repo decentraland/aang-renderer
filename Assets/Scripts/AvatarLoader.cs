@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Data;
 using GLTF;
+using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Assertions;
 
@@ -23,10 +24,10 @@ public class AvatarLoader : MonoBehaviour
 
     private (EntityDefinition entity, AnimationClip anim, AudioClip audio, GameObject prop) _loadedEmote;
 
-    private Dictionary<string, (Texture2D main, Texture2D mask)> _defaultBodyFacialFeatures = new();
+    private readonly Dictionary<string, (Texture2D main, Texture2D mask)> _defaultBodyFacialFeatures = new();
 
     public async Awaitable LoadAvatar(BodyShape bodyShape, IEnumerable<EntityDefinition> wearableDefinitions,
-        EntityDefinition emoteDefinition, string[] forceRenderUrns, AvatarColors colors)
+        [CanBeNull] EntityDefinition emoteDefinition, string[] forceRenderUrns, AvatarColors colors)
     {
         var bodyEntity = EntityService.GetBodyEntity(bodyShape);
         var definitions = wearableDefinitions.Prepend(bodyEntity).ToList();
@@ -59,21 +60,30 @@ public class AvatarLoader : MonoBehaviour
 
         var modelLoadResults = await Task.WhenAll(modelLoadTasks);
         var facialFeaturesLoadResults = await Task.WhenAll(facialFeaturesLoadTasks);
+        var emoteLoadResult = emoteDefinition != null && emoteDefinition.URN != _loadedEmote.entity?.URN
+            ? await GLTFLoader.LoadEmote(bodyShape, emoteDefinition, transform)
+            : (null, null, null);
 
-        if (_loadedEmote.entity == null || _loadedEmote.entity.URN != emoteDefinition.URN)
+        // NOTE: No awaits from here on!
+
+        var emoteChanged = _loadedEmote.entity?.URN != emoteDefinition?.URN;
+        var currentAnimState = GetCurrentClip(_loadedModels.Values.FirstOrDefault().root?.GetComponent<Animation>(),
+            _loadedEmote.entity?.URN);
+        var previousEmote = _loadedEmote;
+
+        // Clean up previous emote prop
+        if (emoteChanged && _loadedEmote.entity != null)
         {
-            if (_loadedEmote.entity != null && _loadedModels.Remove(_loadedEmote.entity.URN, out var value))
+            if (_loadedModels.Remove(_loadedEmote.entity.URN, out var value))
             {
                 Destroy(value.root);
             }
-
-            var emoteResult = await GLTFLoader.LoadEmote(bodyShape, emoteDefinition, transform);
-            _loadedEmote = (emoteDefinition, emoteResult.anim, emoteResult.audio, emoteResult.prop);
         }
 
-        var currentAnimTime = _loadedModels.Values.FirstOrDefault().root?.GetComponent<Animation>()["emote"].time ?? 0f;
-        
-        // NOTE: No awaits from here on!
+        if (emoteChanged)
+        {
+            _loadedEmote = (emoteDefinition, emoteLoadResult.anim, emoteLoadResult.audio, emoteLoadResult.prop);
+        }
 
         var newModels = modelLoadResults.ToList();
         var newFacialFeatures = facialFeaturesLoadResults.ToList();
@@ -96,7 +106,7 @@ public class AvatarLoader : MonoBehaviour
         // And the emote
         if (_loadedEmote.prop != null)
         {
-            _loadedModels.Add(_loadedEmote.entity.URN, (_loadedEmote.entity, _loadedEmote.prop));
+            _loadedModels.Add(_loadedEmote.entity!.URN!, (_loadedEmote.entity, _loadedEmote.prop));
         }
 
         // Remove already loaded facial features
@@ -142,29 +152,52 @@ public class AvatarLoader : MonoBehaviour
             {
                 anim = go.AddComponent<Animation>();
                 anim.playAutomatically = false;
+                anim.AddClip(CommonAssets.IdleAnimation, "idle");
+
+                // If we added a new object we set its animation to the previous playing one so we can crossfade
+                if (previousEmote.entity != null)
+                {
+                    anim.AddClip(previousEmote.anim, previousEmote.entity.URN);
+                }
+
+                anim.Play(currentAnimState.clipName);
+                anim[currentAnimState.clipName].time = currentAnimState.time;
+                anim.Sample();
+            }
+
+            // If there is a new emote to be played
+            if (emoteChanged)
+            {
+                if (_loadedEmote.entity != null)
+                {
+                    anim.AddClip(_loadedEmote.anim, _loadedEmote.entity.URN);
+                }
+
+                // Add audio trigger
+                if (_loadedEmote.audio != null && !animEventAdded)
+                {
+                    // TODO: Should we cleanup old events?
+                    animEventAdded = true;
+                    anim.GetClip(_loadedEmote.entity.URN).AddEvent(new AnimationEvent
+                    {
+                        time = 0,
+                        functionName = "Play"
+                    });
+                    var aer = go.AddComponent<AudioEventReceiver>();
+                    aer.AudioSource = audioSource;
+                }
+            }
+
+            // Crossfade
+            if (_loadedEmote.entity != null)
+            {
+                anim.CrossFade(_loadedEmote.entity.URN, 0.3f);
+                anim.CrossFadeQueued("idle", 0.3f);
             }
             else
             {
-                if (currentAnimTime == 0) currentAnimTime = anim["emote"].time;
-                anim.RemoveClip("emote");
+                anim.CrossFade("idle", 0.3f);
             }
-
-            anim.AddClip(_loadedEmote.anim, "emote");
-            if (_loadedEmote.audio != null && !animEventAdded)
-            {
-                animEventAdded = true;
-                anim.GetClip("emote").AddEvent(new AnimationEvent
-                {
-                    time = 0,
-                    functionName = "Play"
-                });
-                var aer = go.AddComponent<AudioEventReceiver>();
-                aer.AudioSource = audioSource;
-            }
-
-            anim.Play("emote");
-            anim["emote"].time = currentAnimTime;
-            anim.Sample();
         }
 
         // If body was changed we need to clear the default facial features
@@ -213,6 +246,21 @@ public class AvatarLoader : MonoBehaviour
         }
 
         _loadedBodyShape = bodyShape;
+    }
+
+    private static (string clipName, float time) GetCurrentClip([CanBeNull] Animation anim, string previousEmoteName)
+    {
+        if (anim == null)
+        {
+            return ("idle", 0);
+        }
+
+        if (previousEmoteName != null && anim.IsPlaying(previousEmoteName))
+        {
+            return (previousEmoteName, anim[previousEmoteName].time);
+        }
+
+        return ("idle", anim["idle"].time);
     }
 
     private SkinnedMeshRenderer GetFacialFeatureRenderer(string category, GameObject bodyGO)

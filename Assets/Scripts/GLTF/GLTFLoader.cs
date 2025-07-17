@@ -12,7 +12,8 @@ namespace GLTF
 {
     public static class GLTFLoader
     {
-        public static async Task<(EntityDefinition entity, GameObject go)> LoadModel(BodyShape bodyShape, EntityDefinition entityDefinition, Transform parent)
+        public static async Task<(EntityDefinition entity, GameObject go)> LoadModel(BodyShape bodyShape,
+            EntityDefinition entityDefinition, Transform parent)
         {
             var representation = entityDefinition[bodyShape];
 
@@ -52,14 +53,17 @@ namespace GLTF
             throw new Exception($"Failed to load GLB: {representation.MainFile}");
         }
 
-        public static async Task<(EntityDefinition entity, Texture2D main, Texture2D mask)> LoadFacialFeature(BodyShape bodyShape, EntityDefinition entityDefinition)
+        public static async Task<(EntityDefinition entity, Texture2D main, Texture2D mask)> LoadFacialFeature(
+            BodyShape bodyShape, EntityDefinition entityDefinition)
         {
             var rep = entityDefinition[bodyShape];
-            
+
             var mainTexture = await LoadTexture(rep.Files[rep.MainFile]);
             if (!mainTexture) throw new Exception($"Failed to load texture {rep.Files[rep.MainFile]}");
 
-            var maskTexture = rep.Files.Count == 2 ? await LoadTexture(rep.Files[rep.Files.Keys.First(x => x != rep.MainFile)]) : null;
+            var maskTexture = rep.Files.Count == 2
+                ? await LoadTexture(rep.Files[rep.Files.Keys.First(x => x != rep.MainFile)])
+                : null;
 
             return (entityDefinition, mainTexture, maskTexture);
 
@@ -78,11 +82,12 @@ namespace GLTF
                 return DownloadHandlerTexture.GetContent(webRequest);
             }
         }
-        
-        public static async Awaitable<(AnimationClip anim, AudioClip audio, GameObject prop)> LoadEmote(BodyShape bodyShape, EntityDefinition entityDefinition, Transform propParent)
+
+        public static async Awaitable<(AnimationClip anim, AudioClip audio, GameObject prop)> LoadEmote(
+            BodyShape bodyShape, EntityDefinition entityDefinition, Transform propParent)
         {
             var rep = entityDefinition[bodyShape];
-            
+
             var importer = new GltfImport(
                 materialGenerator: new DecentralandMaterialGenerator("DCL/Scene", true),
                 downloadProvider: new BinaryDownloadProvider(rep.Files)
@@ -154,11 +159,16 @@ namespace GLTF
                           c.name.EndsWith("_Prop", StringComparison.InvariantCultureIgnoreCase)) ??
                       clips.FirstOrDefault(c => !c.name.EndsWith("_Avatar"));
 
+                avatarClip.wrapMode = WrapMode.Clamp;
+
                 if (propClip != null)
                 {
+                    propClip.wrapMode = WrapMode.Clamp;
+
                     // We have a prop we need to deal with
                     Debug.Log("Lading emote prop");
                     var root = new GameObject("emote");
+                    root.SetActive(false);
                     root.transform.SetParent(propParent, false);
                     await importer.InstantiateMainSceneAsync(root.transform);
 
@@ -172,7 +182,7 @@ namespace GLTF
 
             throw new NotSupportedException($"Failed to load emote: {rep.MainFile}");
         }
-        
+
         /// <summary>
         /// Examples of urns that need this:
         ///
