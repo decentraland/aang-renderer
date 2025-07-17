@@ -58,4 +58,12 @@ mergeInto(LibraryManager.library, {
       '*'
     )
   },
+  PreloadURLs: function(strPtr) {
+    const csv = UTF8ToString(strPtr);
+    const urls = csv.split(',');
+     
+    for (const url of urls) {
+      fetch(url, { cache: 'force-cache' }).catch(() => {});
+    }
+  }
 })

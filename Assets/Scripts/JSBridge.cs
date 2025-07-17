@@ -137,6 +137,8 @@ public class JSBridge : MonoBehaviour
         public static void OnLoadComplete() => Debug.Log("NativeCall OnLoadComplete");
 
         public static void OnError(string message) => Debug.LogError($"NativeCall OnError({message})");
+        
+        public static void PreloadURLs(string urlsCSV) => Debug.Log($"NativeCall PreloadURLs({urlsCSV})");
 #else
         [System.Runtime.InteropServices.DllImport("__Internal")]
         public static extern void OnScreenshotTaken(string base64Str);
@@ -146,6 +148,9 @@ public class JSBridge : MonoBehaviour
 
         [System.Runtime.InteropServices.DllImport("__Internal")]
         public static extern void OnError(string message);
+        
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        public static extern void PreloadURLs(string urlsCSV);
 #endif
     }
 }

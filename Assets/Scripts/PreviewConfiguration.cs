@@ -181,6 +181,11 @@ public class PreviewConfiguration
     /// If the loading circle should be shown when loading content.
     /// </summary>
     public bool DisableLoader { get; set; }
+
+    /// <summary>
+    /// If we should instruct the browser to pre-fetch certain files. On by default.
+    /// </summary>
+    public bool UseBrowserPreload { get; set; } = true;
 }
 
 public enum PreviewMode

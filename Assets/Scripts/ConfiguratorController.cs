@@ -25,9 +25,7 @@ public class ConfiguratorController : MonoBehaviour
 
     private ProfileResponse.Avatar.AvatarData[] _allPresets;
 
-    private bool _presetsLoaded;
-    private bool _collectionLoaded;
-    private bool _previewLoaded;
+    public bool UseBrowserPreload { get; set; }
 
     private void Start()
     {
@@ -136,18 +134,37 @@ public class ConfiguratorController : MonoBehaviour
         OnPresetSelected(_allPresets[randomPresetIndex]);
 
         uiPresenter.LoadCompleted();
+
+        if (UseBrowserPreload)
+        {
+            EntityService.PreloadCachedEntityAssets();
+            JSBridge.NativeCalls.PreloadURLs(
+                string.Join(',', Application.streamingAssetsPath + "/character/Accessories_v01.glb",
+                    Application.streamingAssetsPath + "/character/Accessories_v02.glb",
+                    Application.streamingAssetsPath + "/character/Accessories_v03.glb",
+                    Application.streamingAssetsPath + "/character/Outfit_Lower_v01.glb",
+                    Application.streamingAssetsPath + "/character/Outfit_Lower_v02.glb",
+                    Application.streamingAssetsPath + "/character/Outfit_Lower_v03.glb",
+                    Application.streamingAssetsPath + "/character/Outfit_Shoes_v01.glb",
+                    Application.streamingAssetsPath + "/character/Outfit_Shoes_v02.glb",
+                    Application.streamingAssetsPath + "/character/Outfit_Upper_v01.glb",
+                    Application.streamingAssetsPath + "/character/Outfit_Upper_v02.glb",
+                    Application.streamingAssetsPath + "/character/Outfit_Upper_v03.glb",
+                    Application.streamingAssetsPath + "/character/Wave_Female.glb",
+                    Application.streamingAssetsPath + "/character/Wave_Male.glb"));
+        }
     }
 
     private static async Task<ProfileResponse.Avatar.AvatarData> LoadAvatar(string avatarID)
     {
         var avatar = await APIService.GetAvatar(avatarID);
-        
+
         // Fix wearables
         for (var i = 0; i < avatar.wearables.Length; i++)
         {
             avatar.wearables[i] = avatar.wearables[i].ToLowerInvariant();
         }
-        
+
         return avatar;
     }
 }

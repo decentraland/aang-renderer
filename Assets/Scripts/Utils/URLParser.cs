@@ -80,6 +80,9 @@ namespace Utils
                     case "disableLoader":
                         config.DisableLoader = bool.Parse(value);
                         break;
+                    case "useBrowserPreload":
+                        config.UseBrowserPreload = bool.Parse(value);
+                        break;
                     default:
                         Debug.LogWarning($"Unknown parameter in URL: {key}");
                         break;
