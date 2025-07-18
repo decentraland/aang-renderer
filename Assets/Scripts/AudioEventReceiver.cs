@@ -3,13 +3,11 @@ using UnityEngine;
 
 public class AudioEventReceiver : MonoBehaviour
 {
-    public AudioSource AudioSource { get; set; }
+    [SerializeField] private AudioSource audioSource;
 
     [UsedImplicitly]
     public void Play()
     {
-        // TODO: Check if this is triggered from every animation
-        
-        AudioSource.Play();
+        audioSource.Play();
     }
 }

@@ -27,6 +27,7 @@ namespace GLTF
                 NodeNameMethod = NameImportMethod.OriginalUnique,
                 AnisotropicFilterLevel = 0,
                 GenerateMipMaps = false,
+                AnimationMethod = AnimationMethod.None,
             };
 
             var file = representation.Files[representation.MainFile];
