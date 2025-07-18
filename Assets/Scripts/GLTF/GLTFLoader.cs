@@ -12,7 +12,7 @@ namespace GLTF
 {
     public static class GLTFLoader
     {
-        public static async Task<(EntityDefinition entity, GameObject go)> LoadModel(BodyShape bodyShape,
+        public static async Task<(EntityDefinition entity, GameObject go, IDisposable disposable)> LoadModel(BodyShape bodyShape,
             EntityDefinition entityDefinition, Transform parent)
         {
             var representation = entityDefinition[bodyShape];
@@ -48,7 +48,7 @@ namespace GLTF
 
                 Debug.Log($"GLB loaded: {representation.MainFile}");
 
-                return (entityDefinition, root);
+                return (entityDefinition, root, importer);
             }
 
             throw new Exception($"Failed to load GLB: {representation.MainFile}");
@@ -84,7 +84,7 @@ namespace GLTF
             }
         }
 
-        public static async Awaitable<(AnimationClip anim, AudioClip audio, GameObject prop)> LoadEmote(
+        public static async Awaitable<(AnimationClip anim, AudioClip audio, GameObject prop, IDisposable disposable)> LoadEmote(
             BodyShape bodyShape, EntityDefinition entityDefinition, Transform propParent)
         {
             var rep = entityDefinition[bodyShape];
@@ -175,10 +175,10 @@ namespace GLTF
 
                     Sanitize(root.transform);
 
-                    return (avatarClip, audioClip, root);
+                    return (avatarClip, audioClip, root, importer);
                 }
 
-                return (avatarClip, audioClip, null);
+                return (avatarClip, audioClip, null,  importer);
             }
 
             throw new NotSupportedException($"Failed to load emote: {rep.MainFile}");

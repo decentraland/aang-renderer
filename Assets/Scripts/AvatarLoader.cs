@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Data;
+using DCL.Rendering.RenderGraphs.RenderFeatures.AvatarOutline;
 using GLTF;
 using JetBrains.Annotations;
 using UnityEngine;
@@ -22,14 +23,18 @@ public class AvatarLoader : MonoBehaviour
     [SerializeField] private Transform[] avatarBones;
 
     private BodyShape? _loadedBodyShape;
-    private readonly Dictionary<string, (EntityDefinition entity, GameObject root)> _loadedModels = new();
+
+    private readonly Dictionary<string, (EntityDefinition entity, GameObject root, IDisposable disposable)>
+        _loadedModels = new();
 
     private readonly Dictionary<string, (EntityDefinition entity, Texture2D main, Texture2D mask)>
         _loadedFacialFeatures = new();
 
-    private (EntityDefinition entity, AnimationClip anim, AudioClip audio, GameObject prop)? _loadedEmote;
+    private (EntityDefinition entity, AnimationClip anim, AudioClip audio, GameObject prop, IDisposable disposable)?
+        _loadedEmote;
 
     private readonly Dictionary<string, (Texture2D main, Texture2D mask)> _defaultBodyFacialFeatures = new();
+    private readonly List<Renderer> _outlineRenderers = new();
 
     public async Awaitable LoadAvatar(BodyShape bodyShape, IEnumerable<EntityDefinition> wearableDefinitions,
         [CanBeNull] EntityDefinition emoteDefinition, string[] forceRenderUrns, AvatarColors colors)
@@ -44,7 +49,7 @@ public class AvatarLoader : MonoBehaviour
             ? definitions
             : definitions.Where(ed => !_loadedModels.ContainsKey(ed.URN) && !_loadedFacialFeatures.ContainsKey(ed.URN));
 
-        var modelLoadTasks = new List<Task<(EntityDefinition entity, GameObject go)>>();
+        var modelLoadTasks = new List<Task<(EntityDefinition entity, GameObject go, IDisposable disposable)>>();
         var facialFeaturesLoadTasks = new List<Task<(EntityDefinition entity, Texture2D main, Texture2D mask)>>();
 
         foreach (var def in definitionsToLoad)
@@ -67,7 +72,7 @@ public class AvatarLoader : MonoBehaviour
         var facialFeaturesLoadResults = await Task.WhenAll(facialFeaturesLoadTasks);
         var emoteLoadResult = emoteDefinition != null && emoteDefinition.URN != _loadedEmote?.entity.URN
             ? await GLTFLoader.LoadEmote(bodyShape, emoteDefinition, transform)
-            : ((AnimationClip anim, AudioClip audio, GameObject prop)?)null;
+            : ((AnimationClip anim, AudioClip audio, GameObject prop, IDisposable disposable)?)null;
 
         var emoteChanged = _loadedEmote?.entity.URN != emoteDefinition?.URN;
 
@@ -83,7 +88,7 @@ public class AvatarLoader : MonoBehaviour
         if (emoteChanged)
         {
             _loadedEmote = (emoteDefinition, emoteLoadResult!.Value.anim, emoteLoadResult.Value.audio,
-                emoteLoadResult.Value.prop);
+                emoteLoadResult.Value.prop, emoteLoadResult.Value.disposable);
         }
 
         var newModels = modelLoadResults.ToList();
@@ -95,19 +100,21 @@ public class AvatarLoader : MonoBehaviour
             if (!hasBodyShapeChanged && definitions.Any(ed => ed.URN == urn)) continue;
 
             _loadedModels.Remove(urn, out var value);
+            value.disposable?.Dispose();
             Destroy(value.root);
         }
 
         // Add new ones
-        foreach (var (entity, root) in newModels)
+        foreach (var tuple in newModels)
         {
-            _loadedModels.Add(entity.URN, (entity, root));
+            _loadedModels.Add(tuple.entity.URN, tuple);
         }
 
         // And the emote prop
         if (_loadedEmote?.prop != null)
         {
-            _loadedModels.Add(_loadedEmote.Value.entity.URN!, (_loadedEmote.Value.entity, _loadedEmote.Value.prop));
+            _loadedModels.Add(_loadedEmote.Value.entity.URN!,
+                (_loadedEmote.Value.entity, _loadedEmote.Value.prop, _loadedEmote.Value.disposable));
         }
 
         // Remove already loaded facial features
@@ -117,7 +124,6 @@ public class AvatarLoader : MonoBehaviour
 
             _loadedFacialFeatures.Remove(urn, out var value);
 
-            // TODO: Should we destroy the tex?
             Destroy(value.main);
             Destroy(value.mask);
         }
@@ -126,60 +132,6 @@ public class AvatarLoader : MonoBehaviour
         foreach (var (entity, main, mask) in newFacialFeatures)
         {
             _loadedFacialFeatures.Add(entity.URN, (entity, main, mask));
-        }
-
-        // Activate all models, setup colors, change root bone for animation
-        foreach (var (_, go) in _loadedModels.Values)
-        {
-            go.SetActive(true);
-
-            // Colors
-            var renderers = go.GetComponentsInChildren<SkinnedMeshRenderer>();
-            foreach (var r in renderers)
-            {
-                if (r.material.name.Contains("skin", StringComparison.OrdinalIgnoreCase))
-                {
-                    r.material.SetColor(BASE_COLOR_ID, colors.Skin);
-                }
-                else if (r.material.name.Contains("hair", StringComparison.OrdinalIgnoreCase))
-                {
-                    r.material.SetColor(BASE_COLOR_ID, colors.Hair);
-                }
-
-                r.rootBone = avatarRootBone;
-                r.bones = avatarBones;
-            }
-        }
-
-        // If there is a new emote to be played
-        if (emoteChanged)
-        {
-            if (_loadedEmote != null)
-            {
-                avatarAnimation.AddClip(_loadedEmote.Value.anim, _loadedEmote.Value.entity.URN);
-            }
-
-            // Add audio trigger
-            if (_loadedEmote.Value.audio != null)
-            {
-                // TODO: Should we cleanup old events?
-                avatarAnimation.GetClip(_loadedEmote.Value.entity.URN).AddEvent(new AnimationEvent
-                {
-                    time = 0,
-                    functionName = "Play"
-                });
-            }
-        }
-
-        // Crossfade
-        if (_loadedEmote != null)
-        {
-            avatarAnimation.CrossFade(_loadedEmote.Value.entity.URN, 0.3f);
-            avatarAnimation.CrossFadeQueued(IDLE_CLIP_NAME, 0.3f);
-        }
-        else
-        {
-            avatarAnimation.CrossFade(IDLE_CLIP_NAME, 0.3f);
         }
 
         // If body was changed we need to clear the default facial features
@@ -212,37 +164,87 @@ public class AvatarLoader : MonoBehaviour
                 }
 
                 var loadedFeature = _loadedFacialFeatures.Values.FirstOrDefault(ff => ff.entity.Category == cat);
-                if (loadedFeature.entity != null)
+
+                var main = loadedFeature.entity != null ? loadedFeature.main : _defaultBodyFacialFeatures[cat].main;
+                var mask = loadedFeature.entity != null ? loadedFeature.mask : _defaultBodyFacialFeatures[cat].mask;
+
+                // The default mask for eyes is all white
+                if (cat == WearablesConstants.Categories.EYES && mask == null)
                 {
-                    ffRenderer.material.SetTexture(MAIN_TEX_ID, loadedFeature.main);
-                    ffRenderer.material.SetTexture(MASK_TEX_ID, loadedFeature.mask);
+                    mask = Texture2D.whiteTexture;
                 }
-                else
+
+                ffRenderer.material.SetTexture(MAIN_TEX_ID, main);
+                ffRenderer.material.SetTexture(MASK_TEX_ID, mask);
+            }
+        }
+
+        // Activate all models, setup colors, change root bone for animation
+        _outlineRenderers.Clear();
+        RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.Clear();
+        foreach (var (_, go, _) in _loadedModels.Values)
+        {
+            go.SetActive(true);
+
+            // Colors
+            var renderers = go.GetComponentsInChildren<SkinnedMeshRenderer>();
+            foreach (var r in renderers)
+            {
+                if (r.material.name.Contains("skin", StringComparison.OrdinalIgnoreCase))
                 {
-                    // Revert to default
-                    var defaultFeature = _defaultBodyFacialFeatures[cat];
-                    ffRenderer.material.SetTexture(MAIN_TEX_ID, defaultFeature.main);
-                    ffRenderer.material.SetTexture(MASK_TEX_ID, defaultFeature.mask);
+                    r.material.SetColor(BASE_COLOR_ID, colors.Skin);
+                }
+                else if (r.material.name.Contains("hair", StringComparison.OrdinalIgnoreCase))
+                {
+                    r.material.SetColor(BASE_COLOR_ID, colors.Hair);
+                }
+
+                r.rootBone = avatarRootBone;
+                r.bones = avatarBones;
+
+                if (r.material.shader.name == "DCL/DCL_Toon" && r.sharedMaterial.renderQueue is >= 2000 and < 3000)
+                {
+                    _outlineRenderers.Add(r);
                 }
             }
         }
 
+        // If there is a new emote to be played
+        if (emoteChanged && _loadedEmote != null)
+        {
+            avatarAnimation.AddClip(_loadedEmote.Value.anim, _loadedEmote.Value.entity.URN);
+
+            // Add audio trigger
+            if (_loadedEmote.Value.audio != null)
+            {
+                // TODO: Should we cleanup old events?
+                avatarAnimation.GetClip(_loadedEmote.Value.entity.URN).AddEvent(new AnimationEvent
+                {
+                    time = 0,
+                    functionName = "Play"
+                });
+            }
+        }
+
+        // Crossfade
+        if (_loadedEmote != null)
+        {
+            avatarAnimation.CrossFade(_loadedEmote.Value.entity.URN, 0.3f);
+            avatarAnimation.CrossFadeQueued(IDLE_CLIP_NAME, 0.3f);
+        }
+        else
+        {
+            avatarAnimation.CrossFade(IDLE_CLIP_NAME, 0.3f);
+        }
+
+        // TODO: Remove stale emotes
+
         _loadedBodyShape = bodyShape;
     }
 
-    private static (string clipName, float time) GetCurrentClip([CanBeNull] Animation anim, string previousEmoteName)
+    private void Update()
     {
-        if (anim == null)
-        {
-            return ("idle", 0);
-        }
-
-        if (previousEmoteName != null && anim.IsPlaying(previousEmoteName))
-        {
-            return (previousEmoteName, anim[previousEmoteName].time);
-        }
-
-        return ("idle", anim["idle"].time);
+        RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.AddRange(_outlineRenderers);
     }
 
     private SkinnedMeshRenderer GetFacialFeatureRenderer(string category, GameObject bodyGO)
