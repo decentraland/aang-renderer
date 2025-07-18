@@ -77,7 +77,7 @@ public class ConfiguratorController : MonoBehaviour
             "upper_body" => $"character/Outfit_Upper_v0{Random.Range(1, 4)}",
             "lower_body" => $"character/Outfit_Lower_v0{Random.Range(1, 4)}",
             "feet" => $"character/Outfit_Shoes_v0{Random.Range(1, 3)}",
-            "hands_wear" => $"character/Outfit_Upper_v0{Random.Range(1, 4)}",
+            "hands_wear" => $"character/Outfit_Hand_v0{Random.Range(1, 3)}",
             _ => throw new ArgumentOutOfRangeException(nameof(category), category, null)
         });
     }
@@ -180,6 +180,8 @@ public class ConfiguratorController : MonoBehaviour
                     Application.streamingAssetsPath + "/character/Outfit_Upper_v01.glb",
                     Application.streamingAssetsPath + "/character/Outfit_Upper_v02.glb",
                     Application.streamingAssetsPath + "/character/Outfit_Upper_v03.glb",
+                    Application.streamingAssetsPath + "/character/Outfit_Hand_v01.glb",
+                    Application.streamingAssetsPath + "/character/Outfit_Hand_v02.glb",
                     Application.streamingAssetsPath + "/character/Wave_Female.glb",
                     Application.streamingAssetsPath + "/character/Wave_Male.glb"));
         }
