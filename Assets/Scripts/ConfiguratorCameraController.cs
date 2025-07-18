@@ -31,11 +31,11 @@ public class ConfiguratorCameraController : MonoBehaviour
     {
         switch (Input.mouseScrollDelta.y)
         {
-            case > 0 when !fullBodyCamera.gameObject.activeSelf:
+            case < 0 when !fullBodyCamera.gameObject.activeSelf:
                 _hasZoomedOut = true;
                 fullBodyCamera.gameObject.SetActive(true);
                 break;
-            case < 0 when _hasZoomedOut:
+            case > 0 when _hasZoomedOut:
                 _hasZoomedOut = false;
                 fullBodyCamera.gameObject.SetActive(false);
                 break;
