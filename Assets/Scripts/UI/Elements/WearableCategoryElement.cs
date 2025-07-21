@@ -12,38 +12,34 @@ namespace UI.Elements
         private const string USS_SELECTED = USS_BLOCK + "--selected";
         private const string USS_ICON = USS_BLOCK + "__icon";
         private const string USS_ICON_CATEGORY = USS_BLOCK + "__icon--{0}";
-        private const string USS_THUMBNAIL_CONTAINER = USS_BLOCK + "__thumbnail-container";
         private const string USS_THUMBNAIL = USS_BLOCK + "__thumbnail";
 
-        private readonly VisualElement _icon;
         private readonly WearableItemElement _thumbnail;
 
         public readonly string Category;
+        public readonly string Title;
 
         public event Action<WearableCategoryElement> Clicked;
 
-        public WearableCategoryElement() : this("upper_body")
+        public WearableCategoryElement() : this("upper_body", "UPPER BODY", null)
         {
         }
 
-        public WearableCategoryElement(string category)
+        public WearableCategoryElement(string category, string title, Texture2D emptyIcon)
         {
             Category = category;
+            Title = title;
 
             AddToClassList(USS_BLOCK);
             AddToClassList("dcl-clickable");
 
-            Add(_icon = new VisualElement { name = "icon" });
-            _icon.AddToClassList(USS_ICON);
-            _icon.AddToClassList(string.Format(USS_ICON_CATEGORY, category));
-
-            // var thumbnailContainer = new VisualElement { name = "thumbnail-container" };
-            // Add(thumbnailContainer);
-            // thumbnailContainer.AddToClassList(USS_THUMBNAIL_CONTAINER);
-            // {
-            // }
+            var icon = new VisualElement { name = "icon" };
+            Add(icon);
+            icon.AddToClassList(USS_ICON);
+            icon.AddToClassList(string.Format(USS_ICON_CATEGORY, category));
 
             Add(_thumbnail = new WearableItemElement { name = "thumbnail" });
+            _thumbnail.EmptyTexture = emptyIcon;
             _thumbnail.AddToClassList(USS_THUMBNAIL);
             _thumbnail.RemoveClickable();
             this.AddManipulator(new Clickable(() => Clicked?.Invoke(this)));
@@ -56,7 +52,7 @@ namespace UI.Elements
 
         public void SetWearable(EntityDefinition entity)
         {
-            _thumbnail.SetWearable(entity, Category);
+            _thumbnail.SetWearable(entity);
         }
     }
 }

@@ -124,50 +124,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -2953582329371919283, guid: 77a74a14408e74041baaa38e7122d9f2, type: 3}
   m_PrefabInstance: {fileID: 301374859}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &13101279
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 13101281}
-  - component: {fileID: 13101280}
-  m_Layer: 0
-  m_Name: RemoteTextureService
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &13101280
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 13101279}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a30e7d550af447539bc97281f3b58de3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!4 &13101281
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 13101279}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &29134065 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -5800651762435586767, guid: 77a74a14408e74041baaa38e7122d9f2, type: 3}
@@ -1216,7 +1172,7 @@ Transform:
   m_GameObject: {fileID: 1411485568905184141}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.5556473, y: -0.02, z: -3.57}
+  m_LocalPosition: {x: -1.253313, y: -0.02, z: -3.57}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1577,6 +1533,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   uiPresenter: {fileID: 4634088016188469603}
   avatarLoader: {fileID: 8085770638703914883}
+  previewRotator: {fileID: 7801264601496514888}
   presetAvatars:
   - default70
   - default71
@@ -1858,19 +1815,42 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b3af98e890394688bbc36ea9edc05447, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  uiDocument: {fileID: 4363583478864355584}
   faceCategories:
-  - hair
-  - eyes
-  - eyebrows
-  - mouth
-  - facial_hair
+  - id: hair
+    title: HAIR
+    defaultThumbnail: {fileID: 2800000, guid: 3541578bd8ba34506b6959ec0024e1b4, type: 3}
+  - id: eyes
+    title: EYES
+    defaultThumbnail: {fileID: 2800000, guid: 8e694914a42ab4235a4e9050897e9596, type: 3}
+  - id: eyebrows
+    title: EYEBROWS
+    defaultThumbnail: {fileID: 2800000, guid: a990631975f2a4aabb3792569836fdd0, type: 3}
+  - id: mouth
+    title: MOUTH
+    defaultThumbnail: {fileID: 2800000, guid: 4165b5523d66e4d4b9da5ec49e63c5a1, type: 3}
+  - id: facial_hair
+    title: FACIAL HAIR
+    defaultThumbnail: {fileID: 2800000, guid: 2cec53a37ef6f4cc28cac13c1a876657, type: 3}
   bodyCategories:
-  - upper_body
-  - lower_body
-  - feet
-  - eyewear
-  - hands_wear
-  - earring
+  - id: upper_body
+    title: UPPER BODY
+    defaultThumbnail: {fileID: 2800000, guid: 2ed885ad8d3144154969bccbe22c4d2a, type: 3}
+  - id: lower_body
+    title: LOWER BODY
+    defaultThumbnail: {fileID: 2800000, guid: 3140137ca6b14489f87996c1a2ef5034, type: 3}
+  - id: feet
+    title: FEET
+    defaultThumbnail: {fileID: 2800000, guid: 494fecb61d70a4185a361790aa75fe57, type: 3}
+  - id: eyewear
+    title: EYEWEAR
+    defaultThumbnail: {fileID: 2800000, guid: 0a4691e90de85447a8f2d65bb5d3ebeb, type: 3}
+  - id: hands_wear
+    title: HANDS
+    defaultThumbnail: {fileID: 2800000, guid: 7b904527f1b4940d4a32d91cc7b45584, type: 3}
+  - id: earring
+    title: EARRINGS
+    defaultThumbnail: {fileID: 2800000, guid: cddd07c08eb874eb685ebf428aa57a94, type: 3}
   presetSkinColors:
   - {r: 1, g: 0.89411765, b: 0.7764706, a: 1}
   - {r: 1, g: 0.8666667, b: 0.7372549, a: 1}
@@ -2140,7 +2120,7 @@ Transform:
   m_GameObject: {fileID: 1992614800948951230}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.43575555, y: 0.76, z: -1}
+  m_LocalPosition: {x: -0.35106808, y: 0.76, z: -1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2348,7 +2328,7 @@ Transform:
   m_GameObject: {fileID: 4086221261368998185}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.6536333, y: 0.243, z: -1.5}
+  m_LocalPosition: {x: -0.5266021, y: 0.243, z: -1.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2418,7 +2398,7 @@ Transform:
   m_GameObject: {fileID: 6885348085314093834}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.43575555, y: 0.76, z: -1}
+  m_LocalPosition: {x: -0.35106808, y: 0.76, z: -1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2610,7 +2590,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mainCamera: {fileID: 5610390852201726291}
   uiDocument: {fileID: 4363583478864355584}
-  dragSpeed: 0.1
+  dragSpeed: 1
   inertiaDamp: 0.25
   autoRotateSpeed: 10
   autoRotateDelay: 1
@@ -2831,7 +2811,7 @@ Transform:
   m_GameObject: {fileID: 263851112852000120}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.8453658, y: -0.4, z: -1.94}
+  m_LocalPosition: {x: -0.68107206, y: -0.4, z: -1.94}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3006,6 +2986,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ccf9daba855345f0a29e8e2d98a820a9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  uiDocument: {fileID: 0}
   previewRotator: {fileID: 7801264601496514888}
   uiPresenter: {fileID: 4634088016188469603}
   fullBodyCamera: {fileID: 1045612922063928384}
@@ -3059,4 +3040,3 @@ SceneRoots:
   - {fileID: 3430729342261155268}
   - {fileID: 1415525478}
   - {fileID: 118240803}
-  - {fileID: 13101281}

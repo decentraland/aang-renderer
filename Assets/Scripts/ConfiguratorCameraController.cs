@@ -1,9 +1,12 @@
 using UI;
 using Unity.Cinemachine;
 using UnityEngine;
+using UnityEngine.UIElements;
+using Utils;
 
 public class ConfiguratorCameraController : MonoBehaviour
 {
+    [SerializeField] private UIDocument uiDocument;
     [SerializeField] private PreviewRotator previewRotator;
     [SerializeField] private ConfiguratorUIPresenter uiPresenter;
     [SerializeField] private CinemachineCamera fullBodyCamera;
@@ -22,14 +25,15 @@ public class ConfiguratorCameraController : MonoBehaviour
 
         uiPresenter.CategoryChanged += OnCategoryChanged;
         uiPresenter.CharacterAreaCenterChanged += OnCharacterAreaCenterChanged;
+        uiPresenter.CharacterAreaZoom += OnCharacterAreaZoom;
 
         // Set full body camera
         OnCategoryChanged(null);
     }
 
-    private void Update()
+    private void OnCharacterAreaZoom(float delta)
     {
-        switch (Input.mouseScrollDelta.y)
+        switch (delta)
         {
             case < 0 when !fullBodyCamera.gameObject.activeSelf:
                 _hasZoomedOut = true;

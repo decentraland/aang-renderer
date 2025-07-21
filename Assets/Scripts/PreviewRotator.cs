@@ -10,7 +10,7 @@ public class PreviewRotator : MonoBehaviour
     [SerializeField] private UIDocument uiDocument;
 
     [Header("Drag Settings")] [SerializeField]
-    private float dragSpeed = 0.2f;
+    private float dragSpeed = 1f;
 
     [SerializeField] private float inertiaDamp = 0.95f;
 
@@ -34,11 +34,19 @@ public class PreviewRotator : MonoBehaviour
     {
         _initialRotation = transform.rotation;
 
-        // Web builds have an issue where the sensitivity of mouse is way too high, so we dampen it.
-        if (!Application.isEditor)
-        {
-            dragSpeed *= 0.05f;
-        }
+        // // Web builds have an issue where the sensitivity of mouse is way too high, so we dampen it.
+        // if (!Application.isEditor)
+        // {
+        //     dragSpeed *= 0.05f;
+        // }
+    }
+
+    public void OnDrag(Vector2 drag)
+    {
+        var mouseDelta = drag;
+        _horizontalVel += -mouseDelta.x * dragSpeed * 0.01f;
+        _verticalVel += mouseDelta.y * dragSpeed * 0.01f;
+        _lastDragTime = Time.time;
     }
 
     private void Update()
@@ -55,14 +63,6 @@ public class PreviewRotator : MonoBehaviour
             }
 
             return;
-        }
-
-        if (Input.GetMouseButton(0) && !IsOverUI())
-        {
-            var mouseDelta = Input.mousePositionDelta;
-            _horizontalVel += -mouseDelta.x * dragSpeed;
-            _verticalVel += mouseDelta.y * dragSpeed;
-            _lastDragTime = Time.time;
         }
 
         // Framerate-independent dampening
@@ -111,12 +111,5 @@ public class PreviewRotator : MonoBehaviour
         _horizontalVel = 0;
         _verticalVel = 0;
         _lastDragTime = 0;
-    }
-
-    private bool IsOverUI()
-    {
-        var panel = uiDocument.rootVisualElement.panel;
-        var panelPos = RuntimePanelUtils.ScreenToPanel(panel, Input.mousePosition);
-        return panel.Pick(panelPos) != null;
     }
 }

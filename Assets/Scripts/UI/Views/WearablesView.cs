@@ -14,9 +14,8 @@ namespace UI.Views
         private readonly Label _header;
         private readonly VisualElement _sidebar;
         private readonly VisualElement _itemsContainer;
-        private readonly Dictionary<string, string> _categoryLocalizations;
 
-        private List<(string category, List<EntityDefinition> wearables)> _collection;
+        private List<(string category, string title, Texture2D defaultThumbnail, List<EntityDefinition> wearables)> _collection;
 
         private Dictionary<string, WearableCategoryElement> _categoryElements = new();
         private WearableCategoryElement _selectedCategoryElement;
@@ -27,13 +26,11 @@ namespace UI.Views
         public event Action<string> CategoryChanged;
         public event Action<string, EntityDefinition> WearableSelected;
 
-        public WearablesView(VisualElement root, Label header, VisualElement sidebar, VisualElement itemsContainer,
-            Dictionary<string, string> categoryLocalizations) : base(root)
+        public WearablesView(VisualElement root, Label header, VisualElement sidebar, VisualElement itemsContainer) : base(root)
         {
             _header = header;
             _sidebar = sidebar;
             _itemsContainer = itemsContainer;
-            _categoryLocalizations = categoryLocalizations;
 
             foreach (var ve in _itemsContainer.Children())
             {
@@ -41,15 +38,15 @@ namespace UI.Views
             }
         }
 
-        public void SetCollection(List<(string category, List<EntityDefinition> wearables)> collection)
+        public void SetCollection(List<(string category, string title, Texture2D defaultThumbnail, List<EntityDefinition>)> collection)
         {
             _collection = collection;
             _sidebar.Clear();
 
             var categorySet = false;
-            foreach (var (category, _) in collection)
+            foreach (var (category, title, defaultThumbnail, _) in collection)
             {
-                var categoryElement = new WearableCategoryElement(category);
+                var categoryElement = new WearableCategoryElement(category, title, defaultThumbnail);
                 categoryElement.Clicked += OnCategoryClicked;
                 _sidebar.Add(categoryElement);
                 _categoryElements[category] = categoryElement;
@@ -91,26 +88,27 @@ namespace UI.Views
         {
             var category = _selectedCategoryElement.Category;
 
-            _header.text = _categoryLocalizations[category];
+            _header.text = _selectedCategoryElement.Title;
 
-            var categoryItems = _collection.First(cw => cw.category == category).wearables;
+            var categoryDefinition = _collection.First(cw => cw.category == category);
             var selectedWearable = _selectedItems[category];
 
-            if (categoryItems.Count > 20)
+            if (categoryDefinition.wearables.Count > 20)
             {
-                Debug.LogError($"Too many items in {category}: {categoryItems.Count}");
+                Debug.LogError($"Too many items in {category}: {categoryDefinition.wearables.Count}");
             }
 
             var index = 0;
             foreach (var ve in _itemsContainer.Children())
             {
-                if (index < categoryItems.Count)
+                if (index < categoryDefinition.wearables.Count)
                 {
-                    var wearable = categoryItems[index];
+                    var wearable = categoryDefinition.wearables[index];
 
                     ve.SetDisplay(true);
                     var wpbe = (WearableItemElement)ve;
-                    wpbe.SetWearable(categoryItems[index], category);
+                    wpbe.EmptyTexture = categoryDefinition.defaultThumbnail;
+                    wpbe.SetWearable(wearable);
                     var selected = wearable == selectedWearable;
                     wpbe.Selected = selected;
 

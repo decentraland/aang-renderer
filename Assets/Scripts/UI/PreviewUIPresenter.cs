@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 using Utils;
 
@@ -74,6 +75,8 @@ namespace UI
                 EnableDebug();
             }
 
+            Keyboard.current.onTextInput += OnTextInput;
+
             ShowLoader(true);
         }
 
@@ -81,8 +84,6 @@ namespace UI
         {
             // Rotate the loader icon
             _loaderIcon.RotateBy(LOADER_SPEED * Time.deltaTime);
-
-            CheckDebug();
         }
 
         public void EnableSwitcher(bool enable)
@@ -172,23 +173,20 @@ namespace UI
             }
         }
 
-        private void CheckDebug()
+        private void OnTextInput(char c)
         {
-            foreach (var c in Input.inputString)
+            _currentDebugInput += c;
+
+            if (!DEBUG_PASSPHRASE.StartsWith(_currentDebugInput))
             {
-                _currentDebugInput += c;
+                _currentDebugInput = string.Empty;
+                return;
+            }
 
-                if (!DEBUG_PASSPHRASE.StartsWith(_currentDebugInput))
-                {
-                    _currentDebugInput = string.Empty;
-                    return;
-                }
-
-                if (_currentDebugInput.Equals(DEBUG_PASSPHRASE))
-                {
-                    EnableDebug();
-                    _currentDebugInput = "";
-                }
+            if (_currentDebugInput.Equals(DEBUG_PASSPHRASE))
+            {
+                EnableDebug();
+                _currentDebugInput = "";
             }
         }
 

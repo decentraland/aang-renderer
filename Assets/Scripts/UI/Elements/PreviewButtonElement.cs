@@ -10,6 +10,7 @@ namespace UI.Elements
     {
         private const string USS_BLOCK = "preview-button";
         private const string USS_CONTAINER = USS_BLOCK + "__container";
+        private const string USS_THUMBNAIL = USS_BLOCK + "__thumbnail";
         private const string USS_SELECTED = USS_BLOCK + "--selected";
 
         public bool Selected
@@ -20,7 +21,7 @@ namespace UI.Elements
         
         public event Action Clicked;
         
-        private readonly VisualElement _container;
+        private readonly VisualElement _thumbnail;
 
         private Clickable _clickable;
 
@@ -29,8 +30,13 @@ namespace UI.Elements
             AddToClassList(USS_BLOCK);
             AddToClassList("dcl-clickable");
             
-            Add(_container = new VisualElement {name = "container"});
-            _container.AddToClassList(USS_CONTAINER);
+            var container = new VisualElement { name = "container" };
+            Add(container);
+            container.AddToClassList(USS_CONTAINER);
+            {
+                container.Add(_thumbnail = new VisualElement { name = "thumbnail" });
+                _thumbnail.AddToClassList(USS_THUMBNAIL);
+            }
             
             this.AddManipulator(_clickable = new Clickable(() => Clicked?.Invoke()));
         }
@@ -44,7 +50,7 @@ namespace UI.Elements
 
         public void SetTexture(Texture2D texture)
         {
-            _container.style.backgroundImage = texture;
+            _thumbnail.style.backgroundImage = texture;
         }
     }
 }

@@ -13,6 +13,7 @@ public class ConfiguratorController : MonoBehaviour
 {
     [SerializeField] private ConfiguratorUIPresenter uiPresenter;
     [SerializeField] private AvatarLoader avatarLoader;
+    [SerializeField] private PreviewRotator previewRotator;
 
     [SerializeField] private List<string> presetAvatars;
     [SerializeField] private string[] wearableCollection;
@@ -34,6 +35,7 @@ public class ConfiguratorController : MonoBehaviour
         uiPresenter.WearableSelected += OnWearableSelected;
         uiPresenter.PresetSelected += OnPresetSelected;
         uiPresenter.SkinColorSelected += OnSkinColorSelected;
+        uiPresenter.CharacterAreaDrag += previewRotator.OnDrag;
 
         // TODO: Temporary colors
         _skinColor = new Color(1f, 0.894f, 0.776f);

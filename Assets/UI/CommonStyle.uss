@@ -42,7 +42,6 @@
 
 .preview-button__container {
     flex-grow: 1;
-    background-color: rgb(255, 255, 255);
     border-top-left-radius: 10px;
     border-top-right-radius: 10px;
     border-bottom-right-radius: 10px;
@@ -59,7 +58,12 @@
     margin-right: 1px;
     margin-bottom: 1px;
     margin-left: 1px;
-    -unity-background-scale-mode: scale-to-fit;
+    -unity-background-scale-mode: scale-and-crop;
+    background-image: url("project://database/Assets/UI/Sprites/Configurator/item_background.png?fileID=2800000&guid=6e20d7fa328d04f1c9e01dc04b7b1768&type=3#item_background");
+}
+
+.preview-button__thumbnail {
+    flex-grow: 1;
 }
 
 .dcl-button {
@@ -112,7 +116,7 @@
     display: none;
     width: 11px;
     height: 15px;
-    background-image: url("project://database/Assets/UI/Sprites/icon_arrow_right.png?fileID=2800000&guid=53552c8856695427aa658d914163aa30&type=3#icon_arrow_right");
+    background-image: url("project://database/Assets/UI/Sprites/Configurator/icon_arrow_right.png?fileID=2800000&guid=53552c8856695427aa658d914163aa30&type=3#icon_arrow_right");
 }
 
 .dcl-button--icon-forward > .dcl-button__icon {
@@ -148,51 +152,51 @@
 .wearable-category__icon {
     width: 38px;
     height: 38px;
-    background-image: url("project://database/Assets/UI/Sprites/icon_category_eyebrows.png?fileID=2800000&guid=cee9a85e5521f4115a3369097a6a9234&type=3#icon_category_eyebrows");
+    background-image: url("project://database/Assets/UI/Sprites/Configurator/icon_category_eyebrows.png?fileID=2800000&guid=cee9a85e5521f4115a3369097a6a9234&type=3#icon_category_eyebrows");
 }
 
 .wearable-category__icon--eyewear {
-    background-image: url("project://database/Assets/UI/Sprites/icon_category_eyewear.png?fileID=2800000&guid=73f09b4dd72404b509177cc40e4b9d53&type=3#icon_category_eyewear");
+    background-image: url("project://database/Assets/UI/Sprites/Configurator/icon_category_eyewear.png?fileID=2800000&guid=73f09b4dd72404b509177cc40e4b9d53&type=3#icon_category_eyewear");
 }
 
 .wearable-category__icon--upper_body {
-    background-image: url("project://database/Assets/UI/Sprites/icon_category_upper_body.png?fileID=2800000&guid=2cae36ab70acc41c19b4f3732ec6d31c&type=3#icon_category_upper_body");
+    background-image: url("project://database/Assets/UI/Sprites/Configurator/icon_category_upper_body.png?fileID=2800000&guid=2cae36ab70acc41c19b4f3732ec6d31c&type=3#icon_category_upper_body");
 }
 
 .wearable-category__icon--facial_hair {
-    background-image: url("project://database/Assets/UI/Sprites/icon_category_facialhair.png?fileID=2800000&guid=20f85d5ea55bc4126b8884801721bc5c&type=3#icon_category_facialhair");
+    background-image: url("project://database/Assets/UI/Sprites/Configurator/icon_category_facialhair.png?fileID=2800000&guid=20f85d5ea55bc4126b8884801721bc5c&type=3#icon_category_facialhair");
 }
 
 .wearable-category__icon--lower_body {
-    background-image: url("project://database/Assets/UI/Sprites/icon_category_lower_body.png?fileID=2800000&guid=33344ee476bf646dc96498c7d90573b8&type=3#icon_category_lower_body");
+    background-image: url("project://database/Assets/UI/Sprites/Configurator/icon_category_lower_body.png?fileID=2800000&guid=33344ee476bf646dc96498c7d90573b8&type=3#icon_category_lower_body");
 }
 
 .wearable-category__icon--feet {
-    background-image: url("project://database/Assets/UI/Sprites/icon_category_feet.png?fileID=2800000&guid=a6a84e68b52774c64aa5b61127db772f&type=3#icon_category_feet");
+    background-image: url("project://database/Assets/UI/Sprites/Configurator/icon_category_feet.png?fileID=2800000&guid=a6a84e68b52774c64aa5b61127db772f&type=3#icon_category_feet");
 }
 
 .wearable-category__icon--hands_wear {
-    background-image: url("project://database/Assets/UI/Sprites/icon_category_hands_wear.png?fileID=2800000&guid=6bbb9d9f98c8e417092521c56ee4bcd0&type=3#icon_category_hands_wear");
+    background-image: url("project://database/Assets/UI/Sprites/Configurator/icon_category_hands_wear.png?fileID=2800000&guid=6bbb9d9f98c8e417092521c56ee4bcd0&type=3#icon_category_hands_wear");
 }
 
 .wearable-category__icon--earring {
-    background-image: url("project://database/Assets/UI/Sprites/icon_category_earring.png?fileID=2800000&guid=c27c8e683d22748e6a73e327d5e3aeee&type=3#icon_category_earring");
+    background-image: url("project://database/Assets/UI/Sprites/Configurator/icon_category_earring.png?fileID=2800000&guid=c27c8e683d22748e6a73e327d5e3aeee&type=3#icon_category_earring");
 }
 
 .wearable-category__icon--hair {
-    background-image: url("project://database/Assets/UI/Sprites/icon_category_hair.png?fileID=2800000&guid=9d0f857ae6b904a70bdbd9a3b5ef0dc9&type=3#icon_category_hair");
+    background-image: url("project://database/Assets/UI/Sprites/Configurator/icon_category_hair.png?fileID=2800000&guid=9d0f857ae6b904a70bdbd9a3b5ef0dc9&type=3#icon_category_hair");
 }
 
 .wearable-category__icon--eyebrows {
-    background-image: url("project://database/Assets/UI/Sprites/icon_category_eyebrows.png?fileID=2800000&guid=cee9a85e5521f4115a3369097a6a9234&type=3#icon_category_eyebrows");
+    background-image: url("project://database/Assets/UI/Sprites/Configurator/icon_category_eyebrows.png?fileID=2800000&guid=cee9a85e5521f4115a3369097a6a9234&type=3#icon_category_eyebrows");
 }
 
 .wearable-category__icon--eyes {
-    background-image: url("project://database/Assets/UI/Sprites/icon_category_eyes.png?fileID=2800000&guid=f1f2c98fdeee04c9e9f16a5d277e4f7d&type=3#icon_category_eyes");
+    background-image: url("project://database/Assets/UI/Sprites/Configurator/icon_category_eyes.png?fileID=2800000&guid=f1f2c98fdeee04c9e9f16a5d277e4f7d&type=3#icon_category_eyes");
 }
 
 .wearable-category__icon--mouth {
-    background-image: url("project://database/Assets/UI/Sprites/icon_category_mouth.png?fileID=2800000&guid=14c6f2869abdb43ddbd3607466cb9450&type=3#icon_category_mouth");
+    background-image: url("project://database/Assets/UI/Sprites/Configurator/icon_category_mouth.png?fileID=2800000&guid=14c6f2869abdb43ddbd3607466cb9450&type=3#icon_category_mouth");
 }
 
 .wearable-category__thumbnail-container {
@@ -251,7 +255,7 @@
 }
 
 .dcl-dropdown__arrow {
-    background-image: url("project://database/Assets/UI/Sprites/icon_arrow_right.png?fileID=2800000&guid=53552c8856695427aa658d914163aa30&type=3#icon_arrow_right");
+    background-image: url("project://database/Assets/UI/Sprites/Configurator/icon_arrow_right.png?fileID=2800000&guid=53552c8856695427aa658d914163aa30&type=3#icon_arrow_right");
     width: 6px;
     height: 10px;
     -unity-background-image-tint-color: rgb(0, 0, 0);

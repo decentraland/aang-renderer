@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Data;
 using UI.Elements;
+using UI.Manipulators;
 using UI.Views;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -10,30 +11,17 @@ using Utils;
 
 namespace UI
 {
-    [RequireComponent(typeof(UIDocument)), DefaultExecutionOrder(10)]
+    [DefaultExecutionOrder(10)]
     public class ConfiguratorUIPresenter : MonoBehaviour
     {
-        [SerializeField] private List<string> faceCategories;
-        [SerializeField] private List<string> bodyCategories;
+        [SerializeField] private UIDocument uiDocument;
+
+        [SerializeField] private List<CategoryDefinition> faceCategories;
+        [SerializeField] private List<CategoryDefinition> bodyCategories;
 
         // TODO: Maybe move to controller?
         [SerializeField] private Color[] presetSkinColors;
         [SerializeField] private Color[] presetHairColors;
-
-        private readonly Dictionary<string, string> categoryLocalizations = new()
-        {
-            { "eyewear", "EYEWEAR" },
-            { "upper_body", "UPPER BODY" },
-            { "facial_hair", "FACIAL HAIR" },
-            { "lower_body", "LOWER BODY" },
-            { "feet", "FEET" },
-            { "hands_wear", "HANDS" },
-            { "earring", "EARRINGS" },
-            { "hair", "HAIR" },
-            { "eyes", "EYES" },
-            { "eyebrows", "EYEBROWS" },
-            { "mouth", "MOUTH" },
-        };
 
         private VisualElement _configuratorContainer;
         private VisualElement _loader;
@@ -44,10 +32,6 @@ namespace UI
         private DCLButtonElement _confirmButton;
 
         private Label _stageTitle;
-
-        private Dictionary<string, List<EntityDefinition>> _collection;
-        private List<(string category, List<EntityDefinition> entities)> _faceEntities;
-        private List<(string category, List<EntityDefinition> entities)> _bodyEntities;
 
         // Views
         private WearablesView _headWearablesView;
@@ -60,6 +44,9 @@ namespace UI
         private Stage _currentStage = Stage.Preset;
 
         public event Action<Vector2> CharacterAreaCenterChanged;
+        public event Action<float> CharacterAreaZoom;
+        public event Action<Vector2> CharacterAreaDrag;
+
         public event Action<string> CategoryChanged;
         public event Action<Color> SkinColorSelected;
         public event Action<Color> HairColorSelected;
@@ -69,11 +56,11 @@ namespace UI
 
         private void Start()
         {
-            var root = GetComponent<UIDocument>().rootVisualElement;
+            var root = uiDocument.rootVisualElement;
 
             _configuratorContainer = root.Q("Container");
             var characterArea = root.Q("CharacterArea");
-            
+
             characterArea.RegisterCallback<GeometryChangedEvent, VisualElement>((_, area) =>
             {
                 var panel = area.panel;
@@ -87,9 +74,12 @@ namespace UI
                     offsetFromCenter.x / layoutSize.width,
                     offsetFromCenter.y / layoutSize.height
                 );
-                
+
                 CharacterAreaCenterChanged!(normalized);
             }, characterArea);
+            characterArea.RegisterCallback<WheelEvent, ConfiguratorUIPresenter>(
+                (evt, p) => p.CharacterAreaZoom!(evt.delta.y), this);
+            characterArea.AddManipulator(new DragManipulator(d => CharacterAreaDrag!(d)));
 
             _stageTitle = root.Q<Label>("StageTitle");
 
@@ -111,23 +101,23 @@ namespace UI
             var bodyTypeDropdown = root.Q<DCLDropdownElement>("BodyTypeDropdown");
             _bodyShapePopupView = new BodyShapePopupView(bodyTypeDropdown.Q("BodyTypePopup"));
             _bodyShapePopupView.BodyShapeSelected += bs => BodyShapeSelected!(bs);
-            
+
             var skinColorDropdown = root.Q<DCLDropdownElement>("SkinColorDropdown");
-            _skinColorPopupView = new ColorPopupView(skinColorDropdown.Q("ColorPopup"), skinColorDropdown.Icon, presetSkinColors);
+            _skinColorPopupView = new ColorPopupView(skinColorDropdown.Q("ColorPopup"), skinColorDropdown.Icon,
+                presetSkinColors);
             _skinColorPopupView.ColorSelected += skinColor => SkinColorSelected!(skinColor);
 
             // var hairColorDropdown = root.Q<DCLDropdownElement>("HairColorDropdown");
             // _hairColorPopupView = new ColorPopupView(hairColorDropdown.Q("ColorPopup"), hairColorDropdown.Icon,
             //     presetHairColors);
             // _hairColorPopupView.ColorSelected += hairColor => HairColorSelected!(hairColor);
-            
+
             var headWearablesContainer = root.Q("HeadWearables");
             _headWearablesView = new WearablesView(
                 headWearablesContainer,
                 headWearablesContainer.Q<Label>("CategoryHeader"),
                 headWearablesContainer.Q<VisualElement>("Sidebar"),
-                headWearablesContainer.Q("Items"),
-                categoryLocalizations
+                headWearablesContainer.Q("Items")
             );
             _headWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
             _headWearablesView.CategoryChanged += c => CategoryChanged!(c);
@@ -137,8 +127,7 @@ namespace UI
                 bodyWearablesContainer,
                 bodyWearablesContainer.Q<Label>("CategoryHeader"),
                 bodyWearablesContainer.Q<VisualElement>("Sidebar"),
-                bodyWearablesContainer.Q("Items"),
-                categoryLocalizations
+                bodyWearablesContainer.Q("Items")
             );
             _bodyWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
             _bodyWearablesView.CategoryChanged += c => CategoryChanged!(c);
@@ -240,7 +229,7 @@ namespace UI
         {
             /*
                Category: body_shape - 2
-               
+
                Category: eyewear - 14
                Category: upper_body - 56
                Category: facial_hair - 13
@@ -254,11 +243,20 @@ namespace UI
                Category: mouth - 20
              */
 
-            _faceEntities = faceCategories.Select(cat => (cat, collection[cat].Prepend(null).ToList())).ToList();
-            _bodyEntities = bodyCategories.Select(cat => (cat, collection[cat].Prepend(null).ToList())).ToList();
+            var faceEntities = faceCategories.Select(cat =>
+                (cat.id, cat.title, cat.defaultThumbnail, collection[cat.id].Prepend(null).ToList())).ToList();
+            _headWearablesView.SetCollection(faceEntities);
 
-            _headWearablesView.SetCollection(_faceEntities);
-            _bodyWearablesView.SetCollection(_bodyEntities);
+            var bodyEntities = bodyCategories.Select(cat =>
+                (cat.id, cat.title, cat.defaultThumbnail, collection[cat.id].Prepend(null).ToList())).ToList();
+            _bodyWearablesView.SetCollection(bodyEntities);
+
+
+            // _faceEntities = faceCategories.Select(cat => (cat, collection[cat].Prepend(null).ToList())).ToList();
+            // _bodyEntities = bodyCategories.Select(cat => (cat, collection[cat].Prepend(null).ToList())).ToList();
+
+            // _headWearablesView.SetCollection(_faceEntities);
+            // _bodyWearablesView.SetCollection(_bodyEntities);
         }
 
         public void SetBodyShape(BodyShape bodyShape)
@@ -275,6 +273,14 @@ namespace UI
         public void ClearPresetSelection()
         {
             _presetsView.ClearSelection();
+        }
+
+        [Serializable]
+        private class CategoryDefinition
+        {
+            public string id;
+            public string title;
+            public Texture2D defaultThumbnail;
         }
 
         private enum Stage

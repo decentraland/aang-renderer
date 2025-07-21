@@ -9,15 +9,13 @@ namespace UI.Elements
     public partial class WearableItemElement : PreviewButtonElement
     {
         private const string USS_BLOCK = "wearable-preview-button";
-        private const string USS_BLANK = USS_BLOCK + "--blank-{0}";
 
         public Action<WearableItemElement> WearableClicked { get; set; }
-
-        public string WearableCategory { get; private set; }
         public EntityDefinition Wearable { get; private set; }
-
+        public Texture2D EmptyTexture { get; set; }
+        
         private int textureRequestHandle = 0;
-
+        
         public WearableItemElement()
         {
             AddToClassList(USS_BLOCK);
@@ -25,7 +23,7 @@ namespace UI.Elements
             Clicked += () => WearableClicked?.Invoke(this);
         }
 
-        public void SetWearable(EntityDefinition wearable, string wearableCategory)
+        public void SetWearable(EntityDefinition wearable)
         {
             if (textureRequestHandle > 0)
             {
@@ -33,18 +31,11 @@ namespace UI.Elements
                 textureRequestHandle = 0;
             }
 
-            if (Wearable == null && WearableCategory != null)
-            {
-                RemoveFromClassList(string.Format(USS_BLANK, WearableCategory));
-            }
-
             Wearable = wearable;
-            WearableCategory = wearableCategory;
 
             if (Wearable == null)
             {
-                AddToClassList(string.Format(USS_BLANK, wearableCategory));
-                SetTexture(null);
+                SetTexture(EmptyTexture);
             }
             else
             {
