@@ -55,7 +55,7 @@
 
 .customization-window__header-bar {
     height: 4px;
-    background-color: rgb(255, 127, 0);
+    background-image: url("project://database/Assets/UI/Sprites/Configurator/header_gradient.png?fileID=2800000&guid=13a6c17620ed745efb50f3df36e4f44c&type=3#header_gradient");
 }
 
 .customization-window__body {
