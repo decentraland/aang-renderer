@@ -4,6 +4,8 @@
     --dcl-color-snow: rgb(252, 252, 252);
     --dcl-color-ruby: rgb(255, 45, 85);
     --dcl-color-white_70: rgba(255, 255, 255, 0.7);
+
+    -unity-font-definition: url("project://database/Assets/UI/Font/Inter_18pt-Regular%20SDF.asset?fileID=11400000&guid=ac33835a7d3724b99af9e75a108d285d&type=2#Inter_18pt-Regular SDF");
 }
 
 .dcl-clickable {
