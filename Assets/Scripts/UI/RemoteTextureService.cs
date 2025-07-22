@@ -110,6 +110,8 @@ namespace UI
                 var url = _requestQueue.First.Value;
                 _requestQueue.RemoveFirst();
 
+                if (_cachedTextures.ContainsKey(url) || _requests.Contains(url)) continue;
+
                 StartCoroutine(LoadImage(url));
             }
         }
@@ -118,7 +120,6 @@ namespace UI
         {
             _requests.Add(url);
 
-            // Debug.Log($"Loading texture URL: {url}");
             var request = UnityWebRequestTexture.GetTexture(url);
 
             await request.SendWebRequest();

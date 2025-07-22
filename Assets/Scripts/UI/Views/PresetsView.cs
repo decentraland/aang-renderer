@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Data;
 using UI.Elements;
 using UnityEngine.Assertions;
 using UnityEngine.UIElements;
@@ -9,21 +8,22 @@ namespace UI.Views
 {
     public class PresetsView : StageView
     {
-        public event Action<ProfileResponse.Avatar.AvatarData> PresetSelected;
+        public event Action<PresetDefinition> PresetSelected;
 
         private PreviewButtonElement _selectedPreset;
 
         private readonly List<PreviewButtonElement> _previewButtons;
-        private ProfileResponse.Avatar.AvatarData[] _presets;
+        private PresetDefinition[] _presets;
 
         public override string SelectedCategory => null;
 
-        public PresetsView(VisualElement root, string title, string confirmButtonText, int confirmButtonWidth, bool canSkip) : base(root,  title, confirmButtonText, confirmButtonWidth, canSkip)
+        public PresetsView(VisualElement root, string title, string confirmButtonText, int confirmButtonWidth,
+            bool canSkip) : base(root, title, confirmButtonText, confirmButtonWidth, canSkip)
         {
             _previewButtons = root.Q("Body").Query<PreviewButtonElement>().ToList();
         }
 
-        public void SetPresets(ProfileResponse.Avatar.AvatarData[] presets, int initialSelection)
+        public void SetPresets(PresetDefinition[] presets, int initialSelection)
         {
             Assert.AreEqual(presets.Length, _previewButtons.Count);
 
@@ -43,9 +43,8 @@ namespace UI.Views
                     _selectedPreset = button;
                 }
 
-                // TODO: Error handling
-                RemoteTextureService.Instance.RequestTexture(presetAvatar.snapshots.body,
-                    tex => button.SetTexture(tex));
+                // TODO: Error handling?
+                RemoteTextureService.Instance.RequestTexture(presetAvatar.thumbnail, tex => button.SetTexture(tex));
             }
         }
 

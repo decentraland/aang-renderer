@@ -15,10 +15,6 @@ namespace UI
     {
         [SerializeField] private UIDocument uiDocument;
 
-        // TODO: Maybe move to controller?
-        [SerializeField] private Color[] presetSkinColors;
-        [SerializeField] private Color[] presetHairColors;
-
         private VisualElement _configuratorContainer;
         private VisualElement _loader;
         private VisualElement _loaderIcon;
@@ -52,7 +48,7 @@ namespace UI
         public event Action<Color> HairColorSelected;
         public event Action<BodyShape> BodyShapeSelected;
         public event Action<string, EntityDefinition> WearableSelected;
-        public event Action<ProfileResponse.Avatar.AvatarData> PresetSelected;
+        public event Action<PresetDefinition> PresetSelected;
 
         public event Action Confirmed;
 
@@ -110,8 +106,7 @@ namespace UI
             _bodyShapePopupView.BodyShapeSelected += bs => BodyShapeSelected!(bs);
 
             var skinColorDropdown = root.Q<DCLDropdownElement>("SkinColorDropdown");
-            _skinColorPopupView = new ColorPopupView(skinColorDropdown.Q("ColorPopup"), skinColorDropdown.Icon,
-                presetSkinColors);
+            _skinColorPopupView = new ColorPopupView(skinColorDropdown.Q("ColorPopup"), skinColorDropdown.Icon);
             _skinColorPopupView.ColorSelected += skinColor => SkinColorSelected!(skinColor);
 
             // var hairColorDropdown = root.Q<DCLDropdownElement>("HairColorDropdown");
@@ -158,7 +153,7 @@ namespace UI
 
             _stages[_currentStageIndex].HideRight();
             _stages[--_currentStageIndex].Show();
-            
+
             RefreshCurrentStage();
         }
 
@@ -182,7 +177,7 @@ namespace UI
             _stageTitle.text = string.Format(stage.Title, _username);
             _confirmButton.Text = stage.ConfirmButtonText;
             _confirmButton.style.width = stage.ConfirmButtonWidth;
-            
+
             _skipButton.EnableInClassList("dcl-button--hidden-down", !stage.CanSkip);
             _backButton.EnableInClassList("dcl-button--hidden-down", _currentStageIndex == 0);
             // _skipButton.SetDisplay(stage.CanSkip);
@@ -208,9 +203,11 @@ namespace UI
             _username = username;
         }
 
-        public void SetPresets(ProfileResponse.Avatar.AvatarData[] presets, int randomPresetIndex)
+        public void SetPresets(PresetDefinition[] avatarPresets, int selectedAvatarPresetIndex,
+            Color[] skinColorPresets, Color[] hairColorPresets)
         {
-            _presetsView.SetPresets(presets, randomPresetIndex);
+            _skinColorPopupView.SetColors(skinColorPresets);
+            _presetsView.SetPresets(avatarPresets, selectedAvatarPresetIndex);
         }
 
         public void SetCollection(List<CategoryDefinition> faceCollection, List<CategoryDefinition> bodyCollection)
@@ -249,13 +246,6 @@ namespace UI
         public void ClearPresetSelection()
         {
             _presetsView.ClearSelection();
-        }
-
-        private enum Stage
-        {
-            Preset,
-            Face,
-            Body
         }
     }
 }

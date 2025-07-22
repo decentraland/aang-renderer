@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -9,13 +10,17 @@ namespace UI.Views
         public event Action<Color> ColorSelected;
 
         private readonly VisualElement _icon;
+        private readonly VisualElement _container;
 
-        public ColorPopupView(VisualElement root, VisualElement icon, Color[] colors)
+        public ColorPopupView(VisualElement root, VisualElement icon)
         {
             _icon = icon;
+            _container = root.Q("PresetsContainer");
+        }
 
-            var presetsContainer = root.Q("PresetsContainer");
-            presetsContainer.Clear();
+        public void SetColors(Color[] colors)
+        {
+            _container.Clear();
 
             foreach (var color in colors)
             {
@@ -24,8 +29,8 @@ namespace UI.Views
                 preset.AddToClassList("dcl-clickable");
                 preset.style.backgroundColor = color;
                 preset.AddManipulator(new Clickable(() => OnColorSelected(color)));
-                
-                presetsContainer.Add(preset);
+
+                _container.Add(preset);
             }
         }
 

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Data;
 using UI;
 using UnityEngine;
@@ -17,12 +16,14 @@ public class ConfiguratorController : MonoBehaviour
     [SerializeField] private PreviewRotator previewRotator;
     [SerializeField] private GameObject platform;
 
-    [SerializeField] private List<string> presetAvatars;
-    [SerializeField] private List<string> tempPresetAvatarConfigs;
-    [SerializeField] private string[] wearableCollection;
-
     [SerializeField] private List<CategoryDefinition> faceCategories;
     [SerializeField] private List<CategoryDefinition> bodyCategories;
+
+    [FormerlySerializedAs("presets")] [Header("Presets")] [SerializeField]
+    private PresetDefinition[] avatarPresets;
+
+    [SerializeField] private Color[] skinColorPresets;
+    [SerializeField] private Color[] hairColorPresets;
 
     private BodyShape _bodyShape;
     private readonly Dictionary<string, EntityDefinition> _selectedItems = new();
@@ -30,8 +31,6 @@ public class ConfiguratorController : MonoBehaviour
     private Color _hairColor;
     private Color _eyeColor;
     private EntityDefinition _emoteToLoad;
-
-    private ProfileResponse.Avatar.AvatarData[] _allPresets;
 
     public bool UseBrowserPreload { get; set; }
     public string Username { get; set; }
@@ -44,11 +43,6 @@ public class ConfiguratorController : MonoBehaviour
         uiPresenter.SkinColorSelected += OnSkinColorSelected;
         uiPresenter.CharacterAreaDrag += previewRotator.OnDrag;
         uiPresenter.Confirmed += OnConfirmed;
-
-        // TODO: Temporary colors
-        _skinColor = new Color(1f, 0.894f, 0.776f);
-        _hairColor = new Color(0.549f, 0.125f, 0.078f);
-        _eyeColor = new Color(0.125f, 0.702f, 0.965f);
 
         StartCoroutine(InitialLoad());
     }
@@ -117,25 +111,25 @@ public class ConfiguratorController : MonoBehaviour
         StartCoroutine(ReloadPreview());
     }
 
-    private void OnPresetSelected(ProfileResponse.Avatar.AvatarData avatar)
+    private void OnPresetSelected(PresetDefinition preset)
     {
-        UpdateCurrentAvatar(avatar);
+        SetPreset(preset);
 
         StartCoroutine(ReloadPreview());
     }
 
-    private void UpdateCurrentAvatar(ProfileResponse.Avatar.AvatarData avatar)
+    private void SetPreset(PresetDefinition preset)
     {
         _selectedItems.Clear();
 
-        _bodyShape = avatar.bodyShape == WearablesConstants.BODY_SHAPE_MALE ? BodyShape.Male : BodyShape.Female;
-        _skinColor = avatar.skin.color;
-        _hairColor = avatar.hair.color;
-        _eyeColor = avatar.eyes.color;
+        _bodyShape = preset.bodyShape;
+        _skinColor = preset.skinColor;
+        _hairColor = preset.hairColor;
+        _eyeColor = preset.eyeColor;
 
         _emoteToLoad = GetEmote(_bodyShape);
 
-        foreach (var urn in avatar.wearables)
+        foreach (var urn in preset.urns)
         {
             var wearable = EntityService.GetCachedEntity(urn);
             _selectedItems[wearable.Category] = wearable;
@@ -155,7 +149,6 @@ public class ConfiguratorController : MonoBehaviour
     private async Awaitable InitialLoad()
     {
         Debug.Log("Initial loading...");
-        // var avatarTasks = presetAvatars.Select(LoadAvatar);
 
         var allUrns = faceCategories.Union(bodyCategories)
             .SelectMany(c => c.urns).Where(urn => !string.IsNullOrEmpty(urn))
@@ -176,22 +169,11 @@ public class ConfiguratorController : MonoBehaviour
             }
         }
 
-        Debug.Log("Waiting for avatars...");
-        //_allPresets = await Task.WhenAll(avatarTasks);
-        _allPresets = tempPresetAvatarConfigs.Select(LoadAvatarConfig).ToArray();
-
-        // TODO TEMP: Fixes avatars that have wearables we don't
-        foreach (var ad in _allPresets)
-        {
-            ad.wearables = ad.wearables.Where(urn => entityDict.ContainsKey(urn)).ToArray();
-        }
-
-        var randomPresetIndex = Random.Range(0, presetAvatars.Count);
+        var randomPresetIndex = Random.Range(0, avatarPresets.Length);
 
         // Preload thumbnails
-        // TODO: Remove distinct
         RemoteTextureService.Instance.Pause(true);
-        foreach (var preset in _allPresets.Select(p => p.snapshots.body).Distinct())
+        foreach (var preset in avatarPresets.Select(p => p.thumbnail))
         {
             RemoteTextureService.Instance.PreloadTexture(preset);
         }
@@ -204,11 +186,11 @@ public class ConfiguratorController : MonoBehaviour
         // Set data
         uiPresenter.SetUsername(Username);
         uiPresenter.SetCollection(faceCategories, bodyCategories);
-        uiPresenter.SetPresets(_allPresets, randomPresetIndex);
+        uiPresenter.SetPresets(avatarPresets, randomPresetIndex, skinColorPresets, hairColorPresets);
         RemoteTextureService.Instance.Pause(false);
 
         // Load initial preset
-        UpdateCurrentAvatar(_allPresets[randomPresetIndex]);
+        SetPreset(avatarPresets[randomPresetIndex]);
 
         await ReloadPreview();
 
@@ -237,56 +219,64 @@ public class ConfiguratorController : MonoBehaviour
         }
     }
 
-    private static async Task<ProfileResponse.Avatar.AvatarData> LoadAvatar(string avatarID)
-    {
-        var avatar = await APIService.GetAvatar(avatarID);
+    // private static async Task<ProfileResponse.Avatar.AvatarData> LoadAvatar(string avatarID)
+    // {
+    //     var avatar = await APIService.GetAvatar(avatarID);
+    //
+    //     // Fix wearables
+    //     for (var i = 0; i < avatar.wearables.Length; i++)
+    //     {
+    //         avatar.wearables[i] = avatar.wearables[i].ToLowerInvariant();
+    //     }
+    //
+    //     return avatar;
+    // }
 
-        // Fix wearables
-        for (var i = 0; i < avatar.wearables.Length; i++)
-        {
-            avatar.wearables[i] = avatar.wearables[i].ToLowerInvariant();
-        }
-
-        return avatar;
-    }
-
-    private static ProfileResponse.Avatar.AvatarData LoadAvatarConfig(string presetString)
-    {
-        var split = presetString.Split('\t', StringSplitOptions.RemoveEmptyEntries);
-        var bodyType = split[1] == "BaseFemale" ? BodyShape.Female : BodyShape.Male;
-        var bodyColor = ColorUtility.TryParseHtmlString("#" + split[2], out var bc)
-            ? bc
-            : throw new Exception("Invalid body color");
-        var hairColor = ColorUtility.TryParseHtmlString("#" + split[3], out var hc)
-            ? hc
-            : throw new Exception("Invalid hair color");
-        var eyeColor = ColorUtility.TryParseHtmlString("#" + split[4], out var ec)
-            ? ec
-            : throw new Exception("Invalid eye color");
-
-        var urns = split.Where(s => s.StartsWith("urn")).ToArray();
-
-        var avatarData = new ProfileResponse.Avatar.AvatarData
-        {
-            bodyShape = bodyType == BodyShape.Female
-                ? WearablesConstants.BODY_SHAPE_FEMALE
-                : WearablesConstants
-                    .BODY_SHAPE_MALE,
-            wearables = urns,
-            skin = new ProfileResponse.Avatar.AvatarData.ColorData { color = bodyColor },
-            hair = new ProfileResponse.Avatar.AvatarData.ColorData { color = hairColor },
-            eyes = new ProfileResponse.Avatar.AvatarData.ColorData { color = eyeColor },
-            snapshots = new ProfileResponse.Avatar.AvatarData.Snapshot
-            {
-                body =
-                    "https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png"
-            }
-        };
-        
-        Debug.Log(JsonUtility.ToJson(avatarData));
-        
-        return avatarData;
-    }
+    // private static PresetDefinition LoadAvatarConfig(string presetString)
+    // {
+    //     var split = presetString.Split('\t', StringSplitOptions.RemoveEmptyEntries);
+    //     var bodyType = split[1] == "BaseFemale" ? BodyShape.Female : BodyShape.Male;
+    //     var bodyColor = ColorUtility.TryParseHtmlString("#" + split[2], out var bc)
+    //         ? bc
+    //         : throw new Exception("Invalid body color");
+    //     var hairColor = ColorUtility.TryParseHtmlString("#" + split[3], out var hc)
+    //         ? hc
+    //         : throw new Exception("Invalid hair color");
+    //     var eyeColor = ColorUtility.TryParseHtmlString("#" + split[4], out var ec)
+    //         ? ec
+    //         : throw new Exception("Invalid eye color");
+    //
+    //     var urns = split.Where(s => s.StartsWith("urn")).ToArray();
+    //
+    //     var avatarData = new ProfileResponse.Avatar.AvatarData
+    //     {
+    //         bodyShape = bodyType == BodyShape.Female
+    //             ? WearablesConstants.BODY_SHAPE_FEMALE
+    //             : WearablesConstants
+    //                 .BODY_SHAPE_MALE,
+    //         wearables = urns,
+    //         skin = new ProfileResponse.Avatar.AvatarData.ColorData { color = bodyColor },
+    //         hair = new ProfileResponse.Avatar.AvatarData.ColorData { color = hairColor },
+    //         eyes = new ProfileResponse.Avatar.AvatarData.ColorData { color = eyeColor },
+    //         snapshots = new ProfileResponse.Avatar.AvatarData.Snapshot
+    //         {
+    //             body =
+    //                 "https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png"
+    //         }
+    //     };
+    //
+    //     Debug.Log(JsonUtility.ToJson(avatarData));
+    //
+    //     return new PresetDefinition()
+    //     {
+    //         bodyShape = bodyType,
+    //         skinColor = bodyColor,
+    //         hairColor = hairColor,
+    //         eyeColor = eyeColor,
+    //         urns = urns,
+    //         thumbnail = "https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png"
+    //     };
+    // }
 }
 
 [Serializable]
@@ -301,4 +291,15 @@ public class CategoryDefinition
     public string[] urns;
 
     public List<EntityDefinition> Definitions { get; private set; } = new(20);
+}
+
+[Serializable]
+public class PresetDefinition
+{
+    public BodyShape bodyShape;
+    public Color skinColor;
+    public Color hairColor;
+    public Color eyeColor;
+    public string thumbnail;
+    public string[] urns;
 }

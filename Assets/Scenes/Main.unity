@@ -839,6 +839,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8466864542827950876, guid: bbf00bb69105249148a4e1fe40b7ba18, type: 3}
   m_PrefabInstance: {fileID: 1961106573}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &2024049986 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 128174000945446214, guid: bbf00bb69105249148a4e1fe40b7ba18, type: 3}
+  m_PrefabInstance: {fileID: 1961106573}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &2069270308 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1571769459588469522, guid: 77a74a14408e74041baaa38e7122d9f2, type: 3}
@@ -1254,7 +1259,7 @@ Transform:
   m_GameObject: {fileID: 1411485568905184141}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.3913292, y: -0.02, z: -3.57}
+  m_LocalPosition: {x: -1.5556473, y: -0.02, z: -3.57}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1616,217 +1621,7 @@ MonoBehaviour:
   uiPresenter: {fileID: 4634088016188469603}
   avatarLoader: {fileID: 8085770638703914883}
   previewRotator: {fileID: 7801264601496514888}
-  platform: {fileID: 301374863}
-  presetAvatars:
-  - default70
-  - default71
-  - default72
-  - default73
-  - default74
-  - default75
-  - default81
-  - default82
-  - default83
-  - default84
-  - default85
-  - default86
-  tempPresetAvatarConfigs:
-  - "1\t\tBaseFemale\tDDB18F\t985F38\t1C1C1C\turn:decentraland:off-chain:base-avatars:standard_hair\turn:decentraland:off-chain:base-avatars:f_eyes_00\turn:decentraland:off-chain:base-avatars:f_eyebrows_00\turn:decentraland:off-chain:base-avatars:f_mouth_02\t{UNEQUIPPED}\turn:decentraland:off-chain:base-avatars:f_sweater\turn:decentraland:off-chain:base-avatars:f_jeans\turn:decentraland:off-chain:base-avatars:bun_shoes\t{UNEQUIPPED}\t{UNEQUIPPED}\t{UNEQUIPPED}\t\t\t\t\t\t\t\t\t\t"
-  - "2\t\tBaseMale\tFFDDBC\t3D220D\t1C1C1C\turn:decentraland:off-chain:base-avatars:casual_hair_01\turn:decentraland:off-chain:base-avatars:eyes_00\turn:decentraland:off-chain:base-avatars:eyebrows_00\turn:decentraland:off-chain:base-avatars:f_mouth_04\turn:decentraland:off-chain:base-avatars:beard\turn:decentraland:off-chain:base-avatars:green_hoodie\turn:decentraland:off-chain:base-avatars:f_brown_trousers\turn:decentraland:off-chain:base-avatars:sneakers\t{UNEQUIPPED}\t{UNEQUIPPED}\t{UNEQUIPPED}\t\t\t\t\t\t\t\t\t\t"
-  - "3\t\tBaseFemale\t3D2216\t7C4916\tBF9E5A\turn:decentraland:off-chain:base-avatars:rasta\turn:decentraland:off-chain:base-avatars:eyes_08\turn:decentraland:off-chain:base-avatars:eyebrows_09\turn:decentraland:off-chain:base-avatars:mouth_01\t{UNEQUIPPED}\turn:decentraland:off-chain:base-avatars:m_sweater_02\turn:decentraland:off-chain:base-avatars:swim_short\turn:decentraland:off-chain:base-avatars:m_greenflipflops\t{UNEQUIPPED}\t{UNEQUIPPED}\t{UNEQUIPPED}\t\t\t\t\t\t\t\t\t\t"
-  - "4\t\tBaseFemale\tACFFFC\tFF00C5\tFF00C5\turn:decentraland:off-chain:base-avatars:tall_front_01\turn:decentraland:off-chain:base-avatars:f_eyes_04\turn:decentraland:off-chain:base-avatars:f_eyebrows_06\turn:decentraland:off-chain:base-avatars:f_mouth_00\t{UNEQUIPPED}\turn:decentraland:off-chain:base-avatars:brown_sleveless_dress\turn:decentraland:off-chain:base-avatars:f_brown_skirt\turn:decentraland:off-chain:base-avatars:citycomfortableshoes\t{UNEQUIPPED}\t{UNEQUIPPED}\t{UNEQUIPPED}\t\t\t\t\t\t\t\t\t\t"
-  - "5\t\tBaseFemale\tF2C2A5\tFFBE26\t866042\turn:decentraland:off-chain:base-avatars:curly_hair\turn:decentraland:off-chain:base-avatars:eyes_03\turn:decentraland:off-chain:base-avatars:eyebrows_00\turn:decentraland:off-chain:base-avatars:f_mouth_03\t{UNEQUIPPED}\turn:decentraland:off-chain:base-avatars:f_body_swimsuit\turn:decentraland:off-chain:base-avatars:f_yoga_trousers\turn:decentraland:off-chain:base-avatars:espadrilles\t{UNEQUIPPED}\turn:decentraland:off-chain:base-avatars:dcl_watch\turn:decentraland:off-chain:base-avatars:pink_gem_earring\t\t\t\t\t\t\t\t\t\t"
-  - "6\t\tBaseMale\tFFDDBC\t1C1C1C\t1C1C1C\turn:decentraland:off-chain:base-avatars:curtained_hair\turn:decentraland:off-chain:base-avatars:f_eyes_05\turn:decentraland:off-chain:base-avatars:eyebrows_05\turn:decentraland:off-chain:base-avatars:mouth_06\t{UNEQUIPPED}\turn:decentraland:off-chain:base-avatars:red_square_shirt\turn:decentraland:off-chain:base-avatars:hip_hop_joggers\turn:decentraland:off-chain:base-avatars:bear_slippers\t{UNEQUIPPED}\turn:decentraland:off-chain:base-avatars:black_glove\t{UNEQUIPPED}\t\t\t\t\t\t\t\t\t\t"
-  - "7\t\tBaseFemale\tDDB18F\tACFFBC\tACFFBC\turn:decentraland:off-chain:base-avatars:double_bun\turn:decentraland:off-chain:base-avatars:f_eyes_10\turn:decentraland:off-chain:base-avatars:f_eyebrows_03\turn:decentraland:off-chain:base-avatars:f_mouth_02\t{UNEQUIPPED}\turn:decentraland:off-chain:base-avatars:black_top\turn:decentraland:off-chain:base-avatars:jean_shorts\turn:decentraland:off-chain:base-avatars:sport_colored_shoes\turn:decentraland:off-chain:base-avatars:cyclope\turn:decentraland:off-chain:base-avatars:dcl_watch\t{UNEQUIPPED}\t\t\t\t\t\t\t\t\t\t"
-  - "8\t\tBaseFemale\tFFE4C6\t1C1C1C\t387CB0\turn:decentraland:off-chain:base-avatars:hair_anime_01\turn:decentraland:off-chain:base-avatars:f_eyes_08\turn:decentraland:off-chain:base-avatars:f_eyebrows_02\turn:decentraland:off-chain:base-avatars:f_mouth_05\t{UNEQUIPPED}\turn:decentraland:off-chain:base-avatars:school_shirt\turn:decentraland:off-chain:base-avatars:f_school_skirt\turn:decentraland:off-chain:base-avatars:schoolshoes\t{UNEQUIPPED}\t{UNEQUIPPED}\turn:decentraland:off-chain:base-avatars:blue_star_earring\t\t\t\t\t\t\t\t\t\t"
-  - "9\t\tBaseMale\tF2C2A5\t8C2216\t1C1C1C\turn:decentraland:off-chain:base-avatars:keanu_hair\turn:decentraland:off-chain:base-avatars:eyes_15\turn:decentraland:off-chain:base-avatars:eyebrows_12\turn:decentraland:off-chain:base-avatars:f_mouth_02\turn:decentraland:off-chain:base-avatars:handlebar\turn:decentraland:off-chain:base-avatars:f_pride_t_shirt\turn:decentraland:off-chain:base-avatars:basketball_shorts\turn:decentraland:off-chain:base-avatars:ruby_red_loafer\t{UNEQUIPPED}\turn:decentraland:off-chain:base-avatars:emerald_ring\t{UNEQUIPPED}\t\t\t\t\t\t\t\t\t\t"
-  - "10\t\tBaseMale\t00EBB7\tAF00FF\t1C1C1C\turn:decentraland:off-chain:base-avatars:punk\turn:decentraland:off-chain:base-avatars:eyes_20\turn:decentraland:off-chain:base-avatars:eyebrows_14\turn:decentraland:off-chain:base-avatars:mouth_10\t{UNEQUIPPED}\turn:decentraland:off-chain:base-avatars:black_jacket\turn:decentraland:off-chain:base-avatars:distressed_black_jeans\turn:decentraland:off-chain:base-avatars:comfy_sport_sandals\t{UNEQUIPPED}\t{UNEQUIPPED}\t{UNEQUIPPED}\t\t\t\t\t\t\t\t\t\t"
-  - "11\t\tBaseMale\tFFDDBC\t7C4916\t387CB0\turn:decentraland:off-chain:base-avatars:modern_hair\turn:decentraland:off-chain:base-avatars:eyes_11\turn:decentraland:off-chain:base-avatars:eyebrows_01\turn:decentraland:off-chain:base-avatars:f_mouth_01\t{UNEQUIPPED}\turn:decentraland:off-chain:base-avatars:striped_shirt_01\turn:decentraland:off-chain:base-avatars:trash_jean\turn:decentraland:off-chain:base-avatars:m_mountainshoes.glb\t{UNEQUIPPED}\turn:decentraland:off-chain:base-avatars:cord_bracelet\t{UNEQUIPPED}\t\t\t\t\t\t\t\t\t\t"
-  - "12\t\tBaseMale\t7D5D47\t1C1C1C\t1C1C1C\turn:decentraland:off-chain:base-avatars:slicked_hair\turn:decentraland:off-chain:base-avatars:eyes_01\turn:decentraland:off-chain:base-avatars:f_eyebrows_05\turn:decentraland:off-chain:base-avatars:mouth_06\turn:decentraland:off-chain:base-avatars:mustache_short_beard\turn:decentraland:off-chain:base-avatars:sleeveless_punk_shirt\turn:decentraland:off-chain:base-avatars:f_sport_shorts\turn:decentraland:off-chain:base-avatars:sport_black_shoes\turn:decentraland:off-chain:base-avatars:black_sun_glasses\t{UNEQUIPPED}\t{UNEQUIPPED}\t\t\t\t\t\t\t\t\t\t"
-  wearableCollection:
-  - urn:decentraland:off-chain:base-avatars:black_sun_glasses
-  - urn:decentraland:off-chain:base-avatars:f_glasses_fashion
-  - urn:decentraland:off-chain:base-avatars:aviatorstyle
-  - urn:decentraland:off-chain:base-avatars:cyclope
-  - urn:decentraland:off-chain:base-avatars:f_glasses
-  - urn:decentraland:off-chain:base-avatars:f_glasses_cat_style
-  - urn:decentraland:off-chain:base-avatars:f_glasses_city
-  - urn:decentraland:off-chain:base-avatars:heart_glasses
-  - urn:decentraland:off-chain:base-avatars:italian_director
-  - urn:decentraland:off-chain:base-avatars:matrix_sunglasses
-  - urn:decentraland:off-chain:base-avatars:piratepatch
-  - urn:decentraland:off-chain:base-avatars:retro_sunglasses
-  - urn:decentraland:off-chain:base-avatars:rounded_sun_glasses
-  - urn:decentraland:off-chain:base-avatars:thug_life
-  - urn:decentraland:off-chain:base-avatars:f_pride_t_shirt
-  - urn:decentraland:off-chain:base-avatars:f_red_elegant_jacket
-  - urn:decentraland:off-chain:base-avatars:f_simple_yellow_tshirt
-  - urn:decentraland:off-chain:base-avatars:f_white_shirt
-  - urn:decentraland:off-chain:base-avatars:green_hoodie
-  - urn:decentraland:off-chain:base-avatars:light_green_shirt
-  - urn:decentraland:off-chain:base-avatars:red_square_shirt
-  - urn:decentraland:off-chain:base-avatars:simple_blue_tshirt
-  - urn:decentraland:off-chain:base-avatars:sleeveless_punk_shirt
-  - urn:decentraland:off-chain:base-avatars:striped_pijama
-  - urn:decentraland:off-chain:base-avatars:turtle_neck_sweater
-  - urn:decentraland:off-chain:base-avatars:yellow_tshirt
-  - urn:decentraland:off-chain:base-avatars:baggy_pullover
-  - urn:decentraland:off-chain:base-avatars:bee_t_shirt
-  - urn:decentraland:off-chain:base-avatars:black_jacket
-  - urn:decentraland:off-chain:base-avatars:black_top
-  - urn:decentraland:off-chain:base-avatars:blue_tshirt
-  - urn:decentraland:off-chain:base-avatars:brown_sleveless_dress
-  - urn:decentraland:off-chain:base-avatars:colored_sweater
-  - urn:decentraland:off-chain:base-avatars:beard
-  - urn:decentraland:off-chain:base-avatars:full_beard
-  - urn:decentraland:off-chain:base-avatars:granpa_beard
-  - urn:decentraland:off-chain:base-avatars:horseshoe_beard
-  - urn:decentraland:off-chain:base-avatars:balbo_beard
-  - urn:decentraland:off-chain:base-avatars:chin_beard
-  - urn:decentraland:off-chain:base-avatars:french_beard
-  - urn:decentraland:off-chain:base-avatars:goatee_beard
-  - urn:decentraland:off-chain:base-avatars:handlebar
-  - urn:decentraland:off-chain:base-avatars:lincoln_beard
-  - urn:decentraland:off-chain:base-avatars:mustache_short_beard
-  - urn:decentraland:off-chain:base-avatars:old_mustache_beard
-  - urn:decentraland:off-chain:base-avatars:short_boxed_beard
-  - urn:decentraland:off-chain:base-avatars:basefemale
-  - urn:decentraland:off-chain:base-avatars:basemale
-  - urn:decentraland:off-chain:base-avatars:brown_pants
-  - urn:decentraland:off-chain:base-avatars:f_african_leggins
-  - urn:decentraland:off-chain:base-avatars:f_country_pants
-  - urn:decentraland:off-chain:base-avatars:f_red_comfy_pants
-  - urn:decentraland:off-chain:base-avatars:f_red_modern_pants
-  - urn:decentraland:off-chain:base-avatars:f_short_blue_jeans
-  - urn:decentraland:off-chain:base-avatars:kilt
-  - urn:decentraland:off-chain:base-avatars:pijama_pants
-  - urn:decentraland:off-chain:base-avatars:soccer_pants
-  - urn:decentraland:off-chain:base-avatars:trash_jean
-  - urn:decentraland:off-chain:base-avatars:distressed_black_jeans
-  - urn:decentraland:off-chain:base-avatars:basketball_shorts
-  - urn:decentraland:off-chain:base-avatars:brown_pants_02
-  - urn:decentraland:off-chain:base-avatars:cargo_shorts
-  - urn:decentraland:off-chain:base-avatars:comfortablepants
-  - urn:decentraland:off-chain:base-avatars:corduroygreenpants
-  - urn:decentraland:off-chain:base-avatars:corduroypurplepants
-  - urn:decentraland:off-chain:base-avatars:elegant_blue_trousers
-  - urn:decentraland:off-chain:base-avatars:f_brown_skirt
-  - urn:decentraland:off-chain:base-avatars:bear_slippers
-  - urn:decentraland:off-chain:base-avatars:citycomfortableshoes
-  - urn:decentraland:off-chain:base-avatars:classic_shoes
-  - urn:decentraland:off-chain:base-avatars:comfy_sport_sandals
-  - urn:decentraland:off-chain:base-avatars:m_mountainshoes.glb
-  - urn:decentraland:off-chain:base-avatars:pink_blue_socks
-  - urn:decentraland:off-chain:base-avatars:pink_sleepers
-  - urn:decentraland:off-chain:base-avatars:ruby_red_loafer
-  - urn:decentraland:off-chain:base-avatars:sneakers
-  - urn:decentraland:off-chain:base-avatars:sport_colored_shoes
-  - urn:decentraland:off-chain:base-avatars:bun_shoes
-  - urn:decentraland:off-chain:base-avatars:comfy_green_sandals
-  - urn:decentraland:off-chain:base-avatars:crocs
-  - urn:decentraland:off-chain:base-avatars:crocsocks
-  - urn:decentraland:off-chain:base-avatars:espadrilles
-  - urn:decentraland:off-chain:base-avatars:f_m_sandals
-  - urn:decentraland:off-chain:base-avatars:m_feet_soccershoes
-  - urn:decentraland:off-chain:base-avatars:moccasin
-  - urn:decentraland:off-chain:base-avatars:red_sandals
-  - urn:decentraland:off-chain:base-avatars:black_glove
-  - urn:decentraland:off-chain:base-avatars:cord_bracelet
-  - urn:decentraland:off-chain:base-avatars:dcl_watch
-  - urn:decentraland:off-chain:base-avatars:emerald_ring
-  - urn:decentraland:off-chain:base-avatars:green_stone_tiara
-  - urn:decentraland:off-chain:base-avatars:blue_bandana
-  - urn:decentraland:off-chain:base-avatars:diamond_colored_tiara
-  - urn:decentraland:off-chain:base-avatars:laurel_wreath
-  - urn:decentraland:off-chain:base-avatars:red_bandana
-  - urn:decentraland:off-chain:base-avatars:punk_piercing
-  - urn:decentraland:off-chain:base-avatars:thunder_02_earring
-  - urn:decentraland:off-chain:base-avatars:thunder_earring
-  - urn:decentraland:off-chain:base-avatars:blue_star_earring
-  - urn:decentraland:off-chain:base-avatars:f_skull_earring
-  - urn:decentraland:off-chain:base-avatars:golden_earring
-  - urn:decentraland:off-chain:base-avatars:green_feather_earring
-  - urn:decentraland:off-chain:base-avatars:pearls_earring
-  - urn:decentraland:off-chain:base-avatars:pink_gem_earring
-  - urn:decentraland:off-chain:base-avatars:square_earring
-  - urn:decentraland:off-chain:base-avatars:toruspiercing
-  - urn:decentraland:off-chain:base-avatars:triple_ring
-  - urn:decentraland:off-chain:base-avatars:casual_hair_01
-  - urn:decentraland:off-chain:base-avatars:cornrows
-  - urn:decentraland:off-chain:base-avatars:curly_hair
-  - urn:decentraland:off-chain:base-avatars:double_bun
-  - urn:decentraland:off-chain:base-avatars:hair_punk
-  - urn:decentraland:off-chain:base-avatars:keanu_hair
-  - urn:decentraland:off-chain:base-avatars:punk
-  - urn:decentraland:off-chain:base-avatars:semi_bold
-  - urn:decentraland:off-chain:base-avatars:shoulder_hair
-  - urn:decentraland:off-chain:base-avatars:slicked_hair
-  - urn:decentraland:off-chain:base-avatars:casual_hair_02
-  - urn:decentraland:off-chain:base-avatars:cool_hair
-  - urn:decentraland:off-chain:base-avatars:curtained_hair
-  - urn:decentraland:off-chain:base-avatars:hair_anime_01
-  - urn:decentraland:off-chain:base-avatars:hair_bun
-  - urn:decentraland:off-chain:base-avatars:hair_coolshortstyle
-  - urn:decentraland:off-chain:base-avatars:hair_f_oldie
-  - urn:decentraland:off-chain:base-avatars:hair_f_oldie_02
-  - urn:decentraland:off-chain:base-avatars:hair_oldie
-  - urn:decentraland:off-chain:base-avatars:f_eyebrows_02
-  - urn:decentraland:off-chain:base-avatars:eyebrows_00
-  - urn:decentraland:off-chain:base-avatars:eyebrows_01
-  - urn:decentraland:off-chain:base-avatars:eyebrows_02
-  - urn:decentraland:off-chain:base-avatars:eyebrows_03
-  - urn:decentraland:off-chain:base-avatars:eyebrows_04
-  - urn:decentraland:off-chain:base-avatars:eyebrows_05
-  - urn:decentraland:off-chain:base-avatars:eyebrows_06
-  - urn:decentraland:off-chain:base-avatars:eyebrows_07
-  - urn:decentraland:off-chain:base-avatars:eyebrows_09
-  - urn:decentraland:off-chain:base-avatars:eyebrows_10
-  - urn:decentraland:off-chain:base-avatars:eyebrows_11
-  - urn:decentraland:off-chain:base-avatars:eyebrows_12
-  - urn:decentraland:off-chain:base-avatars:eyebrows_13
-  - urn:decentraland:off-chain:base-avatars:eyebrows_14
-  - urn:decentraland:off-chain:base-avatars:eyebrows_15
-  - urn:decentraland:off-chain:base-avatars:eyebrows_16
-  - urn:decentraland:off-chain:base-avatars:eyebrows_8
-  - urn:decentraland:off-chain:base-avatars:f_eyebrows_00
-  - urn:decentraland:off-chain:base-avatars:eyes_08
-  - urn:decentraland:off-chain:base-avatars:f_eyes_06
-  - urn:decentraland:off-chain:base-avatars:eyes_00
-  - urn:decentraland:off-chain:base-avatars:eyes_01
-  - urn:decentraland:off-chain:base-avatars:eyes_02
-  - urn:decentraland:off-chain:base-avatars:eyes_03
-  - urn:decentraland:off-chain:base-avatars:eyes_04
-  - urn:decentraland:off-chain:base-avatars:eyes_05
-  - urn:decentraland:off-chain:base-avatars:eyes_06
-  - urn:decentraland:off-chain:base-avatars:eyes_07
-  - urn:decentraland:off-chain:base-avatars:eyes_09
-  - urn:decentraland:off-chain:base-avatars:eyes_10
-  - urn:decentraland:off-chain:base-avatars:eyes_11
-  - urn:decentraland:off-chain:base-avatars:eyes_12
-  - urn:decentraland:off-chain:base-avatars:eyes_13
-  - urn:decentraland:off-chain:base-avatars:eyes_14
-  - urn:decentraland:off-chain:base-avatars:eyes_15
-  - urn:decentraland:off-chain:base-avatars:eyes_16
-  - urn:decentraland:off-chain:base-avatars:eyes_17
-  - urn:decentraland:off-chain:base-avatars:f_mouth_04
-  - urn:decentraland:off-chain:base-avatars:f_mouth_05
-  - urn:decentraland:off-chain:base-avatars:f_mouth_07
-  - urn:decentraland:off-chain:base-avatars:mouth_04
-  - urn:decentraland:off-chain:base-avatars:f_mouth_00
-  - urn:decentraland:off-chain:base-avatars:f_mouth_01
-  - urn:decentraland:off-chain:base-avatars:f_mouth_02
-  - urn:decentraland:off-chain:base-avatars:f_mouth_03
-  - urn:decentraland:off-chain:base-avatars:f_mouth_06
-  - urn:decentraland:off-chain:base-avatars:f_mouth_08
-  - urn:decentraland:off-chain:base-avatars:mouth_00
-  - urn:decentraland:off-chain:base-avatars:mouth_01
-  - urn:decentraland:off-chain:base-avatars:mouth_02
-  - urn:decentraland:off-chain:base-avatars:mouth_03
-  - urn:decentraland:off-chain:base-avatars:mouth_05
-  - urn:decentraland:off-chain:base-avatars:mouth_06
-  - urn:decentraland:off-chain:base-avatars:mouth_07
-  - urn:decentraland:off-chain:base-avatars:mouth_09
-  - urn:decentraland:off-chain:base-avatars:mouth_11
+  platform: {fileID: 2024049986}
   faceCategories:
   - id: hair
     title: HAIR
@@ -2059,6 +1854,197 @@ MonoBehaviour:
     - urn:decentraland:off-chain:base-avatars:thunder_earring
     - urn:decentraland:off-chain:base-avatars:toruspiercing
     - urn:decentraland:off-chain:base-avatars:triple_ring
+  avatarPresets:
+  - bodyShape: 1
+    skinColor: {r: 0.8666667, g: 0.69411767, b: 0.56078434, a: 1}
+    hairColor: {r: 0.59607846, g: 0.37254903, b: 0.21960784, a: 1}
+    eyeColor: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    urns:
+    - urn:decentraland:off-chain:base-avatars:standard_hair
+    - urn:decentraland:off-chain:base-avatars:f_eyes_00
+    - urn:decentraland:off-chain:base-avatars:f_eyebrows_00
+    - urn:decentraland:off-chain:base-avatars:f_mouth_02
+    - urn:decentraland:off-chain:base-avatars:f_sweater
+    - urn:decentraland:off-chain:base-avatars:f_jeans
+    - urn:decentraland:off-chain:base-avatars:bun_shoes
+  - bodyShape: 0
+    skinColor: {r: 1, g: 0.8666667, b: 0.7372549, a: 1}
+    hairColor: {r: 0.23921569, g: 0.13333334, b: 0.050980393, a: 1}
+    eyeColor: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    urns:
+    - urn:decentraland:off-chain:base-avatars:casual_hair_01
+    - urn:decentraland:off-chain:base-avatars:eyes_00
+    - urn:decentraland:off-chain:base-avatars:eyebrows_00
+    - urn:decentraland:off-chain:base-avatars:f_mouth_04
+    - urn:decentraland:off-chain:base-avatars:beard
+    - urn:decentraland:off-chain:base-avatars:green_hoodie
+    - urn:decentraland:off-chain:base-avatars:f_brown_trousers
+    - urn:decentraland:off-chain:base-avatars:sneakers
+  - bodyShape: 1
+    skinColor: {r: 0.23921569, g: 0.13333334, b: 0.08627451, a: 1}
+    hairColor: {r: 0.4862745, g: 0.28627452, b: 0.08627451, a: 1}
+    eyeColor: {r: 0.7490196, g: 0.61960787, b: 0.3529412, a: 1}
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    urns:
+    - urn:decentraland:off-chain:base-avatars:rasta
+    - urn:decentraland:off-chain:base-avatars:eyes_08
+    - urn:decentraland:off-chain:base-avatars:eyebrows_09
+    - urn:decentraland:off-chain:base-avatars:mouth_01
+    - urn:decentraland:off-chain:base-avatars:m_sweater_02
+    - urn:decentraland:off-chain:base-avatars:swim_short
+    - urn:decentraland:off-chain:base-avatars:m_greenflipflops
+  - bodyShape: 1
+    skinColor: {r: 0.6745098, g: 1, b: 0.9882353, a: 1}
+    hairColor: {r: 1, g: 0, b: 0.77254903, a: 1}
+    eyeColor: {r: 1, g: 0, b: 0.77254903, a: 1}
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    urns:
+    - urn:decentraland:off-chain:base-avatars:tall_front_01
+    - urn:decentraland:off-chain:base-avatars:f_eyes_04
+    - urn:decentraland:off-chain:base-avatars:f_eyebrows_06
+    - urn:decentraland:off-chain:base-avatars:f_mouth_00
+    - urn:decentraland:off-chain:base-avatars:brown_sleveless_dress
+    - urn:decentraland:off-chain:base-avatars:f_brown_skirt
+    - urn:decentraland:off-chain:base-avatars:citycomfortableshoes
+  - bodyShape: 1
+    skinColor: {r: 0.9490196, g: 0.7607843, b: 0.64705884, a: 1}
+    hairColor: {r: 1, g: 0.74509805, b: 0.14901961, a: 1}
+    eyeColor: {r: 0.5254902, g: 0.3764706, b: 0.25882354, a: 1}
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    urns:
+    - urn:decentraland:off-chain:base-avatars:curly_hair
+    - urn:decentraland:off-chain:base-avatars:eyes_03
+    - urn:decentraland:off-chain:base-avatars:eyebrows_00
+    - urn:decentraland:off-chain:base-avatars:f_mouth_03
+    - urn:decentraland:off-chain:base-avatars:f_body_swimsuit
+    - urn:decentraland:off-chain:base-avatars:f_yoga_trousers
+    - urn:decentraland:off-chain:base-avatars:espadrilles
+    - urn:decentraland:off-chain:base-avatars:dcl_watch
+    - urn:decentraland:off-chain:base-avatars:pink_gem_earring
+  - bodyShape: 0
+    skinColor: {r: 1, g: 0.8666667, b: 0.7372549, a: 1}
+    hairColor: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
+    eyeColor: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    urns:
+    - urn:decentraland:off-chain:base-avatars:curtained_hair
+    - urn:decentraland:off-chain:base-avatars:f_eyes_05
+    - urn:decentraland:off-chain:base-avatars:eyebrows_05
+    - urn:decentraland:off-chain:base-avatars:mouth_06
+    - urn:decentraland:off-chain:base-avatars:red_square_shirt
+    - urn:decentraland:off-chain:base-avatars:hip_hop_joggers
+    - urn:decentraland:off-chain:base-avatars:bear_slippers
+    - urn:decentraland:off-chain:base-avatars:black_glove
+  - bodyShape: 1
+    skinColor: {r: 0.8666667, g: 0.69411767, b: 0.56078434, a: 1}
+    hairColor: {r: 0.6745098, g: 1, b: 0.7372549, a: 1}
+    eyeColor: {r: 0.6745098, g: 1, b: 0.7372549, a: 1}
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    urns:
+    - urn:decentraland:off-chain:base-avatars:double_bun
+    - urn:decentraland:off-chain:base-avatars:f_eyes_10
+    - urn:decentraland:off-chain:base-avatars:f_eyebrows_03
+    - urn:decentraland:off-chain:base-avatars:f_mouth_02
+    - urn:decentraland:off-chain:base-avatars:black_top
+    - urn:decentraland:off-chain:base-avatars:jean_shorts
+    - urn:decentraland:off-chain:base-avatars:sport_colored_shoes
+    - urn:decentraland:off-chain:base-avatars:cyclope
+    - urn:decentraland:off-chain:base-avatars:dcl_watch
+  - bodyShape: 1
+    skinColor: {r: 1, g: 0.89411765, b: 0.7764706, a: 1}
+    hairColor: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
+    eyeColor: {r: 0.21960784, g: 0.4862745, b: 0.6901961, a: 1}
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    urns:
+    - urn:decentraland:off-chain:base-avatars:hair_anime_01
+    - urn:decentraland:off-chain:base-avatars:f_eyes_08
+    - urn:decentraland:off-chain:base-avatars:f_eyebrows_02
+    - urn:decentraland:off-chain:base-avatars:f_mouth_05
+    - urn:decentraland:off-chain:base-avatars:school_shirt
+    - urn:decentraland:off-chain:base-avatars:f_school_skirt
+    - urn:decentraland:off-chain:base-avatars:schoolshoes
+    - urn:decentraland:off-chain:base-avatars:blue_star_earring
+  - bodyShape: 0
+    skinColor: {r: 0.9490196, g: 0.7607843, b: 0.64705884, a: 1}
+    hairColor: {r: 0.54901963, g: 0.13333334, b: 0.08627451, a: 1}
+    eyeColor: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    urns:
+    - urn:decentraland:off-chain:base-avatars:keanu_hair
+    - urn:decentraland:off-chain:base-avatars:eyes_15
+    - urn:decentraland:off-chain:base-avatars:eyebrows_12
+    - urn:decentraland:off-chain:base-avatars:f_mouth_02
+    - urn:decentraland:off-chain:base-avatars:handlebar
+    - urn:decentraland:off-chain:base-avatars:f_pride_t_shirt
+    - urn:decentraland:off-chain:base-avatars:basketball_shorts
+    - urn:decentraland:off-chain:base-avatars:ruby_red_loafer
+    - urn:decentraland:off-chain:base-avatars:emerald_ring
+  - bodyShape: 0
+    skinColor: {r: 0, g: 0.92156863, b: 0.7176471, a: 1}
+    hairColor: {r: 0.6862745, g: 0, b: 1, a: 1}
+    eyeColor: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    urns:
+    - urn:decentraland:off-chain:base-avatars:punk
+    - urn:decentraland:off-chain:base-avatars:eyes_20
+    - urn:decentraland:off-chain:base-avatars:eyebrows_14
+    - urn:decentraland:off-chain:base-avatars:mouth_10
+    - urn:decentraland:off-chain:base-avatars:black_jacket
+    - urn:decentraland:off-chain:base-avatars:distressed_black_jeans
+    - urn:decentraland:off-chain:base-avatars:comfy_sport_sandals
+  - bodyShape: 0
+    skinColor: {r: 1, g: 0.8666667, b: 0.7372549, a: 1}
+    hairColor: {r: 0.4862745, g: 0.28627452, b: 0.08627451, a: 1}
+    eyeColor: {r: 0.21960784, g: 0.4862745, b: 0.6901961, a: 1}
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    urns:
+    - urn:decentraland:off-chain:base-avatars:modern_hair
+    - urn:decentraland:off-chain:base-avatars:eyes_11
+    - urn:decentraland:off-chain:base-avatars:eyebrows_01
+    - urn:decentraland:off-chain:base-avatars:f_mouth_01
+    - urn:decentraland:off-chain:base-avatars:striped_shirt_01
+    - urn:decentraland:off-chain:base-avatars:trash_jean
+    - urn:decentraland:off-chain:base-avatars:m_mountainshoes.glb
+    - urn:decentraland:off-chain:base-avatars:cord_bracelet
+  - bodyShape: 0
+    skinColor: {r: 0.49019608, g: 0.3647059, b: 0.2784314, a: 1}
+    hairColor: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
+    eyeColor: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    urns:
+    - urn:decentraland:off-chain:base-avatars:semi_afro
+    - urn:decentraland:off-chain:base-avatars:eyes_01
+    - urn:decentraland:off-chain:base-avatars:f_eyebrows_05
+    - urn:decentraland:off-chain:base-avatars:mouth_06
+    - urn:decentraland:off-chain:base-avatars:mustache_short_beard
+    - urn:decentraland:off-chain:base-avatars:sleeveless_punk_shirt
+    - urn:decentraland:off-chain:base-avatars:f_sport_shorts
+    - urn:decentraland:off-chain:base-avatars:sport_black_shoes
+    - urn:decentraland:off-chain:base-avatars:black_sun_glasses
+  skinColorPresets:
+  - {r: 1, g: 0.89411765, b: 0.7764706, a: 1}
+  - {r: 1, g: 0.8666667, b: 0.7372549, a: 1}
+  - {r: 0.9490196, g: 0.7607843, b: 0.64705884, a: 1}
+  - {r: 0.8666667, g: 0.69411767, b: 0.56078434, a: 1}
+  - {r: 0.8, g: 0.60784316, b: 0.46666667, a: 1}
+  - {r: 0.6039216, g: 0.4627451, b: 0.35686275, a: 1}
+  - {r: 0.49019608, g: 0.3647059, b: 0.2784314, a: 1}
+  - {r: 0.4392157, g: 0.29803923, b: 0.21960784, a: 1}
+  - {r: 0.32156864, g: 0.17254902, b: 0.10980392, a: 1}
+  - {r: 0.23529412, g: 0.13333334, b: 0.08627451, a: 1}
+  hairColorPresets:
+  - {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
+  - {r: 0.23529412, g: 0.12941177, b: 0.043137256, a: 1}
+  - {r: 0.35686275, g: 0.19215687, b: 0.05882353, a: 1}
+  - {r: 0.48235294, g: 0.28235295, b: 0.09411765, a: 1}
+  - {r: 0.59607846, g: 0.37254903, b: 0.21568628, a: 1}
+  - {r: 0.54901963, g: 0.1254902, b: 0.078431375, a: 1}
+  - {r: 0.9137255, g: 0.50980395, b: 0.20392157, a: 1}
+  - {r: 1, g: 0.74509805, b: 0.15686275, a: 1}
+  - {r: 0.98039216, g: 0.8235294, b: 0.5058824, a: 1}
+  - {r: 0.83137256, g: 0.83137256, b: 0.83137256, a: 1}
 --- !u!114 &3870968551534128788
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2144,28 +2130,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   uiDocument: {fileID: 4363583478864355584}
-  presetSkinColors:
-  - {r: 1, g: 0.89411765, b: 0.7764706, a: 1}
-  - {r: 1, g: 0.8666667, b: 0.7372549, a: 1}
-  - {r: 0.9490196, g: 0.7607843, b: 0.64705884, a: 1}
-  - {r: 0.8666667, g: 0.69411767, b: 0.56078434, a: 1}
-  - {r: 0.8, g: 0.60784316, b: 0.46666667, a: 1}
-  - {r: 0.6039216, g: 0.4627451, b: 0.35686275, a: 1}
-  - {r: 0.49019608, g: 0.3647059, b: 0.2784314, a: 1}
-  - {r: 0.4392157, g: 0.29803923, b: 0.21960784, a: 1}
-  - {r: 0.32156864, g: 0.17254902, b: 0.10980392, a: 1}
-  - {r: 0.23529412, g: 0.13333334, b: 0.08627451, a: 1}
-  presetHairColors:
-  - {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
-  - {r: 0.23529412, g: 0.12941177, b: 0.043137256, a: 1}
-  - {r: 0.35686275, g: 0.19215687, b: 0.05882353, a: 1}
-  - {r: 0.48235294, g: 0.28235295, b: 0.09411765, a: 1}
-  - {r: 0.59607846, g: 0.37254903, b: 0.21568628, a: 1}
-  - {r: 0.54901963, g: 0.1254902, b: 0.078431375, a: 1}
-  - {r: 0.9137255, g: 0.50980395, b: 0.20392157, a: 1}
-  - {r: 1, g: 0.74509805, b: 0.15686275, a: 1}
-  - {r: 0.98039216, g: 0.8235294, b: 0.5058824, a: 1}
-  - {r: 0.83137256, g: 0.83137256, b: 0.83137256, a: 1}
 --- !u!114 &4983837072214081674
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2413,7 +2377,7 @@ Transform:
   m_GameObject: {fileID: 1992614800948951230}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.3913292, y: -0.02, z: -3.57}
+  m_LocalPosition: {x: -1.5556473, y: -0.02, z: -3.57}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
