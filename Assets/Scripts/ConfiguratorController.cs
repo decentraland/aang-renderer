@@ -43,6 +43,7 @@ public class ConfiguratorController : MonoBehaviour
         uiPresenter.PresetSelected += OnPresetSelected;
         uiPresenter.SkinColorSelected += OnSkinColorSelected;
         uiPresenter.CharacterAreaDrag += previewRotator.OnDrag;
+        uiPresenter.Confirmed += OnConfirmed;
 
         // TODO: Temporary colors
         _skinColor = new Color(1f, 0.894f, 0.776f);
@@ -50,6 +51,11 @@ public class ConfiguratorController : MonoBehaviour
         _eyeColor = new Color(0.125f, 0.702f, 0.965f);
 
         StartCoroutine(InitialLoad());
+    }
+
+    private void OnConfirmed()
+    {
+        Debug.Log("Confirmed!");
     }
 
     private void OnSkinColorSelected(Color color)
@@ -148,7 +154,7 @@ public class ConfiguratorController : MonoBehaviour
     {
         Debug.Log("Initial loading...");
         // var avatarTasks = presetAvatars.Select(LoadAvatar);
-        
+
         var allUrns = faceCategories.Union(bodyCategories)
             .SelectMany(c => c.urns).Where(urn => !string.IsNullOrEmpty(urn))
             .Append(WearablesConstants.BODY_SHAPE_MALE.ToLowerInvariant())
@@ -239,6 +245,7 @@ public class ConfiguratorController : MonoBehaviour
 
         return avatar;
     }
+
     private static ProfileResponse.Avatar.AvatarData LoadAvatarConfig(string presetString)
     {
         var split = presetString.Split('\t', StringSplitOptions.RemoveEmptyEntries);
@@ -267,7 +274,8 @@ public class ConfiguratorController : MonoBehaviour
             eyes = new ProfileResponse.Avatar.AvatarData.ColorData { color = eyeColor },
             snapshots = new ProfileResponse.Avatar.AvatarData.Snapshot
             {
-                body = "https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png"
+                body =
+                    "https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png"
             }
         };
     }

@@ -75,7 +75,7 @@
             <ui:Label text="You&apos;ll find even more customization options in your&#10;Backpack once you&apos;re in-world." class="confirmation-popup__subtitle" />
             <ui:VisualElement class="confirmation-popup__buttons-container">
                 <UI.Elements.DCLButtonElement text="CANCEL" button-type="Secondary" name="CancelButton" />
-                <UI.Elements.DCLButtonElement text="LET&apos;S GO!" name="ConfirmButton" />
+                <UI.Elements.DCLButtonElement text="LET&apos;S GO!" name="ConfirmButton" button-type="Primary" />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

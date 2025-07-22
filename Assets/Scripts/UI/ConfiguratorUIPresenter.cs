@@ -53,6 +53,8 @@ namespace UI
         public event Action<string, EntityDefinition> WearableSelected;
         public event Action<ProfileResponse.Avatar.AvatarData> PresetSelected;
 
+        public event Action Confirmed;
+
         private void Start()
         {
             var root = uiDocument.rootVisualElement;
@@ -88,6 +90,7 @@ namespace UI
 
             _backButton.Clicked += OnBackClicked;
             _confirmButton.Clicked += OnNextClicked;
+            _skipButton.Clicked += () => _confirmPopupView.Show(true);
 
             _loader = root.Q("Loader");
             _loaderIcon = _loader.Q("Icon");
@@ -132,8 +135,7 @@ namespace UI
             _bodyWearablesView.CategoryChanged += c => CategoryChanged!(c);
 
             _confirmPopupView = new ConfirmPopupView(root.Q("ConfirmationPopup"));
-            _confirmPopupView.Confirmed += OnAvatarConfirmed;
-            _confirmPopupView.Cancelled += OnBackClicked;
+            _confirmPopupView.Confirmed += () => Confirmed!();
 
             _configuratorContainer.SetVisibility(false);
             _loader.SetDisplay(true);
@@ -148,20 +150,15 @@ namespace UI
 
         private void OnNextClicked()
         {
-            if (_currentStage == Stage.Confirm)
+            if (_currentStage == Stage.Body)
             {
-                Debug.LogError("Trying to move to next stage on the last step");
+                _confirmPopupView.Show(true);
                 return;
             }
 
             HideStage(_currentStage);
             _currentStage = (Stage)((int)_currentStage + 1);
             ShowStage(_currentStage);
-        }
-
-        private void OnAvatarConfirmed()
-        {
-            Debug.Log("DONE!");
         }
 
         private void HideStage(Stage stage)
@@ -176,9 +173,6 @@ namespace UI
                     break;
                 case Stage.Body:
                     _bodyWearablesView.Show(false);
-                    break;
-                case Stage.Confirm:
-                    _confirmPopupView.Show(false);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(stage), stage, null);
@@ -212,9 +206,6 @@ namespace UI
                     _skipButton.style.display = DisplayStyle.None;
                     _backButton.style.display = DisplayStyle.Flex;
                     CategoryChanged!(_bodyWearablesView.SelectedCategory);
-                    break;
-                case Stage.Confirm:
-                    _confirmPopupView.Show(true);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -286,8 +277,7 @@ namespace UI
         {
             Preset,
             Face,
-            Body,
-            Confirm
+            Body
         }
     }
 }

@@ -80,7 +80,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Active: 1
   backgroundSettings:
-    center: {r: 0.58431375, g: 0.1764706, b: 0.7764706, a: 1}
+    inner: {r: 0.58431375, g: 0.1764706, b: 0.7764706, a: 1}
     outer: {r: 0.19607843, g: 0.07450981, b: 0.29803923, a: 1}
+    center: {x: 0.5, y: 0.35}
+    size: 1.414
+    highlight: {r: 0.8666667, g: 0.3372549, b: 1, a: 0.7529412}
+    highlightCenter: {x: 0.76, y: 0.48}
+    highlightSize: {x: 0.12, y: 0.69}
   shader: {fileID: 4800000, guid: 2c8689340b484c498491fc3c2c47881f, type: 3}
   renderPassEvent: 250

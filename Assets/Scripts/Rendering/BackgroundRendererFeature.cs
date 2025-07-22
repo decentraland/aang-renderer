@@ -8,6 +8,11 @@ namespace Rendering
     {
         private static readonly int INNER_COLOR_ID = Shader.PropertyToID("_InnerColor");
         private static readonly int OUTER_COLOR_ID = Shader.PropertyToID("_OuterColor");
+        private static readonly int BACKGROUND_CENTER_ID = Shader.PropertyToID("_BackgroundCenter");
+        private static readonly int BACKGROUND_SIZE_ID = Shader.PropertyToID("_BackgroundSize");
+        private static readonly int HIGHLIGHT_COLOR_ID = Shader.PropertyToID("_HighlightColor");
+        private static readonly int HIGHLIGHT_CENTER_ID = Shader.PropertyToID("_HighlightCenter");
+        private static readonly int HIGHLIGHT_SIZE_ID = Shader.PropertyToID("_HighlightSize");
 
         [SerializeField] private BackgroundSettings backgroundSettings;
         [SerializeField] private Shader shader;
@@ -24,8 +29,13 @@ namespace Rendering
             }
 
             material = new Material(shader);
-            material.SetColor(INNER_COLOR_ID, backgroundSettings.center);
+            material.SetColor(INNER_COLOR_ID, backgroundSettings.inner);
             material.SetColor(OUTER_COLOR_ID, backgroundSettings.outer);
+            material.SetColor(HIGHLIGHT_COLOR_ID, backgroundSettings.highlight);
+            material.SetVector(HIGHLIGHT_CENTER_ID, backgroundSettings.highlightCenter);
+            material.SetVector(HIGHLIGHT_SIZE_ID, backgroundSettings.highlightSize);
+            material.SetVector(BACKGROUND_CENTER_ID, backgroundSettings.center);
+            material.SetFloat(BACKGROUND_SIZE_ID, backgroundSettings.size);
 
             renderPass = new BackgroundRenderPass(material)
             {
@@ -62,7 +72,13 @@ namespace Rendering
     [Serializable]
     public class BackgroundSettings
     {
-        public Color center;
+        public Color inner;
         public Color outer;
+        public Vector2 center;
+        public float size;
+        
+        public Color highlight;
+        public Vector2 highlightCenter;
+        public Vector2 highlightSize;
     }
 }

@@ -7,7 +7,6 @@ namespace UI.Views
     public class ConfirmPopupView : UIView
     {
         public event Action Confirmed;
-        public event Action Cancelled;
 
         public ConfirmPopupView(VisualElement root) : base(root)
         {
@@ -17,7 +16,7 @@ namespace UI.Views
 
         private void OnCancelClicked()
         {
-            Cancelled!();
+            Show(false);
         }
 
         private void OnConfirmClicked()

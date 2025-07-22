@@ -6,7 +6,7 @@
         </ui:VisualElement>
         <ui:VisualElement name="Body" class="wearable-category-picker__body">
             <ui:VisualElement name="Header" class="wearable-category-picker__header">
-                <ui:Label text="&lt;font-weight=600&gt;HAIR" name="CategoryHeader" style="font-size: 30px; color: rgb(255, 255, 255);" />
+                <ui:Label text="&lt;font-weight=600&gt;HAIR" name="CategoryHeader" style="font-size: 30px; color: rgb(255, 255, 255); margin-top: -6px; padding-top: 0;" />
             </ui:VisualElement>
             <ui:VisualElement name="Items" class="wearable-category-picker__items-container" style="flex-grow: 1;">
                 <UI.Elements.WearableItemElement />

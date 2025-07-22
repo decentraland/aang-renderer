@@ -23,20 +23,32 @@ Shader "Custom/GradientBackground"
             HLSLPROGRAM
             float4 _InnerColor;
             float4 _OuterColor;
+            float2 _BackgroundCenter;
+            float _BackgroundSize;
+            float4 _HighlightColor;
+            float2 _HighlightCenter;
+            float2 _HighlightSize;
 
             #pragma vertex Vert
             #pragma fragment frag
 
             float4 frag(Varyings IN) : SV_Target
             {
-                float2 center = float2(0.5, 0.35);
-                // float dist = distance(IN.texcoord, center);
-
                 float3 inner_color = SRGBToLinear(_InnerColor.rgb);
                 float3 outer_color = SRGBToLinear(_OuterColor.rgb);
+                float3 highlight_color = SRGBToLinear(_HighlightColor.rgb);
 
-                float t = saturate(distance(IN.texcoord, center) / 0.7071);
-                float3 color = lerp(inner_color, outer_color, t);
+                // Background
+                float t = saturate(distance(IN.texcoord, _BackgroundCenter) * _BackgroundSize);
+                float3 base_color = lerp(inner_color, outer_color, smoothstep(0.0, 1.0, t));
+
+                // Highlight
+                float2 diff = (IN.texcoord - _HighlightCenter) / _HighlightSize;
+                float t2 = saturate(length(diff));
+                
+                // Smooth the falloff using a curve
+                float mask = 1.0 - smoothstep(0.0, 1.0, t2);
+                float3 color = lerp(base_color, highlight_color, mask * _HighlightColor.a);
 
                 return float4(color, 1.0);
             }
