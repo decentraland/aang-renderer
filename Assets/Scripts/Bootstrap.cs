@@ -39,6 +39,7 @@ public class Bootstrap : MonoBehaviour
             previewController.gameObject.SetActive(false);
 
             configuratorController.UseBrowserPreload = initialConfig.UseBrowserPreload;
+            configuratorController.Username = initialConfig.Username;
         }
         else
         {

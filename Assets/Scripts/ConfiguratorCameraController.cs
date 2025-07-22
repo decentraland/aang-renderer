@@ -91,5 +91,7 @@ public class ConfiguratorCameraController : MonoBehaviour
         headCamera.gameObject.SetActive(useHeadCamera);
         upperBodyCamera.gameObject.SetActive(useUpperBodyCamera);
         lowerBodyCamera.gameObject.SetActive(useLowerBodyCamera);
+        
+        previewRotator.LookAtCamera(true);
     }
 }

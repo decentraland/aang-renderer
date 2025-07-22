@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Data;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 public static class EntityService
 {
@@ -17,6 +18,8 @@ public static class EntityService
             var results =
                 (await APIService.GetActiveEntities(missingEntities))
                 .Select(EntityDefinition.FromActiveEntity).ToList();
+
+            Assert.AreEqual(urns.Length, results.Count);
 
             foreach (var ed in results)
             {

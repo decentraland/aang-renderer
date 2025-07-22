@@ -43,7 +43,7 @@ MonoBehaviour:
   m_RendererFeatureMap: a649860bac6e6c513e594a87ab620293
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
-  postProcessData: {fileID: 0}
+  postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   m_AssetVersion: 2
   m_OpaqueLayerMask:
     serializedVersion: 2
@@ -61,7 +61,7 @@ MonoBehaviour:
   m_ShadowTransparentReceive: 1
   m_RenderingMode: 2
   m_DepthPrimingMode: 0
-  m_CopyDepthMode: 2
+  m_CopyDepthMode: 0
   m_DepthAttachmentFormat: 0
   m_DepthTextureFormat: 0
   m_AccurateGbufferNormals: 0
@@ -82,10 +82,5 @@ MonoBehaviour:
   backgroundSettings:
     center: {r: 0.58431375, g: 0.1764706, b: 0.7764706, a: 1}
     outer: {r: 0.19607843, g: 0.07450981, b: 0.29803923, a: 1}
-    side: {r: 0.58431375, g: 0.1764706, b: 0.7764706, a: 1}
-    horizontalBlur: 0.107
-    verticalBlur: 0.119
   shader: {fileID: 4800000, guid: 2c8689340b484c498491fc3c2c47881f, type: 3}
-  maskShader: {fileID: 4800000, guid: fb22051dba4b4ae29bd463da5db1f0aa, type: 3}
-  blurShader: {fileID: 4800000, guid: 7023f72d0fdb467097f4dd5ad2110a8a, type: 3}
   renderPassEvent: 250

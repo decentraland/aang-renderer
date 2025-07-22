@@ -186,6 +186,11 @@ public class PreviewConfiguration
     /// If we should instruct the browser to pre-fetch certain files. On by default.
     /// </summary>
     public bool UseBrowserPreload { get; set; } = true;
+    
+    /// <summary>
+    /// The username used in the avatar creator
+    /// </summary>
+    public string Username { get; set; }
 }
 
 public enum PreviewMode

@@ -83,6 +83,9 @@ namespace Utils
                     case "useBrowserPreload":
                         config.UseBrowserPreload = bool.Parse(value);
                         break;
+                    case "username":
+                        config.Username = value;
+                        break;
                     default:
                         Debug.LogWarning($"Unknown parameter in URL: {key}");
                         break;
@@ -126,6 +129,8 @@ namespace Utils
                 sb.AppendFormat("&token={0}", config.TokenID);
             sb.AppendFormat("&env={0}", APIService.Environment == "zone" ? "dev" : "prod");
             sb.AppendFormat("&disableLoader={0}", config.DisableLoader);
+            sb.AppendFormat("&useBrowserPreload={0}", config.UseBrowserPreload);
+            sb.AppendFormat("&username={0}", config.Username);
 
             return sb.ToString();
         }

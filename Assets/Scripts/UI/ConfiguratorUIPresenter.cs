@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Data;
 using UI.Elements;
 using UI.Manipulators;
@@ -16,9 +15,6 @@ namespace UI
     {
         [SerializeField] private UIDocument uiDocument;
 
-        [SerializeField] private List<CategoryDefinition> faceCategories;
-        [SerializeField] private List<CategoryDefinition> bodyCategories;
-
         // TODO: Maybe move to controller?
         [SerializeField] private Color[] presetSkinColors;
         [SerializeField] private Color[] presetHairColors;
@@ -32,6 +28,8 @@ namespace UI
         private DCLButtonElement _confirmButton;
 
         private Label _stageTitle;
+
+        private string _username;
 
         // Views
         private WearablesView _headWearablesView;
@@ -132,9 +130,8 @@ namespace UI
             _bodyWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
             _bodyWearablesView.CategoryChanged += c => CategoryChanged!(c);
 
-            _configuratorContainer.SetDisplay(false);
+            _configuratorContainer.SetVisibility(false);
             _loader.SetDisplay(true);
-            ShowStage(_currentStage = Stage.Preset);
         }
 
         private void OnBackClicked()
@@ -181,7 +178,7 @@ namespace UI
             {
                 case Stage.Preset:
                     _presetsView.Show(true);
-                    _stageTitle.text = "1. Choose your starting look";
+                    _stageTitle.text = $"1. Choose {_username}'s starting look";
                     _confirmButton.Text = "START CUSTOMIZING";
                     _skipButton.style.display = DisplayStyle.Flex;
                     _backButton.style.display = DisplayStyle.None;
@@ -189,7 +186,7 @@ namespace UI
                     break;
                 case Stage.Face:
                     _headWearablesView.Show(true);
-                    _stageTitle.text = "2. Customize your face";
+                    _stageTitle.text = $"2. Customize {_username}'s face";
                     _confirmButton.Text = "CONFIRM FACE";
                     _skipButton.style.display = DisplayStyle.Flex;
                     _backButton.style.display = DisplayStyle.Flex;
@@ -197,7 +194,7 @@ namespace UI
                     break;
                 case Stage.Body:
                     _bodyWearablesView.Show(true);
-                    _stageTitle.text = "2. Customize your outfit";
+                    _stageTitle.text = $"2. Customize {_username}'s outfit";
                     _confirmButton.Text = "FINISH";
                     _skipButton.style.display = DisplayStyle.None;
                     _backButton.style.display = DisplayStyle.Flex;
@@ -216,8 +213,14 @@ namespace UI
 
         public void LoadCompleted()
         {
-            _configuratorContainer.SetDisplay(true);
+            ShowStage(_currentStage = Stage.Preset);
+            _configuratorContainer.SetVisibility(true);
             _loader.SetDisplay(false);
+        }
+        
+        public void SetUsername(string username)
+        {
+            _username = username;
         }
 
         public void SetPresets(ProfileResponse.Avatar.AvatarData[] presets, int randomPresetIndex)
@@ -225,7 +228,7 @@ namespace UI
             _presetsView.SetPresets(presets, randomPresetIndex);
         }
 
-        public void SetCollection(Dictionary<string, List<EntityDefinition>> collection)
+        public void SetCollection(List<CategoryDefinition> faceCollection, List<CategoryDefinition> bodyCollection)
         {
             /*
                Category: body_shape - 2
@@ -242,21 +245,9 @@ namespace UI
                Category: eyes - 35
                Category: mouth - 20
              */
-
-            var faceEntities = faceCategories.Select(cat =>
-                (cat.id, cat.title, cat.defaultThumbnail, collection[cat.id].Prepend(null).ToList())).ToList();
-            _headWearablesView.SetCollection(faceEntities);
-
-            var bodyEntities = bodyCategories.Select(cat =>
-                (cat.id, cat.title, cat.defaultThumbnail, collection[cat.id].Prepend(null).ToList())).ToList();
-            _bodyWearablesView.SetCollection(bodyEntities);
-
-
-            // _faceEntities = faceCategories.Select(cat => (cat, collection[cat].Prepend(null).ToList())).ToList();
-            // _bodyEntities = bodyCategories.Select(cat => (cat, collection[cat].Prepend(null).ToList())).ToList();
-
-            // _headWearablesView.SetCollection(_faceEntities);
-            // _bodyWearablesView.SetCollection(_bodyEntities);
+            
+            _headWearablesView.SetCollection(faceCollection);
+            _bodyWearablesView.SetCollection(bodyCollection);
         }
 
         public void SetBodyShape(BodyShape bodyShape)
@@ -273,14 +264,6 @@ namespace UI
         public void ClearPresetSelection()
         {
             _presetsView.ClearSelection();
-        }
-
-        [Serializable]
-        private class CategoryDefinition
-        {
-            public string id;
-            public string title;
-            public Texture2D defaultThumbnail;
         }
 
         private enum Stage

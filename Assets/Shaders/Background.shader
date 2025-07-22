@@ -35,10 +35,6 @@ Shader "Custom/GradientBackground"
                 float3 inner_color = SRGBToLinear(_InnerColor.rgb);
                 float3 outer_color = SRGBToLinear(_OuterColor.rgb);
 
-                // float3 inner_color = _InnerColor.rgb; // center
-                // float3 outer_color = _OuterColor.rgb; // edges
-
-                // float t = saturate(dist * 2.0);
                 float t = saturate(distance(IN.texcoord, center) / 0.7071);
                 float3 color = lerp(inner_color, outer_color, t);
 
