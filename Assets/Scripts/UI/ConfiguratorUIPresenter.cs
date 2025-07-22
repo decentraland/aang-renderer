@@ -35,6 +35,7 @@ namespace UI
         private WearablesView _headWearablesView;
         private WearablesView _bodyWearablesView;
         private PresetsView _presetsView;
+        private ConfirmPopupView _confirmPopupView;
         private BodyShapePopupView _bodyShapePopupView;
         private ColorPopupView _skinColorPopupView;
         private ColorPopupView _hairColorPopupView;
@@ -86,7 +87,7 @@ namespace UI
             _confirmButton = root.Q<DCLButtonElement>("ConfirmButton");
 
             _backButton.Clicked += OnBackClicked;
-            _confirmButton.Clicked += OnConfirmClicked;
+            _confirmButton.Clicked += OnNextClicked;
 
             _loader = root.Q("Loader");
             _loaderIcon = _loader.Q("Icon");
@@ -130,6 +131,10 @@ namespace UI
             _bodyWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
             _bodyWearablesView.CategoryChanged += c => CategoryChanged!(c);
 
+            _confirmPopupView = new ConfirmPopupView(root.Q("ConfirmationPopup"));
+            _confirmPopupView.Confirmed += OnAvatarConfirmed;
+            _confirmPopupView.Cancelled += OnBackClicked;
+
             _configuratorContainer.SetVisibility(false);
             _loader.SetDisplay(true);
         }
@@ -141,17 +146,22 @@ namespace UI
             ShowStage(_currentStage);
         }
 
-        private void OnConfirmClicked()
+        private void OnNextClicked()
         {
-            if (_currentStage == Stage.Body)
+            if (_currentStage == Stage.Confirm)
             {
-                Debug.Log("DONE!");
+                Debug.LogError("Trying to move to next stage on the last step");
                 return;
             }
 
             HideStage(_currentStage);
             _currentStage = (Stage)((int)_currentStage + 1);
             ShowStage(_currentStage);
+        }
+
+        private void OnAvatarConfirmed()
+        {
+            Debug.Log("DONE!");
         }
 
         private void HideStage(Stage stage)
@@ -166,6 +176,9 @@ namespace UI
                     break;
                 case Stage.Body:
                     _bodyWearablesView.Show(false);
+                    break;
+                case Stage.Confirm:
+                    _confirmPopupView.Show(false);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(stage), stage, null);
@@ -200,6 +213,9 @@ namespace UI
                     _backButton.style.display = DisplayStyle.Flex;
                     CategoryChanged!(_bodyWearablesView.SelectedCategory);
                     break;
+                case Stage.Confirm:
+                    _confirmPopupView.Show(true);
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -217,7 +233,7 @@ namespace UI
             _configuratorContainer.SetVisibility(true);
             _loader.SetDisplay(false);
         }
-        
+
         public void SetUsername(string username)
         {
             _username = username;
@@ -245,7 +261,7 @@ namespace UI
                Category: eyes - 35
                Category: mouth - 20
              */
-            
+
             _headWearablesView.SetCollection(faceCollection);
             _bodyWearablesView.SetCollection(bodyCollection);
         }
@@ -270,7 +286,8 @@ namespace UI
         {
             Preset,
             Face,
-            Body
+            Body,
+            Confirm
         }
     }
 }

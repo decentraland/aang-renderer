@@ -13,9 +13,6 @@
             <ui:VisualElement name="Body" class="customization-window__body">
                 <ui:VisualElement name="Content" class="customization-window__content">
                     <ui:VisualElement name="Presets" class="presets-content" style="display: flex;">
-                        <ui:VisualElement name="Header" class="presets-content__header">
-                            <ui:Label text="PRESETS" style="color: rgb(255, 255, 255); font-size: 30px; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; -unity-font-style: bold; flex-grow: 1;" />
-                        </ui:VisualElement>
                         <ui:VisualElement name="Body" class="presets-content__body">
                             <UI.Elements.PreviewButtonElement />
                             <UI.Elements.PreviewButtonElement />
@@ -70,6 +67,16 @@
                     </ui:VisualElement>
                 </ui:VisualElement>
             </UI.Elements.DCLDropdownElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+    <ui:VisualElement name="ConfirmationPopup" class="confirmation-popup confirmation-popup--hidden">
+        <ui:VisualElement name="Popup" class="confirmation-popup__popup">
+            <ui:Label text="&lt;font-weight=600&gt;Ready to jump in?" class="confirmation-popup__title" />
+            <ui:Label text="You&apos;ll find even more customization options in your&#10;Backpack once you&apos;re in-world." class="confirmation-popup__subtitle" />
+            <ui:VisualElement class="confirmation-popup__buttons-container">
+                <UI.Elements.DCLButtonElement text="CANCEL" button-type="Secondary" name="CancelButton" />
+                <UI.Elements.DCLButtonElement text="LET&apos;S GO!" name="ConfirmButton" />
+            </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

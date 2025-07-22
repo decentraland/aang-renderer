@@ -4,16 +4,16 @@ namespace UI.Views
 {
     public abstract class UIView
     {
-        private readonly VisualElement _root;
+        protected readonly VisualElement Root;
 
         public UIView(VisualElement root)
         {
-            _root = root;
+            Root = root;
         }
 
-        public void Show(bool show)
+        public virtual void Show(bool show)
         {
-            _root.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
+            Root.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
         }
     }
 }
