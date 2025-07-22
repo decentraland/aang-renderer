@@ -24,7 +24,7 @@ public class AvatarLoader : MonoBehaviour
 
     private BodyShape? _loadedBodyShape;
 
-    private readonly Dictionary<string, (EntityDefinition entity, GameObject root, IDisposable disposable)>
+    private readonly Dictionary<string, (EntityDefinition entity, GameObject root, IDisposable disposable, List<Renderer> outlineRenderers)>
         _loadedModels = new();
 
     private readonly Dictionary<string, (EntityDefinition entity, Texture2D main, Texture2D mask)>
@@ -34,7 +34,6 @@ public class AvatarLoader : MonoBehaviour
         _loadedEmote;
 
     private readonly Dictionary<string, (Texture2D main, Texture2D mask)> _defaultBodyFacialFeatures = new();
-    private readonly List<Renderer> _outlineRenderers = new();
 
     public async Awaitable LoadAvatar(BodyShape bodyShape, IEnumerable<EntityDefinition> wearableDefinitions,
         [CanBeNull] EntityDefinition emoteDefinition, string[] forceRenderUrns, AvatarColors colors)
@@ -107,14 +106,14 @@ public class AvatarLoader : MonoBehaviour
         // Add new ones
         foreach (var tuple in newModels)
         {
-            _loadedModels.Add(tuple.entity.URN, tuple);
+            _loadedModels.Add(tuple.entity.URN, (tuple.entity, tuple.go, tuple.disposable, new List<Renderer>()));
         }
 
         // And the emote prop
         if (_loadedEmote?.prop != null)
         {
             _loadedModels.Add(_loadedEmote.Value.entity.URN!,
-                (_loadedEmote.Value.entity, _loadedEmote.Value.prop, _loadedEmote.Value.disposable));
+                (_loadedEmote.Value.entity, _loadedEmote.Value.prop, _loadedEmote.Value.disposable, new List<Renderer>()));
         }
 
         // Remove already loaded facial features
@@ -180,11 +179,11 @@ public class AvatarLoader : MonoBehaviour
         }
 
         // Activate all models, setup colors, change root bone for animation
-        _outlineRenderers.Clear();
         RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.Clear();
-        foreach (var (_, go, _) in _loadedModels.Values)
+        foreach (var (_, go, _, outlineRenderers) in _loadedModels.Values)
         {
             go.SetActive(true);
+            outlineRenderers.Clear();
 
             // Colors
             var renderers = go.GetComponentsInChildren<SkinnedMeshRenderer>();
@@ -204,7 +203,7 @@ public class AvatarLoader : MonoBehaviour
 
                 if (r.material.shader.name == "DCL/DCL_Toon" && r.sharedMaterial.renderQueue is >= 2000 and < 3000)
                 {
-                    _outlineRenderers.Add(r);
+                    outlineRenderers.Add(r);
                 }
             }
         }
@@ -242,9 +241,21 @@ public class AvatarLoader : MonoBehaviour
         _loadedBodyShape = bodyShape;
     }
 
+    public void TryHideCategory(string category, bool hidden)
+    {
+        var categoryGO = _loadedModels.Values.FirstOrDefault(c => c.entity.Category == category).root;
+        categoryGO?.SetActive(hidden);
+    }
+
     private void Update()
     {
-        RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.AddRange(_outlineRenderers);
+        foreach (var (_, root, _, outlineRenderers) in _loadedModels.Values)
+        {
+            if (root.activeInHierarchy)
+            {
+                RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.AddRange(outlineRenderers);
+            }
+        }
     }
 
     private SkinnedMeshRenderer GetFacialFeatureRenderer(string category, GameObject bodyGO)

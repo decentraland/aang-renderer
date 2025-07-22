@@ -1829,7 +1829,7 @@ MonoBehaviour:
     - urn:decentraland:off-chain:base-avatars:rounded_sun_glasses
     - urn:decentraland:off-chain:base-avatars:thug_life
   - id: hands_wear
-    title: HANDS
+    title: HANDWEAR
     emptyThumbnail: {fileID: 2800000, guid: 7b904527f1b4940d4a32d91cc7b45584, type: 3}
     urns:
     - 

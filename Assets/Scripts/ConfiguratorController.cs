@@ -37,6 +37,7 @@ public class ConfiguratorController : MonoBehaviour
 
     private void Start()
     {
+        uiPresenter.CategoryChanged += OnCategoryChanged;
         uiPresenter.BodyShapeSelected += OnBodyShapeSelected;
         uiPresenter.WearableSelected += OnWearableSelected;
         uiPresenter.PresetSelected += OnPresetSelected;
@@ -75,6 +76,11 @@ public class ConfiguratorController : MonoBehaviour
         uiPresenter.ClearPresetSelection();
 
         StartCoroutine(ReloadPreview());
+    }
+
+    private void OnCategoryChanged(string category)
+    {
+        avatarLoader.TryHideCategory(WearablesConstants.Categories.EYEWEAR, category != WearablesConstants.Categories.EYES);
     }
 
     private static EntityDefinition GetEmote(string category)

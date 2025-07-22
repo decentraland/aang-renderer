@@ -156,7 +156,7 @@
 }
 
 .wearable-category-picker__header {
-    margin-bottom: 32px;
+    margin-bottom: 26px;
 }
 
 .wearable-category-picker__items-container {
