@@ -7,7 +7,7 @@ using UnityEngine.UIElements;
 
 namespace UI.Views
 {
-    public class PresetsView : UIView
+    public class PresetsView : StageView
     {
         public event Action<ProfileResponse.Avatar.AvatarData> PresetSelected;
 
@@ -16,7 +16,9 @@ namespace UI.Views
         private readonly List<PreviewButtonElement> _previewButtons;
         private ProfileResponse.Avatar.AvatarData[] _presets;
 
-        public PresetsView(VisualElement root) : base(root)
+        public override string SelectedCategory => null;
+
+        public PresetsView(VisualElement root, string title, string confirmButtonText, int confirmButtonWidth, bool canSkip) : base(root,  title, confirmButtonText, confirmButtonWidth, canSkip)
         {
             _previewButtons = root.Q("Body").Query<PreviewButtonElement>().ToList();
         }

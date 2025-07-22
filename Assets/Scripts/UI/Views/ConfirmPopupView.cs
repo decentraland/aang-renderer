@@ -4,12 +4,14 @@ using UnityEngine.UIElements;
 
 namespace UI.Views
 {
-    public class ConfirmPopupView : UIView
+    public class ConfirmPopupView
     {
+        private readonly VisualElement _root;
         public event Action Confirmed;
 
-        public ConfirmPopupView(VisualElement root) : base(root)
+        public ConfirmPopupView(VisualElement root)
         {
+            _root = root;
             root.Q<DCLButtonElement>("ConfirmButton").Clicked += OnConfirmClicked;
             root.Q<DCLButtonElement>("CancelButton").Clicked += OnCancelClicked;
         }
@@ -24,9 +26,9 @@ namespace UI.Views
             Confirmed!();
         }
 
-        public override void Show(bool show)
+        public void Show(bool show)
         {
-            Root.EnableInClassList("confirmation-popup--hidden", !show);
+            _root.EnableInClassList("confirmation-popup--hidden", !show);
         }
     }
 }

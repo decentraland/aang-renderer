@@ -9,7 +9,7 @@ using Utils;
 
 namespace UI.Views
 {
-    public class WearablesView : UIView
+    public class WearablesView : StageView
     {
         private readonly Label _header;
         private readonly VisualElement _sidebar;
@@ -22,15 +22,17 @@ namespace UI.Views
         private WearableItemElement _selectedWearableElement;
         private readonly Dictionary<string, EntityDefinition> _selectedItems = new();
 
-        public string SelectedCategory => _selectedCategoryElement.Category;
+        public override string SelectedCategory => _selectedCategoryElement.Category;
+
         public event Action<string> CategoryChanged;
         public event Action<string, EntityDefinition> WearableSelected;
 
-        public WearablesView(VisualElement root, Label header, VisualElement sidebar, VisualElement itemsContainer) : base(root)
+        public WearablesView(VisualElement root, string title, string confirmButtonText, int confirmButtonWidth,
+            bool canSkip) : base(root, title, confirmButtonText, confirmButtonWidth, canSkip)
         {
-            _header = header;
-            _sidebar = sidebar;
-            _itemsContainer = itemsContainer;
+            _header = root.Q<Label>("CategoryHeader");
+            _sidebar = root.Q<VisualElement>("Sidebar");
+            _itemsContainer = root.Q("Items");
 
             foreach (var ve in _itemsContainer.Children())
             {

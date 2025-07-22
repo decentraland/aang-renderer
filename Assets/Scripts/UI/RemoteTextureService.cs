@@ -18,6 +18,7 @@ namespace UI
             _responseListeners = new();
 
         private int _handle = 1;
+        private bool _paused;
 
         private static RemoteTextureService _instance;
 
@@ -78,14 +79,7 @@ namespace UI
             }
 
             // Add request to front of queue
-            // if (addLast)
-            // {
-            //     _requestQueue.AddLast(url);
-            // }
-            // else
-            // {
-            // }
-                _requestQueue.AddFirst(url);
+            _requestQueue.AddFirst(url);
 
             CheckQueue();
 
@@ -100,8 +94,17 @@ namespace UI
             }
         }
 
+        public void Pause(bool pause)
+        {
+            _paused = pause;
+
+            if (!_paused) CheckQueue();
+        }
+
         private void CheckQueue()
         {
+            if (_paused) return;
+
             while (_requests.Count < CONCURRENT_REQUESTS && _requestQueue.Count > 0)
             {
                 var url = _requestQueue.First.Value;

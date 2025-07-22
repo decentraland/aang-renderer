@@ -128,8 +128,10 @@ public class ConfiguratorController : MonoBehaviour
     {
         _selectedItems.Clear();
 
-        // TODO: Fix
         _bodyShape = avatar.bodyShape == WearablesConstants.BODY_SHAPE_MALE ? BodyShape.Male : BodyShape.Female;
+        _skinColor = avatar.skin.color;
+        _hairColor = avatar.hair.color;
+        _eyeColor = avatar.eyes.color;
 
         _emoteToLoad = GetEmote(_bodyShape);
 
@@ -188,6 +190,7 @@ public class ConfiguratorController : MonoBehaviour
 
         // Preload thumbnails
         // TODO: Remove distinct
+        RemoteTextureService.Instance.Pause(true);
         foreach (var preset in _allPresets.Select(p => p.snapshots.body).Distinct())
         {
             RemoteTextureService.Instance.PreloadTexture(preset);
@@ -202,6 +205,7 @@ public class ConfiguratorController : MonoBehaviour
         uiPresenter.SetUsername(Username);
         uiPresenter.SetCollection(faceCategories, bodyCategories);
         uiPresenter.SetPresets(_allPresets, randomPresetIndex);
+        RemoteTextureService.Instance.Pause(false);
 
         // Load initial preset
         UpdateCurrentAvatar(_allPresets[randomPresetIndex]);
@@ -262,7 +266,7 @@ public class ConfiguratorController : MonoBehaviour
 
         var urns = split.Where(s => s.StartsWith("urn")).ToArray();
 
-        return new ProfileResponse.Avatar.AvatarData
+        var avatarData = new ProfileResponse.Avatar.AvatarData
         {
             bodyShape = bodyType == BodyShape.Female
                 ? WearablesConstants.BODY_SHAPE_FEMALE
@@ -278,6 +282,10 @@ public class ConfiguratorController : MonoBehaviour
                     "https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png"
             }
         };
+        
+        Debug.Log(JsonUtility.ToJson(avatarData));
+        
+        return avatarData;
     }
 }
 

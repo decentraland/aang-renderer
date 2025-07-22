@@ -80,6 +80,14 @@
     padding-left: 24px;
     padding-top: 16px;
     padding-bottom: 16px;
+    opacity: 1;
+    transition-property: translate, opacity;
+    transition-duration: 0.2s;
+}
+
+.dcl-button--hidden-down {
+    translate: 0 50%;
+    opacity: 0;
 }
 
 .dcl-button--primary {

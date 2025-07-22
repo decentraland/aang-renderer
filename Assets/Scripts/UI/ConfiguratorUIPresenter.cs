@@ -40,7 +40,8 @@ namespace UI
         private ColorPopupView _skinColorPopupView;
         private ColorPopupView _hairColorPopupView;
 
-        private Stage _currentStage = Stage.Preset;
+        private StageView[] _stages;
+        private int _currentStageIndex;
 
         public event Action<Vector2> CharacterAreaCenterChanged;
         public event Action<float> CharacterAreaZoom;
@@ -96,7 +97,11 @@ namespace UI
             _loaderIcon = _loader.Q("Icon");
 
             var presetsContainer = root.Q("Presets");
-            _presetsView = new PresetsView(presetsContainer);
+            _presetsView = new PresetsView(presetsContainer,
+                "1. Choose {0}'s starting look",
+                "START CUSTOMIZING",
+                212,
+                true);
             _presetsView.PresetSelected += preset => PresetSelected!(preset);
 
             // Dropdowns
@@ -114,102 +119,76 @@ namespace UI
             //     presetHairColors);
             // _hairColorPopupView.ColorSelected += hairColor => HairColorSelected!(hairColor);
 
-            var headWearablesContainer = root.Q("HeadWearables");
             _headWearablesView = new WearablesView(
-                headWearablesContainer,
-                headWearablesContainer.Q<Label>("CategoryHeader"),
-                headWearablesContainer.Q<VisualElement>("Sidebar"),
-                headWearablesContainer.Q("Items")
-            );
+                root.Q("HeadWearables"),
+                "2. Customize {0}'s face",
+                "CONFIRM FACE",
+                170,
+                true);
             _headWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
             _headWearablesView.CategoryChanged += c => CategoryChanged!(c);
 
-            var bodyWearablesContainer = root.Q("BodyWearables");
             _bodyWearablesView = new WearablesView(
-                bodyWearablesContainer,
-                bodyWearablesContainer.Q<Label>("CategoryHeader"),
-                bodyWearablesContainer.Q<VisualElement>("Sidebar"),
-                bodyWearablesContainer.Q("Items")
-            );
+                root.Q("BodyWearables"),
+                "2. Customize {0}'s outfit",
+                "FINISH",
+                114,
+                false);
             _bodyWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
             _bodyWearablesView.CategoryChanged += c => CategoryChanged!(c);
 
             _confirmPopupView = new ConfirmPopupView(root.Q("ConfirmationPopup"));
             _confirmPopupView.Confirmed += () => Confirmed!();
 
+            _stages = new StageView[]
+            {
+                _presetsView,
+                _headWearablesView,
+                _bodyWearablesView
+            };
+
+            RefreshCurrentStage();
             _configuratorContainer.SetVisibility(false);
             _loader.SetDisplay(true);
         }
 
         private void OnBackClicked()
         {
-            HideStage(_currentStage);
-            _currentStage = (Stage)((int)_currentStage - 1);
-            ShowStage(_currentStage);
+            if (_currentStageIndex == 0) return;
+
+            _stages[_currentStageIndex].HideRight();
+            _stages[--_currentStageIndex].Show();
+            
+            RefreshCurrentStage();
         }
 
         private void OnNextClicked()
         {
-            if (_currentStage == Stage.Body)
+            if (_currentStageIndex == _stages.Length - 1)
             {
                 _confirmPopupView.Show(true);
                 return;
             }
 
-            HideStage(_currentStage);
-            _currentStage = (Stage)((int)_currentStage + 1);
-            ShowStage(_currentStage);
+            _stages[_currentStageIndex].HideLeft();
+            _stages[++_currentStageIndex].Show();
+
+            RefreshCurrentStage();
         }
 
-        private void HideStage(Stage stage)
+        private void RefreshCurrentStage()
         {
-            switch (stage)
-            {
-                case Stage.Preset:
-                    _presetsView.Show(false);
-                    break;
-                case Stage.Face:
-                    _headWearablesView.Show(false);
-                    break;
-                case Stage.Body:
-                    _bodyWearablesView.Show(false);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(stage), stage, null);
-            }
-        }
+            var stage = _stages[_currentStageIndex];
+            _stageTitle.text = string.Format(stage.Title, _username);
+            _confirmButton.Text = stage.ConfirmButtonText;
+            _confirmButton.style.width = stage.ConfirmButtonWidth;
+            
+            _skipButton.EnableInClassList("dcl-button--hidden-down", !stage.CanSkip);
+            _backButton.EnableInClassList("dcl-button--hidden-down", _currentStageIndex == 0);
+            // _skipButton.SetDisplay(stage.CanSkip);
+            // _backButton.SetDisplay(_currentStageIndex != 0);
 
-        private void ShowStage(Stage stage)
-        {
-            switch (stage)
-            {
-                case Stage.Preset:
-                    _presetsView.Show(true);
-                    _stageTitle.text = $"1. Choose {_username}'s starting look";
-                    _confirmButton.Text = "START CUSTOMIZING";
-                    _skipButton.style.display = DisplayStyle.Flex;
-                    _backButton.style.display = DisplayStyle.None;
-                    CategoryChanged!(null);
-                    break;
-                case Stage.Face:
-                    _headWearablesView.Show(true);
-                    _stageTitle.text = $"2. Customize {_username}'s face";
-                    _confirmButton.Text = "CONFIRM FACE";
-                    _skipButton.style.display = DisplayStyle.Flex;
-                    _backButton.style.display = DisplayStyle.Flex;
-                    CategoryChanged!(_headWearablesView.SelectedCategory);
-                    break;
-                case Stage.Body:
-                    _bodyWearablesView.Show(true);
-                    _stageTitle.text = $"2. Customize {_username}'s outfit";
-                    _confirmButton.Text = "FINISH";
-                    _skipButton.style.display = DisplayStyle.None;
-                    _backButton.style.display = DisplayStyle.Flex;
-                    CategoryChanged!(_bodyWearablesView.SelectedCategory);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
+            CategoryChanged!(stage.SelectedCategory);
         }
 
         private void Update()
@@ -220,7 +199,6 @@ namespace UI
 
         public void LoadCompleted()
         {
-            ShowStage(_currentStage = Stage.Preset);
             _configuratorContainer.SetVisibility(true);
             _loader.SetDisplay(false);
         }
@@ -253,8 +231,8 @@ namespace UI
                Category: mouth - 20
              */
 
-            _headWearablesView.SetCollection(faceCollection);
             _bodyWearablesView.SetCollection(bodyCollection);
+            _headWearablesView.SetCollection(faceCollection);
         }
 
         public void SetBodyShape(BodyShape bodyShape)

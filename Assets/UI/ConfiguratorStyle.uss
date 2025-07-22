@@ -70,9 +70,40 @@
     flex-grow: 1;
 }
 
+.customization-window__content-item {
+    translate: 0 0;
+    transition-property: translate;
+    transition-duration: 0.5s;
+    transition-timing-function: ease-in-out-cubic;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+.customization-window__content-item--hide-left {
+    translate: -110% 0;
+}
+
+.customization-window__content-item--hide-right {
+    translate: 110% 0;
+}
+
 .customization-window__buttons-container {
     margin-top: 32px;
     flex-direction: row;
+}
+
+.customization-window__buttons-container > #SkipButton {
+    margin-right: 16px;
+}
+
+.customization-window__buttons-container > #ConfirmButton {
+    transition-property: width;
+    transition-duration: 0.3s;
+    overflow: hidden;
+    justify-content: flex-end;
 }
 
 .presets-content {
@@ -103,10 +134,6 @@
 
 .presets-content__body .preview-button__thumbnail {
     background-size: 120% 120%;
-}
-
-#SkipButton {
-    margin-right: 16px;
 }
 
 .wearable-category-picker {
@@ -220,6 +247,7 @@
 
 .confirmation-popup {
     display: flex;
+    opacity: 1;
     position: absolute;
     top: 0;
     right: 0;
@@ -228,10 +256,13 @@
     background-color: rgba(0, 0, 0, 0.85);
     align-items: center;
     justify-content: center;
+    transition-property: opacity;
+    transition-duration: 0.3s;
 }
 
 .confirmation-popup--hidden {
     display: none;
+    opacity: 0;
 }
 
 .confirmation-popup__popup {

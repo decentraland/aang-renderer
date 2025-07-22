@@ -12,7 +12,7 @@
             </ui:VisualElement>
             <ui:VisualElement name="Body" class="customization-window__body">
                 <ui:VisualElement name="Content" class="customization-window__content">
-                    <ui:VisualElement name="Presets" class="presets-content" style="display: flex;">
+                    <ui:VisualElement name="Presets" usage-hints="DynamicTransform" class="presets-content customization-window__content-item" style="display: flex;">
                         <ui:VisualElement name="Body" class="presets-content__body">
                             <UI.Elements.PreviewButtonElement />
                             <UI.Elements.PreviewButtonElement />
@@ -28,8 +28,8 @@
                             <UI.Elements.PreviewButtonElement />
                         </ui:VisualElement>
                     </ui:VisualElement>
-                    <ui:Instance template="WearableCategoryPicker" name="HeadWearables" style="display: none;" />
-                    <ui:Instance template="WearableCategoryPicker" name="BodyWearables" style="display: none;" />
+                    <ui:Instance template="WearableCategoryPicker" name="HeadWearables" usage-hints="DynamicTransform" class="customization-window__content-item customization-window__content-item--hide-right" />
+                    <ui:Instance template="WearableCategoryPicker" name="BodyWearables" usage-hints="DynamicTransform" class="customization-window__content-item customization-window__content-item--hide-right" />
                 </ui:VisualElement>
                 <ui:VisualElement name="Buttons" class="customization-window__buttons-container">
                     <UI.Elements.DCLButtonElement text="BACK" button-type="Secondary" button-icon="Back" name="BackButton" />
