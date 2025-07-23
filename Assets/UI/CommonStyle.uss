@@ -25,10 +25,10 @@
     border-top-right-radius: 14px;
     border-bottom-right-radius: 14px;
     border-bottom-left-radius: 14px;
-    border-top-width: 3.5px;
-    border-right-width: 3.5px;
-    border-bottom-width: 3.5px;
-    border-left-width: 3.5px;
+    border-top-width: 2px;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
     border-left-color: var(--dcl-color-orange-transparent);
     border-right-color: var(--dcl-color-orange-transparent);
     border-top-color: var(--dcl-color-orange-transparent);
@@ -42,24 +42,31 @@
     border-bottom-color: var(--dcl-color-orange);
 }
 
+.preview-button--selected > .preview-button__container {
+    border-left-color: rgb(205, 198, 211);
+    border-right-color: rgb(205, 198, 211);
+    border-top-color: rgb(205, 198, 211);
+    border-bottom-color: rgb(205, 198, 211);
+}
+
 .preview-button__container {
     flex-grow: 1;
     border-top-left-radius: 10px;
     border-top-right-radius: 10px;
     border-bottom-right-radius: 10px;
     border-bottom-left-radius: 10px;
-    border-top-width: 3px;
-    border-right-width: 3px;
-    border-bottom-width: 3px;
-    border-left-width: 3px;
-    border-left-color: rgb(205, 198, 211);
-    border-right-color: rgb(205, 198, 211);
-    border-top-color: rgb(205, 198, 211);
-    border-bottom-color: rgb(205, 198, 211);
-    margin-top: 1px;
-    margin-right: 1px;
-    margin-bottom: 1px;
-    margin-left: 1px;
+    border-top-width: 2px;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
+    border-left-color: rgba(205, 198, 211, 0);
+    border-right-color: rgba(205, 198, 211, 0);
+    border-top-color: rgba(205, 198, 211, 0);
+    border-bottom-color: rgba(205, 198, 211, 0);
+    margin-top: 2px;
+    margin-right: 2px;
+    margin-bottom: 2px;
+    margin-left: 2px;
     -unity-background-scale-mode: scale-and-crop;
     background-image: url("project://database/Assets/UI/Sprites/Configurator/item_background.png?fileID=2800000&guid=6e20d7fa328d04f1c9e01dc04b7b1768&type=3#item_background");
 }
@@ -209,36 +216,7 @@
     background-image: url("project://database/Assets/UI/Sprites/Configurator/icon_category_mouth.png?fileID=2800000&guid=14c6f2869abdb43ddbd3607466cb9450&type=3#icon_category_mouth");
 }
 
-.wearable-category__thumbnail-container {
-    padding-top: 5px;
-    padding-right: 5px;
-    padding-bottom: 5px;
-    padding-left: 5px;
-    width: 80px;
-    height: 80px;
-    background-color: var(--dcl-color-orange-transparent);
-    border-top-left-radius: 15px;
-    border-top-right-radius: 15px;
-    border-bottom-right-radius: 15px;
-    border-bottom-left-radius: 15px;
-}
-
-.wearable-category:hover > .wearable-category__thumbnail-container {
-    background-color: var(--dcl-color-orange);
-}
-
 .wearable-category__thumbnail {
-    background-color: var(--dcl-color-snow);
-    border-top-left-radius: 12px;
-    border-top-right-radius: 12px;
-    border-bottom-right-radius: 12px;
-    border-bottom-left-radius: 12px;
-    border-color: var(--dcl-color-orange-transparent);
-    transition-duration: 0.2s;
-    border-top-width: 2px;
-    border-right-width: 2px;
-    border-bottom-width: 2px;
-    border-left-width: 2px;
     height: 80px;
     width: 80px;
 }
