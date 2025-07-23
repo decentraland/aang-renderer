@@ -7,7 +7,7 @@ namespace UI
 {
     public class RemoteTextureService : MonoBehaviour
     {
-        private const int CONCURRENT_REQUESTS = 10;
+        private const int CONCURRENT_REQUESTS = 12;
 
         private readonly Dictionary<string, Texture2D> _cachedTextures = new();
 
