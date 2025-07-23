@@ -74,6 +74,7 @@
 
 .preview-button__thumbnail {
     flex-grow: 1;
+    -unity-background-scale-mode: scale-to-fit;
 }
 
 .dcl-button {
@@ -229,7 +230,6 @@
 
 .dcl-dropdown {
     height: 40px;
-    width: 66px;
     border-top-left-radius: 12px;
     border-top-right-radius: 12px;
     border-bottom-right-radius: 12px;
@@ -258,36 +258,60 @@
     border-bottom-right-radius: 7px;
     border-bottom-left-radius: 7px;
     -unity-background-scale-mode: scale-to-fit;
+    margin-right: 10px;
 }
 
-.dcl-dropdown-container__popup {
+.dcl-dropdown__label {
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-left: 0;
+    padding-right: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    font-size: 15px;
+}
+
+.dcl-dropdown__container {
     position: absolute;
-    padding-top: 24px;
-    padding-right: 32px;
-    padding-bottom: 24px;
-    padding-left: 32px;
-    background-color: rgb(255, 255, 255);
-    margin-top: 15px;
-    border-top-left-radius: 12px;
-    border-top-right-radius: 12px;
-    border-bottom-right-radius: 12px;
-    border-bottom-left-radius: 12px;
-    transition-duration: 0.3s;
-    display: flex;
+    right: 100%;
+    top: 100%;
 }
 
-.dcl-dropdown__container--hidden {
-    display: none;
-}
-
-.popup-color {
-    width: 316px;
-}
-
-.dcl-dropdown-container {
+#dcl-dropdown-popup-root {
     position: absolute;
     top: 0;
     right: 0;
     bottom: 0;
     left: 0;
+    align-items: flex-start;
+}
+
+.dcl-dropdown-popup {
+    padding-top: 22px;
+    padding-right: 32px;
+    padding-bottom: 22px;
+    padding-left: 32px;
+    background-color: rgb(255, 255, 255);
+    margin-top: 8px;
+    margin-right: 8px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-bottom-left-radius: 12px;
+    transition-duration: 0.3s;
+}
+
+.dcl-dropdown-popup__title {
+    font-size: 30px;
+    color: rgb(0, 0, 0);
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0;
+    margin-bottom: 24px;
+    padding-left: 0;
+    padding-right: 0;
+    padding-top: 0;
+    padding-bottom: 0;
 }

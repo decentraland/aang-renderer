@@ -7,6 +7,26 @@
         <ui:VisualElement name="Body" class="wearable-category-picker__body">
             <ui:VisualElement name="Header" class="wearable-category-picker__header">
                 <ui:Label text="&lt;font-weight=600&gt;HAIR" name="CategoryHeader" style="font-size: 30px; color: rgb(255, 255, 255); margin-top: 0; padding-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; padding-right: 0; padding-bottom: 0; padding-left: 0;" />
+                <UI.Elements.DCLDropdownElement hidden="true" name="ColorDropdown" text="COLOR">
+                    <ui:VisualElement name="ColorPopup" class="popup-color dcl-dropdown-popup">
+                        <ui:Label name="Title" text="&lt;font-weight=600&gt;SKIN COLOR" class="dcl-dropdown-popup__title" />
+                        <ui:Label text="&lt;font-weight=600&gt;PRESETS" class="popup-color__presets-label" />
+                        <ui:VisualElement name="PresetsContainer" class="popup-color__presets-container">
+                            <ui:VisualElement class="popup-color__preset" />
+                            <ui:VisualElement class="popup-color__preset" />
+                            <ui:VisualElement class="popup-color__preset" />
+                            <ui:VisualElement class="popup-color__preset" />
+                            <ui:VisualElement class="popup-color__preset" />
+                            <ui:VisualElement class="popup-color__preset" />
+                            <ui:VisualElement class="popup-color__preset" />
+                            <ui:VisualElement class="popup-color__preset" />
+                            <ui:VisualElement class="popup-color__preset" />
+                            <ui:VisualElement class="popup-color__preset" />
+                            <ui:VisualElement class="popup-color__preset" />
+                            <ui:VisualElement class="popup-color__preset" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </UI.Elements.DCLDropdownElement>
             </ui:VisualElement>
             <ui:VisualElement name="Items" class="wearable-category-picker__items-container" style="flex-grow: 1;">
                 <UI.Elements.WearableItemElement />

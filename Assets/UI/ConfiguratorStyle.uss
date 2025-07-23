@@ -156,12 +156,20 @@
 
 .wearable-category-picker__header {
     margin-bottom: 26px;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.wearable-category-picker__header > .dcl-dropdown {
+    margin-right: 10px;
 }
 
 .wearable-category-picker__items-container {
     flex-grow: 1;
     flex-direction: row;
     flex-wrap: wrap;
+    justify-content: space-between;
+    align-content: stretch;
 }
 
 .dcl-dropdown--bodyshape > .dcl-dropdown__icon {
@@ -172,13 +180,7 @@
 .popup-bodytype {
 }
 
-.popup-bodytype__label {
-    font-size: 30px;
-    color: rgb(0, 0, 0);
-}
-
 .popup-bodytype__button-container {
-    flex-grow: 1;
     flex-direction: row;
 }
 
@@ -187,20 +189,21 @@
     height: 256px;
 }
 
-.popup-bodytype__button--male > .preview-button__container {
-    background-image: url("project://database/Assets/UI/Sprites/Configurator/bodytype_male.png?fileID=2800000&guid=a0ca15857fb3840e3909001d80cdd832&type=3#bodytype_male");
+.popup-bodytype__button > .preview-button__container {
+    padding-top: 8px;
+    padding-bottom: 8px;
 }
 
-.popup-bodytype__button--female > .preview-button__container {
-    background-image: url("project://database/Assets/UI/Sprites/Configurator/bodytype_female.png?fileID=2800000&guid=57a790d4676394d6c858bb42a8ee90cc&type=3#bodytype_female");
+.popup-bodytype__button--male .preview-button__thumbnail {
+    background-image: url("project://database/Assets/UI/Sprites/Configurator/bodyshape_male.png?fileID=2800000&guid=68a084d4bd96241189212013c47719e5&type=3#bodyshape_male");
+}
+
+.popup-bodytype__button--female .preview-button__thumbnail {
+    background-image: url("project://database/Assets/UI/Sprites/Configurator/bodyshape_female.png?fileID=2800000&guid=72457323208a94cbeb64c5ac4283dd9e&type=3#bodyshape_female");
 }
 
 .popup-color {
-    width: 311px;
-}
-
-.popup-color__title {
-    font-size: 30px;
+    width: 386px;
 }
 
 .popup-color__presets-label {
@@ -232,8 +235,6 @@
 .popup-color__presets-container {
     flex-direction: row;
     flex-wrap: wrap;
-    align-items: flex-start;
-    align-self: center;
     justify-content: space-between;
     margin-left: 21px;
     margin-right: 21px;
@@ -245,11 +246,12 @@
 }
 
 .container__character-area {
-    flex-direction: row;
-    justify-content: flex-end;
+    flex-direction: column;
+    justify-content: flex-start;
     max-width: 538px;
     flex-grow: 1;
     cursor: url("project://database/Assets/UI/Sprites/Configurator/cursor_rotate.png?fileID=2800000&guid=797e032bcecb14d79865077f5670d471&type=3#cursor_rotate");
+    align-items: flex-end;
 }
 
 .confirmation-popup {

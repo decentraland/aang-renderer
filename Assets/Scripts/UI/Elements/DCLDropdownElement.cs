@@ -1,4 +1,6 @@
+using System.Linq;
 using UnityEngine.UIElements;
+using Utils;
 
 namespace UI.Elements
 {
@@ -8,40 +10,106 @@ namespace UI.Elements
         private const string USS_BLOCK = "dcl-dropdown";
         private const string USS_ICON = USS_BLOCK + "__icon";
         private const string USS_ARROW = USS_BLOCK + "__arrow";
+        private const string USS_LABEL = USS_BLOCK + "__label";
         private const string USS_CONTAINER = USS_BLOCK + "__container";
-        private const string USS_CONTAINER_HIDDEN = USS_CONTAINER + "--hidden";
 
         public readonly VisualElement Icon;
-        
-        // TODO: Wat
+
+        private readonly Label _label;
+
         [UxmlAttribute]
-        public bool Hidden
+        public string Text
         {
-            get => contentContainer.ClassListContains(USS_CONTAINER_HIDDEN);
-            set => contentContainer.EnableInClassList(USS_CONTAINER_HIDDEN, value);
+            get => _label.text[17..];
+            set
+            {
+                _label.SetDisplay(!string.IsNullOrEmpty(value));
+                _label.text = "<font-weight=600>" + value;
+            }
         }
 
+        // TODO: Try to block this at runtime if it's set
+        [UxmlAttribute]
+        public bool ShowInEditor
+        {
+            get => contentContainer.style.display == DisplayStyle.Flex;
+            set => contentContainer.SetDisplay(value);
+        }
+
+        private bool _showing;
+
         public override VisualElement contentContainer { get; }
+
+        private VisualElement _popupRoot;
+        private VisualElement _popup;
 
         public DCLDropdownElement()
         {
             AddToClassList(USS_BLOCK);
 
-            hierarchy.Add(Icon = new VisualElement {name = "icon", pickingMode = PickingMode.Ignore});
+            hierarchy.Add(_label = new Label { name = "label" });
+            _label.AddToClassList(USS_LABEL);
+            _label.SetDisplay(false);
+
+            hierarchy.Add(Icon = new VisualElement { name = "icon", pickingMode = PickingMode.Ignore });
             Icon.AddToClassList(USS_ICON);
-            
-            var arrow = new VisualElement {name = "arrow", pickingMode = PickingMode.Ignore};
+
+            var arrow = new VisualElement { name = "arrow", pickingMode = PickingMode.Ignore };
             hierarchy.Add(arrow);
             arrow.AddToClassList(USS_ARROW);
-            
-            var container = new VisualElement {name = "container", pickingMode = PickingMode.Ignore};
+
+            var container = new VisualElement { name = "container", pickingMode = PickingMode.Ignore };
             hierarchy.Add(container);
             container.AddToClassList(USS_CONTAINER);
-            container.AddToClassList(USS_CONTAINER_HIDDEN);
+            container.style.display = DisplayStyle.None;
 
             contentContainer = container;
-            
-            this.AddManipulator(new Clickable(() => Hidden = !Hidden));
+
+            this.AddManipulator(new Clickable(Toggle));
+
+            RegisterCallback<DetachFromPanelEvent, DCLDropdownElement>(static (_, e) => { e.Show(false); }, this);
+        }
+
+        private void Toggle()
+        {
+            Show(!_showing);
+        }
+
+        private void Show(bool show)
+        {
+            if (panel == null || show == _showing) return;
+
+            if (show)
+            {
+                _popupRoot ??= panel.visualTree.Q("dcl-dropdown-popup-root");
+                _popupRoot.RegisterCallbackOnce<PointerDownEvent, DCLDropdownElement>(static (_, e) => e.Show(false),
+                    this);
+                _popupRoot.RegisterCallback<GeometryChangedEvent>(RefreshPosition);
+
+                _popup = contentContainer.Children().First();
+                _popup.RemoveFromHierarchy();
+                _popupRoot.Add(_popup);
+
+                _popup.RegisterCallback<GeometryChangedEvent>(RefreshPosition);
+            }
+            else
+            {
+                _popupRoot.UnregisterCallback<GeometryChangedEvent>(RefreshPosition);
+                _popup.UnregisterCallback<GeometryChangedEvent>(RefreshPosition);
+                _popup.RemoveFromHierarchy();
+                contentContainer.Add(_popup);
+                _popup.style.left = StyleKeyword.Initial;
+                _popup.style.top = StyleKeyword.Initial;
+                _popup = null;
+            }
+
+            _showing = show;
+        }
+
+        private void RefreshPosition(GeometryChangedEvent _)
+        {
+            _popup.style.left = worldBound.x - _popup.worldBound.width - _popup.resolvedStyle.marginRight;
+            _popup.style.top = worldBound.y + worldBound.height;
         }
     }
 }

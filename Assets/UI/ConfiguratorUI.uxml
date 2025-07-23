@@ -1,6 +1,7 @@
 <ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <ui:Template name="WearableCategoryPicker" src="project://database/Assets/UI/WearableCategoryPicker.uxml?fileID=9197481963319205126&amp;guid=ee3d5b15e073b48fdbb6cc9bf63bb2ff&amp;type=3#WearableCategoryPicker" />
     <Style src="project://database/Assets/UI/ConfiguratorStyle.uss?fileID=7433441132597879392&amp;guid=83de1c6279f824cdcbe4149342d94f6f&amp;type=3#ConfiguratorStyle" />
+    <Style src="project://database/Assets/UI/CommonStyle.uss?fileID=7433441132597879392&amp;guid=3990756074e5d492e9a6b93221a7b815&amp;type=3#CommonStyle" />
     <ui:VisualElement picking-mode="Ignore" name="Loader" class="loader" style="display: none;">
         <ui:VisualElement picking-mode="Ignore" name="Icon" class="loader__icon" />
     </ui:VisualElement>
@@ -40,9 +41,9 @@
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="CharacterArea" class="container__character-area">
-            <UI.Elements.DCLDropdownElement hidden="true" name="BodyTypeDropdown" class="dcl-dropdown--bodyshape" style="margin-right: 12px;">
-                <ui:VisualElement name="BodyTypePopup" class="popup-bodytype">
-                    <ui:Label text="BODY TYPE" class="popup-bodytype__label" />
+            <UI.Elements.DCLDropdownElement hidden="true" name="BodyTypeDropdown" class="dcl-dropdown--bodyshape" style="margin-bottom: 12px;">
+                <ui:VisualElement name="BodyTypePopup" class="popup-bodytype dcl-dropdown-popup">
+                    <ui:Label name="Title" text="&lt;font-weight=600&gt;BODY TYPE" class="dcl-dropdown-popup__title" />
                     <ui:VisualElement name="ButtonContainer" class="popup-bodytype__button-container">
                         <UI.Elements.PreviewButtonElement name="MaleBodyButton" class="popup-bodytype__button popup-bodytype__button--male" />
                         <UI.Elements.PreviewButtonElement name="FemaleBodyButton" class="popup-bodytype__button popup-bodytype__button--female" />
@@ -50,10 +51,12 @@
                 </ui:VisualElement>
             </UI.Elements.DCLDropdownElement>
             <UI.Elements.DCLDropdownElement hidden="true" name="SkinColorDropdown">
-                <ui:VisualElement name="ColorPopup" class="popup-color">
-                    <ui:Label text="SKIN COLOR" class="popup-color__title" />
-                    <ui:Label text="PRESETS" class="popup-color__presets-label" />
+                <ui:VisualElement name="ColorPopup" class="popup-color dcl-dropdown-popup">
+                    <ui:Label name="Title" text="&lt;font-weight=600&gt;SKIN COLOR" class="dcl-dropdown-popup__title" />
+                    <ui:Label text="&lt;font-weight=600&gt;PRESETS" class="popup-color__presets-label" />
                     <ui:VisualElement name="PresetsContainer" class="popup-color__presets-container">
+                        <ui:VisualElement class="popup-color__preset" />
+                        <ui:VisualElement class="popup-color__preset" />
                         <ui:VisualElement class="popup-color__preset" />
                         <ui:VisualElement class="popup-color__preset" />
                         <ui:VisualElement class="popup-color__preset" />
@@ -69,6 +72,7 @@
             </UI.Elements.DCLDropdownElement>
         </ui:VisualElement>
     </ui:VisualElement>
+    <ui:VisualElement name="dcl-dropdown-popup-root" picking-mode="Ignore" style="top: 0; bottom: 0; right: 0; left: 0;" />
     <ui:VisualElement name="ConfirmationPopup" class="confirmation-popup confirmation-popup--hidden">
         <ui:VisualElement name="Popup" class="confirmation-popup__popup">
             <ui:Label text="&lt;font-weight=600&gt;Ready to jump in?" class="confirmation-popup__title" />
