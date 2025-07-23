@@ -1259,7 +1259,7 @@ Transform:
   m_GameObject: {fileID: 1411485568905184141}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.5556473, y: -0.02, z: -3.57}
+  m_LocalPosition: {x: -1.390249, y: -0.02, z: -3.57}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1859,7 +1859,7 @@ MonoBehaviour:
     skinColor: {r: 0.8666667, g: 0.69411767, b: 0.56078434, a: 1}
     hairColor: {r: 0.59607846, g: 0.37254903, b: 0.21960784, a: 1}
     eyeColor: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
-    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreiaoxxmdyjv5g5dsofokjjiz7xp7urj7qds32dbjvsanok3hbjbhue/body.png
     urns:
     - urn:decentraland:off-chain:base-avatars:standard_hair
     - urn:decentraland:off-chain:base-avatars:f_eyes_00
@@ -1872,7 +1872,7 @@ MonoBehaviour:
     skinColor: {r: 1, g: 0.8666667, b: 0.7372549, a: 1}
     hairColor: {r: 0.23921569, g: 0.13333334, b: 0.050980393, a: 1}
     eyeColor: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
-    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreia2ny7vivfrxle5tucf2ia4iumcy4y5dnxqmvb5zd2tneav2wuswi/body.png
     urns:
     - urn:decentraland:off-chain:base-avatars:casual_hair_01
     - urn:decentraland:off-chain:base-avatars:eyes_00
@@ -1886,7 +1886,7 @@ MonoBehaviour:
     skinColor: {r: 0.23921569, g: 0.13333334, b: 0.08627451, a: 1}
     hairColor: {r: 0.4862745, g: 0.28627452, b: 0.08627451, a: 1}
     eyeColor: {r: 0.7490196, g: 0.61960787, b: 0.3529412, a: 1}
-    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreibdfite2dul7pkvkhdggix4ufd3lbyrcvc4tg2dpoeqyfu2ja76ay/body.png
     urns:
     - urn:decentraland:off-chain:base-avatars:rasta
     - urn:decentraland:off-chain:base-avatars:eyes_08
@@ -1899,7 +1899,7 @@ MonoBehaviour:
     skinColor: {r: 0.6745098, g: 1, b: 0.9882353, a: 1}
     hairColor: {r: 1, g: 0, b: 0.77254903, a: 1}
     eyeColor: {r: 1, g: 0, b: 0.77254903, a: 1}
-    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreihdvoud4pdotaq6l5rddsnol2ouapmom4rd3wdkugg7vgg64isup4/body.png
     urns:
     - urn:decentraland:off-chain:base-avatars:tall_front_01
     - urn:decentraland:off-chain:base-avatars:f_eyes_04
@@ -1912,7 +1912,7 @@ MonoBehaviour:
     skinColor: {r: 0.9490196, g: 0.7607843, b: 0.64705884, a: 1}
     hairColor: {r: 1, g: 0.74509805, b: 0.14901961, a: 1}
     eyeColor: {r: 0.5254902, g: 0.3764706, b: 0.25882354, a: 1}
-    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreigxf4cf5yr3wxguxlrn4xn3pusfjs4ug5p4y4npcvbxnc3zhc7zwy/body.png
     urns:
     - urn:decentraland:off-chain:base-avatars:curly_hair
     - urn:decentraland:off-chain:base-avatars:eyes_03
@@ -1927,7 +1927,7 @@ MonoBehaviour:
     skinColor: {r: 1, g: 0.8666667, b: 0.7372549, a: 1}
     hairColor: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
     eyeColor: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
-    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifg7a7n7e642qicxmdybana6jsqut626voyam2ps2ahnd2pe43w4y/body.png
     urns:
     - urn:decentraland:off-chain:base-avatars:curtained_hair
     - urn:decentraland:off-chain:base-avatars:f_eyes_05
@@ -1941,7 +1941,7 @@ MonoBehaviour:
     skinColor: {r: 0.8666667, g: 0.69411767, b: 0.56078434, a: 1}
     hairColor: {r: 0.6745098, g: 1, b: 0.7372549, a: 1}
     eyeColor: {r: 0.6745098, g: 1, b: 0.7372549, a: 1}
-    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreiejrudxmf4gpeaa5xscj63ozh7kjp47xb2porz7yum6stgckeediq/body.png
     urns:
     - urn:decentraland:off-chain:base-avatars:double_bun
     - urn:decentraland:off-chain:base-avatars:f_eyes_10
@@ -1956,7 +1956,7 @@ MonoBehaviour:
     skinColor: {r: 1, g: 0.89411765, b: 0.7764706, a: 1}
     hairColor: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
     eyeColor: {r: 0.21960784, g: 0.4862745, b: 0.6901961, a: 1}
-    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreigcvglva47mbtihardrh66ckj6uvwyt5c7tj4ffmojh6hgebtgrua/body.png
     urns:
     - urn:decentraland:off-chain:base-avatars:hair_anime_01
     - urn:decentraland:off-chain:base-avatars:f_eyes_08
@@ -1970,7 +1970,7 @@ MonoBehaviour:
     skinColor: {r: 0.9490196, g: 0.7607843, b: 0.64705884, a: 1}
     hairColor: {r: 0.54901963, g: 0.13333334, b: 0.08627451, a: 1}
     eyeColor: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
-    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifacigdq25eny2oimpetceipw3gif5zr5yxlxhgfpgs7fmpsplena/body.png
     urns:
     - urn:decentraland:off-chain:base-avatars:keanu_hair
     - urn:decentraland:off-chain:base-avatars:eyes_15
@@ -1985,7 +1985,7 @@ MonoBehaviour:
     skinColor: {r: 0, g: 0.92156863, b: 0.7176471, a: 1}
     hairColor: {r: 0.6862745, g: 0, b: 1, a: 1}
     eyeColor: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
-    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreify5r3txezmtq2hb4iepeyaadvtcp2kxkqjhtoi6orgqmpdsarnnu/body.png
     urns:
     - urn:decentraland:off-chain:base-avatars:punk
     - urn:decentraland:off-chain:base-avatars:eyes_20
@@ -1998,7 +1998,7 @@ MonoBehaviour:
     skinColor: {r: 1, g: 0.8666667, b: 0.7372549, a: 1}
     hairColor: {r: 0.4862745, g: 0.28627452, b: 0.08627451, a: 1}
     eyeColor: {r: 0.21960784, g: 0.4862745, b: 0.6901961, a: 1}
-    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreieinenlojbhns5iwy6kqi6webgrzxfdlgp4p7nohggmcy7fuacab4/body.png
     urns:
     - urn:decentraland:off-chain:base-avatars:modern_hair
     - urn:decentraland:off-chain:base-avatars:eyes_11
@@ -2012,7 +2012,7 @@ MonoBehaviour:
     skinColor: {r: 0.49019608, g: 0.3647059, b: 0.2784314, a: 1}
     hairColor: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
     eyeColor: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
-    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreibmb5vez4r4atrm4dqipkrtmdxkrovuzlggknxieeytbnlvrldvay/body.png
     urns:
     - urn:decentraland:off-chain:base-avatars:semi_afro
     - urn:decentraland:off-chain:base-avatars:eyes_01
@@ -2377,7 +2377,7 @@ Transform:
   m_GameObject: {fileID: 1992614800948951230}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.5556473, y: -0.02, z: -3.57}
+  m_LocalPosition: {x: -1.390249, y: -0.02, z: -3.57}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

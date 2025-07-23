@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Data;
 using UI;
 using UnityEngine;
@@ -80,7 +81,8 @@ public class ConfiguratorController : MonoBehaviour
 
     private void OnCategoryChanged(string category)
     {
-        avatarLoader.TryHideCategory(WearablesConstants.Categories.EYEWEAR, category != WearablesConstants.Categories.EYES);
+        avatarLoader.TryHideCategory(WearablesConstants.Categories.EYEWEAR,
+            category != WearablesConstants.Categories.EYES);
     }
 
     private static EntityDefinition GetEmote(string category)
@@ -189,6 +191,13 @@ public class ConfiguratorController : MonoBehaviour
             RemoteTextureService.Instance.PreloadTexture(ed.Thumbnail);
         }
 
+        // Shuffle avatar presets
+        for (var i = 0; i < avatarPresets.Length; ++i)
+        {
+            var r = Random.Range(i, avatarPresets.Length);
+            (avatarPresets[i], avatarPresets[r]) = (avatarPresets[r], avatarPresets[i]);
+        }
+
         // Set data
         uiPresenter.SetUsername(Username);
         uiPresenter.SetCollection(faceCategories, bodyCategories);
@@ -224,65 +233,6 @@ public class ConfiguratorController : MonoBehaviour
                     Application.streamingAssetsPath + "/character/Wave_Male.glb"));
         }
     }
-
-    // private static async Task<ProfileResponse.Avatar.AvatarData> LoadAvatar(string avatarID)
-    // {
-    //     var avatar = await APIService.GetAvatar(avatarID);
-    //
-    //     // Fix wearables
-    //     for (var i = 0; i < avatar.wearables.Length; i++)
-    //     {
-    //         avatar.wearables[i] = avatar.wearables[i].ToLowerInvariant();
-    //     }
-    //
-    //     return avatar;
-    // }
-
-    // private static PresetDefinition LoadAvatarConfig(string presetString)
-    // {
-    //     var split = presetString.Split('\t', StringSplitOptions.RemoveEmptyEntries);
-    //     var bodyType = split[1] == "BaseFemale" ? BodyShape.Female : BodyShape.Male;
-    //     var bodyColor = ColorUtility.TryParseHtmlString("#" + split[2], out var bc)
-    //         ? bc
-    //         : throw new Exception("Invalid body color");
-    //     var hairColor = ColorUtility.TryParseHtmlString("#" + split[3], out var hc)
-    //         ? hc
-    //         : throw new Exception("Invalid hair color");
-    //     var eyeColor = ColorUtility.TryParseHtmlString("#" + split[4], out var ec)
-    //         ? ec
-    //         : throw new Exception("Invalid eye color");
-    //
-    //     var urns = split.Where(s => s.StartsWith("urn")).ToArray();
-    //
-    //     var avatarData = new ProfileResponse.Avatar.AvatarData
-    //     {
-    //         bodyShape = bodyType == BodyShape.Female
-    //             ? WearablesConstants.BODY_SHAPE_FEMALE
-    //             : WearablesConstants
-    //                 .BODY_SHAPE_MALE,
-    //         wearables = urns,
-    //         skin = new ProfileResponse.Avatar.AvatarData.ColorData { color = bodyColor },
-    //         hair = new ProfileResponse.Avatar.AvatarData.ColorData { color = hairColor },
-    //         eyes = new ProfileResponse.Avatar.AvatarData.ColorData { color = eyeColor },
-    //         snapshots = new ProfileResponse.Avatar.AvatarData.Snapshot
-    //         {
-    //             body =
-    //                 "https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png"
-    //         }
-    //     };
-    //
-    //     Debug.Log(JsonUtility.ToJson(avatarData));
-    //
-    //     return new PresetDefinition()
-    //     {
-    //         bodyShape = bodyType,
-    //         skinColor = bodyColor,
-    //         hairColor = hairColor,
-    //         eyeColor = eyeColor,
-    //         urns = urns,
-    //         thumbnail = "https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreifdwtultwt43oqe6zmkbqcfzbr22kziywuxjd5gx7zqanak7lnwxq/body.png"
-    //     };
-    // }
 }
 
 [Serializable]
