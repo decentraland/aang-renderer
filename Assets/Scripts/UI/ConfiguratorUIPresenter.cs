@@ -161,7 +161,7 @@ namespace UI
         {
             if (_currentStageIndex == _stages.Length - 1)
             {
-                _confirmPopupView.Show(true);
+                Confirmed!();
                 return;
             }
 
@@ -180,8 +180,6 @@ namespace UI
 
             _skipButton.EnableInClassList("dcl-button--hidden-down", !stage.CanSkip);
             _backButton.EnableInClassList("dcl-button--hidden-down", _currentStageIndex == 0);
-            // _skipButton.SetDisplay(stage.CanSkip);
-            // _backButton.SetDisplay(_currentStageIndex != 0);
 
             CategoryChanged!(stage.SelectedCategory);
         }
