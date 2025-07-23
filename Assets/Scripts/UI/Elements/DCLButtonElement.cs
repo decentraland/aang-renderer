@@ -58,13 +58,13 @@ namespace UI.Elements
             AddToClassList(USS_BLOCK);
             AddToClassList("dcl-clickable");
 
-            Add(_label = new Label { name = "label" });
+            Add(_label = new Label { name = "label", pickingMode = PickingMode.Ignore });
             _label.AddToClassList(USS_LABEL);
 
-            var icon = new VisualElement();
+            var icon = new VisualElement { name = "icon", pickingMode = PickingMode.Ignore };
             Add(icon);
             icon.AddToClassList(USS_ICON);
-            
+
             this.AddManipulator(new Clickable(() => Clicked?.Invoke()));
         }
 
@@ -73,7 +73,7 @@ namespace UI.Elements
             RemoveFromClassList(USS_ICON_NONE);
             RemoveFromClassList(USS_ICON_BACK);
             RemoveFromClassList(USS_ICON_FORWARD);
-            
+
             switch (_buttonIcon)
             {
                 case Icon.None:
@@ -88,7 +88,7 @@ namespace UI.Elements
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            
+
             MarkDirtyRepaint();
         }
 

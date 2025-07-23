@@ -27,14 +27,14 @@ namespace UI.Elements
         {
             AddToClassList(USS_BLOCK);
 
-            hierarchy.Add(Icon = new VisualElement {name = "icon"});
+            hierarchy.Add(Icon = new VisualElement {name = "icon", pickingMode = PickingMode.Ignore});
             Icon.AddToClassList(USS_ICON);
             
-            var arrow = new VisualElement {name = "arrow"};
+            var arrow = new VisualElement {name = "arrow", pickingMode = PickingMode.Ignore};
             hierarchy.Add(arrow);
             arrow.AddToClassList(USS_ARROW);
             
-            var container = new VisualElement {name = "container"};
+            var container = new VisualElement {name = "container", pickingMode = PickingMode.Ignore};
             hierarchy.Add(container);
             container.AddToClassList(USS_CONTAINER);
             container.AddToClassList(USS_CONTAINER_HIDDEN);

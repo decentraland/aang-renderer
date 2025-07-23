@@ -33,12 +33,12 @@ namespace UI.Elements
             AddToClassList(USS_BLOCK);
             AddToClassList("dcl-clickable");
 
-            var icon = new VisualElement { name = "icon" };
+            var icon = new VisualElement { name = "icon", pickingMode = PickingMode.Ignore };
             Add(icon);
             icon.AddToClassList(USS_ICON);
             icon.AddToClassList(string.Format(USS_ICON_CATEGORY, category));
 
-            Add(_thumbnail = new WearableItemElement { name = "thumbnail" });
+            Add(_thumbnail = new WearableItemElement { name = "thumbnail", pickingMode = PickingMode.Ignore });
             _thumbnail.EmptyTexture = emptyIcon;
             _thumbnail.AddToClassList(USS_THUMBNAIL);
             _thumbnail.RemoveClickable();

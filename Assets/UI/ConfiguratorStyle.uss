@@ -100,8 +100,7 @@
 }
 
 .customization-window__buttons-container > #ConfirmButton {
-    transition-property: width;
-    transition-duration: 0.3s;
+    transition-property: scale, translate, opacity, width;
     overflow: hidden;
     justify-content: flex-end;
 }
@@ -243,6 +242,14 @@
 .container {
     flex-direction: row;
     justify-content: center;
+}
+
+.container__character-area {
+    flex-direction: row;
+    justify-content: flex-end;
+    max-width: 538px;
+    flex-grow: 1;
+    cursor: url("project://database/Assets/UI/Sprites/Configurator/cursor_rotate.png?fileID=2800000&guid=797e032bcecb14d79865077f5670d471&type=3#cursor_rotate");
 }
 
 .confirmation-popup {

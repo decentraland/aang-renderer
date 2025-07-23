@@ -4,12 +4,13 @@
     --dcl-color-snow: rgb(252, 252, 252);
     --dcl-color-ruby: rgb(255, 45, 85);
     --dcl-color-white_70: rgba(255, 255, 255, 0.7);
-
     -unity-font-definition: url("project://database/Assets/UI/Font/Inter_18pt-Regular%20SDF.asset?fileID=11400000&guid=ac33835a7d3724b99af9e75a108d285d&type=2#Inter_18pt-Regular SDF");
 }
 
 .dcl-clickable {
+    transition-property: scale;
     transition-duration: 0.2s;
+    cursor: url("project://database/Assets/UI/Sprites/Configurator/cursor_interactive.png?fileID=2800000&guid=e16855ab158be494b97fd679ca9c6968&type=3#cursor_interactive");
 }
 
 .dcl-clickable:hover {
@@ -88,8 +89,7 @@
     padding-top: 16px;
     padding-bottom: 16px;
     opacity: 1;
-    transition-property: translate, opacity;
-    transition-duration: 0.2s;
+    transition-property: scale, translate, opacity;
 }
 
 .dcl-button--hidden-down {
@@ -260,15 +260,13 @@
     -unity-background-scale-mode: scale-to-fit;
 }
 
-.dcl-dropdown__container {
+.dcl-dropdown-container__popup {
     position: absolute;
     padding-top: 24px;
     padding-right: 32px;
     padding-bottom: 24px;
     padding-left: 32px;
     background-color: rgb(255, 255, 255);
-    right: 0;
-    top: 100%;
     margin-top: 15px;
     border-top-left-radius: 12px;
     border-top-right-radius: 12px;
@@ -284,4 +282,12 @@
 
 .popup-color {
     width: 316px;
+}
+
+.dcl-dropdown-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
 }

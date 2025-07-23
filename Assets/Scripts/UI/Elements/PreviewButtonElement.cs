@@ -30,11 +30,11 @@ namespace UI.Elements
             AddToClassList(USS_BLOCK);
             AddToClassList("dcl-clickable");
             
-            var container = new VisualElement { name = "container" };
+            var container = new VisualElement { name = "container", pickingMode = PickingMode.Ignore };
             Add(container);
             container.AddToClassList(USS_CONTAINER);
             {
-                container.Add(_thumbnail = new VisualElement { name = "thumbnail" });
+                container.Add(_thumbnail = new VisualElement { name = "thumbnail", pickingMode = PickingMode.Ignore });
                 _thumbnail.AddToClassList(USS_THUMBNAIL);
             }
             

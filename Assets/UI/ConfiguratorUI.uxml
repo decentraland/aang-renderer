@@ -39,7 +39,7 @@
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
-        <ui:VisualElement name="CharacterArea" style="flex-direction: row; justify-content: flex-end; max-width: 538px; flex-grow: 1;">
+        <ui:VisualElement name="CharacterArea" class="container__character-area">
             <UI.Elements.DCLDropdownElement hidden="true" name="BodyTypeDropdown" class="dcl-dropdown--bodyshape" style="margin-right: 12px;">
                 <ui:VisualElement name="BodyTypePopup" class="popup-bodytype">
                     <ui:Label text="BODY TYPE" class="popup-bodytype__label" />
