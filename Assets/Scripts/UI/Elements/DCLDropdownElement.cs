@@ -1,5 +1,6 @@
 using System.Linq;
 using UI.Manipulators;
+using UnityEngine;
 using UnityEngine.UIElements;
 using Utils;
 
@@ -21,7 +22,7 @@ namespace UI.Elements
         [UxmlAttribute]
         public string Text
         {
-            get => _label.text[17..];
+            get => _label.text.Length > 0 ? _label.text[17..] : string.Empty;
             set
             {
                 _label.SetDisplay(!string.IsNullOrEmpty(value));
@@ -112,8 +113,37 @@ namespace UI.Elements
 
         private void RefreshPosition(GeometryChangedEvent _)
         {
-            _popup.style.left = worldBound.x - _popup.worldBound.width - _popup.resolvedStyle.marginRight;
-            _popup.style.top = worldBound.y + worldBound.height;
+            // Get the unscaled world bounds to ensure correct positioning even when element is scaled (e.g., during hover)
+            var unscaledBounds = GetUnscaledWorldBounds();
+            _popup.style.left = unscaledBounds.x - _popup.worldBound.width - _popup.resolvedStyle.marginRight +
+                                unscaledBounds.width;
+            _popup.style.top = unscaledBounds.y + unscaledBounds.height;
+        }
+
+        private Rect GetUnscaledWorldBounds()
+        {
+            var currentScale = transform.scale;
+            var bounds = worldBound;
+
+            if (Mathf.Approximately(currentScale.x, 1f) == false || Mathf.Approximately(currentScale.y, 1f) == false)
+            {
+                // Calculate the original size before scaling
+                var unscaledWidth = bounds.width / currentScale.x;
+                var unscaledHeight = bounds.height / currentScale.y;
+
+                // Calculate the position adjustment due to scaling (elements scale from center)
+                var widthDiff = (unscaledWidth - bounds.width) * 0.5f;
+                var heightDiff = (unscaledHeight - bounds.height) * 0.5f;
+
+                return new Rect(
+                    bounds.x - widthDiff,
+                    bounds.y - heightDiff,
+                    unscaledWidth,
+                    unscaledHeight
+                );
+            }
+
+            return bounds;
         }
     }
 }

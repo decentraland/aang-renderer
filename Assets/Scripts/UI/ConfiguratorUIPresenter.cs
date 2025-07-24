@@ -97,7 +97,7 @@ namespace UI
             _presetsView = new PresetsView(presetsContainer,
                 "1. Choose {0}'s starting look",
                 "START CUSTOMIZING",
-                212,
+                221,
                 true);
             _presetsView.PresetSelected += preset => PresetSelected!(preset);
 
@@ -117,8 +117,8 @@ namespace UI
             _headWearablesView = new WearablesView(
                 root.Q("HeadWearables"),
                 "2. Customize {0}'s face",
-                "CONFIRM FACE",
-                170,
+                "CUSTOMIZE OUTFIT",
+                209,
                 true);
             _headWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
             _headWearablesView.CategoryChanged += c => CategoryChanged!(c);
@@ -139,7 +139,7 @@ namespace UI
                 root.Q("BodyWearables"),
                 "2. Customize {0}'s outfit",
                 "FINISH",
-                114,
+                123,
                 false);
             _bodyWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
             _bodyWearablesView.CategoryChanged += c => CategoryChanged!(c);
@@ -188,7 +188,10 @@ namespace UI
             var stage = _stages[_currentStageIndex];
             _stageTitle.text = string.Format(stage.Title, _username);
             _confirmButton.Text = stage.ConfirmButtonText;
-            _confirmButton.style.width = stage.ConfirmButtonWidth;
+            //_confirmButton.style.width = stage.ConfirmButtonWidth;
+            _confirmButton.ButtonIcon = _currentStageIndex == _stages.Length - 1
+                ? DCLButtonElement.Icon.Check
+                : DCLButtonElement.Icon.Forward;
 
             _skipButton.EnableInClassList("dcl-button--hidden-down", !stage.CanSkip);
             _backButton.EnableInClassList("dcl-button--hidden-down", _currentStageIndex == 0);

@@ -74,7 +74,7 @@
 
 .preview-button__thumbnail {
     flex-grow: 1;
-    -unity-background-scale-mode: scale-to-fit;
+    -unity-background-scale-mode: scale-and-crop;
 }
 
 .dcl-button {
@@ -116,6 +116,10 @@
     flex-direction: row-reverse;
 }
 
+.dcl-button--icon-check {
+    flex-direction: row-reverse;
+}
+
 .dcl-button__label {
     font-size: 13px;
     color: rgb(255, 255, 255);
@@ -132,8 +136,8 @@
 
 .dcl-button__icon {
     display: none;
-    width: 11px;
-    height: 15px;
+    width: 20px;
+    height: 20px;
     background-image: url("project://database/Assets/UI/Sprites/Configurator/icon_arrow_right.png?fileID=2800000&guid=53552c8856695427aa658d914163aa30&type=3#icon_arrow_right");
 }
 
@@ -145,7 +149,15 @@
 .dcl-button--icon-back > .dcl-button__icon {
     display: flex;
     margin-right: 12px;
+    margin-left: 0;
     rotate: 180deg;
+}
+
+.dcl-button--icon-check > .dcl-button__icon {
+    display: flex;
+    margin-right: 12px;
+    margin-left: 0;
+    background-image: url("project://database/Assets/UI/Sprites/Configurator/icon_check.png?fileID=2800000&guid=c36facd26e80f4b8ea8e9a0f4dc6df4b&type=3#icon_check");
 }
 
 .wearable-category {
@@ -295,7 +307,6 @@
     padding-left: 32px;
     background-color: rgb(255, 255, 255);
     margin-top: 8px;
-    margin-right: 8px;
     border-top-left-radius: 12px;
     border-top-right-radius: 12px;
     border-bottom-right-radius: 12px;

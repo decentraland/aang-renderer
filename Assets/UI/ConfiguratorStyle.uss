@@ -132,7 +132,10 @@
 }
 
 .presets-content__body .preview-button__thumbnail {
-    background-size: 120% 120%;
+    margin-top: -20%;
+    margin-bottom: -20%;
+    margin-right: -20%;
+    margin-left: -20%;
 }
 
 .wearable-category-picker {
@@ -190,7 +193,10 @@
 }
 
 .popup-bodytype__button .preview-button__thumbnail {
-    background-size: 120% 120%;
+    margin-top: -20%;
+    margin-right: -20%;
+    margin-bottom: -20%;
+    margin-left: -20%;
 }
 
 .popup-bodytype__button--male .preview-button__thumbnail {

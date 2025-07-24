@@ -1,6 +1,5 @@
 using System;
 using UI.Manipulators;
-using Unity.Properties;
 using UnityEngine.UIElements;
 
 namespace UI.Elements
@@ -14,6 +13,7 @@ namespace UI.Elements
         private const string USS_ICON_NONE = USS_BLOCK + "--icon-none";
         private const string USS_ICON_FORWARD = USS_BLOCK + "--icon-forward";
         private const string USS_ICON_BACK = USS_BLOCK + "--icon-back";
+        private const string USS_ICON_CHECK = USS_BLOCK + "--icon-check";
 
         private const string USS_LABEL = USS_BLOCK + "__label";
         private const string USS_ICON = USS_BLOCK + "__icon";
@@ -74,6 +74,7 @@ namespace UI.Elements
             RemoveFromClassList(USS_ICON_NONE);
             RemoveFromClassList(USS_ICON_BACK);
             RemoveFromClassList(USS_ICON_FORWARD);
+            RemoveFromClassList(USS_ICON_CHECK);
 
             switch (_buttonIcon)
             {
@@ -85,6 +86,9 @@ namespace UI.Elements
                     break;
                 case Icon.Back:
                     AddToClassList(USS_ICON_BACK);
+                    break;
+                case Icon.Check:
+                    AddToClassList(USS_ICON_CHECK);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -123,7 +127,8 @@ namespace UI.Elements
         {
             None,
             Forward,
-            Back
+            Back,
+            Check
         }
     }
 }

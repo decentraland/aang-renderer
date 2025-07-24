@@ -12,11 +12,18 @@ namespace UI.Views
 
         private readonly VisualElement _icon;
         private readonly VisualElement _container;
+        private readonly Label _title;
 
         public ColorPopupView(VisualElement root, VisualElement icon)
         {
             _icon = icon;
             _container = root.Q("PresetsContainer");
+            _title = root.Q<Label>("Title");
+        }
+
+        public void SetTitle(string title)
+        {
+            _title.text = $"<font-weight=600>{title}";
         }
 
         public void SetColors(Color[] colors)

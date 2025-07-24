@@ -18,7 +18,7 @@ namespace UI.Views
 
         private List<CategoryDefinition> _collection;
 
-        private Dictionary<string, WearableCategoryElement> _categoryElements = new();
+        private readonly Dictionary<string, WearableCategoryElement> _categoryElements = new();
         private WearableCategoryElement _selectedCategoryElement;
         private WearableItemElement _selectedWearableElement;
         private readonly Dictionary<string, EntityDefinition> _selectedItems = new();
@@ -109,14 +109,14 @@ namespace UI.Views
                 _colorDropdown.SetVisibility(true);
                 _colorPopupView.SetColors(_eyeColorPresets);
                 _colorPopupView.SetSelectedColor(_currentEyeColor);
-                _colorDropdown.Text = "EYE COLOR";
+                _colorPopupView.SetTitle(_colorDropdown.Text = "EYE COLOR");
             }
             else if (category == WearablesConstants.Categories.HAIR)
             {
                 _colorDropdown.SetVisibility(true);
                 _colorPopupView.SetColors(_hairColorPresets);
                 _colorPopupView.SetSelectedColor(_currentHairColor);
-                _colorDropdown.Text = "HAIR COLOR";
+                _colorPopupView.SetTitle(_colorDropdown.Text = "HAIR COLOR");
             }
             else
             {
