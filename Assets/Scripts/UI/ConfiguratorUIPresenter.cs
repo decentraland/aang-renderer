@@ -104,7 +104,11 @@ namespace UI
             // Dropdowns
             var bodyTypeDropdown = root.Q<DCLDropdownElement>("BodyTypeDropdown");
             _bodyShapePopupView = new BodyShapePopupView(bodyTypeDropdown.Q("BodyTypePopup"));
-            _bodyShapePopupView.BodyShapeSelected += bs => BodyShapeSelected!(bs);
+            _bodyShapePopupView.BodyShapeSelected += bs =>
+            {
+                bodyTypeDropdown.Show(false);
+                BodyShapeSelected!(bs);
+            };
 
             var skinColorDropdown = root.Q<DCLDropdownElement>("SkinColorDropdown");
             _skinColorPopupView = new ColorPopupView(skinColorDropdown.Q("ColorPopup"), skinColorDropdown.Icon);

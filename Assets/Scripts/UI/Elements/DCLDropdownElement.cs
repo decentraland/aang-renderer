@@ -75,7 +75,7 @@ namespace UI.Elements
             Show(!_showing);
         }
 
-        private void Show(bool show)
+        public void Show(bool show)
         {
             if (panel == null || show == _showing) return;
 
