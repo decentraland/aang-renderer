@@ -1,5 +1,6 @@
 using System;
 using Data;
+using UI.Manipulators;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -42,7 +43,7 @@ namespace UI.Elements
             _thumbnail.EmptyTexture = emptyIcon;
             _thumbnail.AddToClassList(USS_THUMBNAIL);
             _thumbnail.RemoveClickable();
-            this.AddManipulator(new Clickable(() => Clicked?.Invoke(this)));
+            this.AddManipulator(new AudioClickable(() => Clicked?.Invoke(this)));
         }
 
         public void SetSelected(bool selected)

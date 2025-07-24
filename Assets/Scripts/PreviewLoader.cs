@@ -6,6 +6,7 @@ using Data;
 using DCL.Rendering.RenderGraphs.RenderFeatures.AvatarOutline;
 using GLTF;
 using JetBrains.Annotations;
+using Services;
 using UnityEngine;
 using Assert = UnityEngine.Assertions.Assert;
 using Debug = UnityEngine.Debug;

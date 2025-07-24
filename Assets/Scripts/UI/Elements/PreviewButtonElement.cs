@@ -1,5 +1,6 @@
 using System;
 using Data;
+using UI.Manipulators;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -23,7 +24,7 @@ namespace UI.Elements
         
         private readonly VisualElement _thumbnail;
 
-        private Clickable _clickable;
+        private AudioClickable _clickable;
 
         public PreviewButtonElement()
         {
@@ -38,7 +39,7 @@ namespace UI.Elements
                 _thumbnail.AddToClassList(USS_THUMBNAIL);
             }
             
-            this.AddManipulator(_clickable = new Clickable(() => Clicked?.Invoke()));
+            this.AddManipulator(_clickable = new AudioClickable(() => Clicked?.Invoke()));
         }
 
         public void RemoveClickable()

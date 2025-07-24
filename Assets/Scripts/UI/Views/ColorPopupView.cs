@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UI.Manipulators;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -28,7 +29,7 @@ namespace UI.Views
                 preset.AddToClassList("popup-color__preset");
                 preset.AddToClassList("dcl-clickable");
                 preset.style.backgroundColor = color;
-                preset.AddManipulator(new Clickable(() => OnColorSelected(color)));
+                preset.AddManipulator(new AudioClickable(() => OnColorSelected(color)));
 
                 _container.Add(preset);
             }

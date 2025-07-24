@@ -1,4 +1,5 @@
 using System.Linq;
+using UI.Manipulators;
 using UnityEngine.UIElements;
 using Utils;
 
@@ -46,6 +47,7 @@ namespace UI.Elements
         public DCLDropdownElement()
         {
             AddToClassList(USS_BLOCK);
+            AddToClassList("dcl-clickable");
 
             hierarchy.Add(_label = new Label { name = "label" });
             _label.AddToClassList(USS_LABEL);
@@ -65,7 +67,7 @@ namespace UI.Elements
 
             contentContainer = container;
 
-            this.AddManipulator(new Clickable(Toggle));
+            this.AddManipulator(new AudioClickable(Toggle));
 
             RegisterCallback<DetachFromPanelEvent, DCLDropdownElement>(static (_, e) => { e.Show(false); }, this);
         }

@@ -1,4 +1,5 @@
 using System;
+using UI.Manipulators;
 using Unity.Properties;
 using UnityEngine.UIElements;
 
@@ -65,7 +66,7 @@ namespace UI.Elements
             Add(icon);
             icon.AddToClassList(USS_ICON);
 
-            this.AddManipulator(new Clickable(() => Clicked?.Invoke()));
+            this.AddManipulator(new AudioClickable(() => Clicked?.Invoke()));
         }
 
         private void RefreshIcon()
