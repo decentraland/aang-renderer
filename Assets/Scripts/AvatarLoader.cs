@@ -6,6 +6,7 @@ using Data;
 using DCL.Rendering.RenderGraphs.RenderFeatures.AvatarOutline;
 using GLTF;
 using JetBrains.Annotations;
+using Rendering;
 using Services;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -18,10 +19,15 @@ public class AvatarLoader : MonoBehaviour
 
     private const string IDLE_CLIP_NAME = "Idle_Male";
 
+    [SerializeField] private Camera mainCamera;
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private Animation avatarAnimation;
     [SerializeField] private Transform avatarRootBone;
     [SerializeField] private Transform[] avatarBones;
+
+    [Header("Highlight"), SerializeField] private bool setsHighlight;
+    [SerializeField] private Vector3 highlightCenter = new(0, 0.18f, 0);
+    [SerializeField] private Vector2 highlightSize = new(0.57f, 2.3f);
 
     private BodyShape? _loadedBodyShape;
 
@@ -249,6 +255,9 @@ public class AvatarLoader : MonoBehaviour
         // TODO: Remove stale emotes
 
         _loadedBodyShape = bodyShape;
+
+        // Update character bounds for background highlight
+        UpdateHighlight();
     }
 
     public void TryHideCategory(string category, bool hidden)
@@ -275,6 +284,33 @@ public class AvatarLoader : MonoBehaviour
                 RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.AddRange(outlineRenderers);
             }
         }
+
+        // Update character bounds every frame for dynamic positioning
+        if (setsHighlight && _loadedModels.Count > 0)
+        {
+            UpdateHighlight();
+        }
+    }
+
+    private void UpdateHighlight()
+    {
+        var worldCenter = transform.TransformPoint(highlightCenter);
+        var worldSize = Vector2.Scale(highlightSize, transform.lossyScale);
+
+        // TODO: Optimize, this can be done in 2 calls
+        var leftSide = mainCamera.WorldToViewportPoint(worldCenter + mainCamera.transform.right * (worldSize.x / 2f));
+        var rightSide = mainCamera.WorldToViewportPoint(worldCenter - mainCamera.transform.right * (worldSize.x / 2f));
+        var topSide = mainCamera.WorldToViewportPoint(worldCenter + mainCamera.transform.up * (worldSize.y / 2f));
+        var bottomSide = mainCamera.WorldToViewportPoint(worldCenter - mainCamera.transform.up * (worldSize.y / 2f));
+
+        var vpCenter = mainCamera.WorldToViewportPoint(worldCenter);
+
+        var viewportWidth = rightSide.x - leftSide.x;
+        var viewportHeight = topSide.y - bottomSide.y;
+
+        BackgroundRendererFeature.HighlightBounds = new Bounds(
+            new Vector3(vpCenter.x, vpCenter.y),
+            new Vector2(viewportWidth, viewportHeight));
     }
 
     private SkinnedMeshRenderer GetFacialFeatureRenderer(string category, GameObject bodyGO)

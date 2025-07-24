@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
+using UnityEngine.Serialization;
 
 namespace Rendering
 {
@@ -13,6 +14,8 @@ namespace Rendering
         private static readonly int HIGHLIGHT_COLOR_ID = Shader.PropertyToID("_HighlightColor");
         private static readonly int HIGHLIGHT_CENTER_ID = Shader.PropertyToID("_HighlightCenter");
         private static readonly int HIGHLIGHT_SIZE_ID = Shader.PropertyToID("_HighlightSize");
+
+        public static Bounds? HighlightBounds { get; set; }
 
         [SerializeField] private BackgroundSettings backgroundSettings;
         [SerializeField] private Shader shader;
@@ -31,9 +34,7 @@ namespace Rendering
             material = new Material(shader);
             material.SetColor(INNER_COLOR_ID, backgroundSettings.inner);
             material.SetColor(OUTER_COLOR_ID, backgroundSettings.outer);
-            material.SetColor(HIGHLIGHT_COLOR_ID, backgroundSettings.highlight);
-            material.SetVector(HIGHLIGHT_CENTER_ID, backgroundSettings.highlightCenter);
-            material.SetVector(HIGHLIGHT_SIZE_ID, backgroundSettings.highlightSize);
+            material.SetColor(HIGHLIGHT_COLOR_ID, backgroundSettings.highlightColor);
             material.SetVector(BACKGROUND_CENTER_ID, backgroundSettings.center);
             material.SetFloat(BACKGROUND_SIZE_ID, backgroundSettings.size);
 
@@ -52,7 +53,24 @@ namespace Rendering
 
             if (renderingData.cameraData.cameraType == CameraType.Game)
             {
+                UpdateDynamicHighlight();
                 renderer.EnqueuePass(renderPass);
+            }
+        }
+
+        private void UpdateDynamicHighlight()
+        {
+            if (HighlightBounds.HasValue)
+            {
+                var bounds = HighlightBounds.Value;
+
+                material.SetVector(HIGHLIGHT_CENTER_ID, bounds.center);
+                material.SetVector(HIGHLIGHT_SIZE_ID, bounds.size);
+            }
+            else
+            {
+                material.SetVector(HIGHLIGHT_CENTER_ID, Vector2.zero);
+                material.SetVector(HIGHLIGHT_SIZE_ID, Vector2.zero);
             }
         }
 
@@ -76,9 +94,9 @@ namespace Rendering
         public Color outer;
         public Vector2 center;
         public float size;
-        
-        public Color highlight;
-        public Vector2 highlightCenter;
-        public Vector2 highlightSize;
+
+
+        [Header("Dynamic Highlight")]
+        public Color highlightColor;
     }
 }
