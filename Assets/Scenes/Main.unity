@@ -1259,7 +1259,7 @@ Transform:
   m_GameObject: {fileID: 1411485568905184141}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.4855835, y: -0.02, z: -3.57}
+  m_LocalPosition: {x: -0.9097633, y: -0.02, z: -3.57}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1859,7 +1859,7 @@ MonoBehaviour:
     skinColor: {r: 0.8666667, g: 0.69411767, b: 0.56078434, a: 1}
     hairColor: {r: 0.59607846, g: 0.37254903, b: 0.21960784, a: 1}
     eyeColor: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
-    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreiaoxxmdyjv5g5dsofokjjiz7xp7urj7qds32dbjvsanok3hbjbhue/body.png
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreidtwcujh2jjtsoyufecnz2qdcujmceprt7uxzxrcj7bazdweku2au/body.png
     urns:
     - urn:decentraland:off-chain:base-avatars:standard_hair
     - urn:decentraland:off-chain:base-avatars:f_eyes_00
@@ -1872,7 +1872,7 @@ MonoBehaviour:
     skinColor: {r: 1, g: 0.8666667, b: 0.7372549, a: 1}
     hairColor: {r: 0.23921569, g: 0.13333334, b: 0.050980393, a: 1}
     eyeColor: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
-    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreia2ny7vivfrxle5tucf2ia4iumcy4y5dnxqmvb5zd2tneav2wuswi/body.png
+    thumbnail: https://profile-images-bucket-43d0c58.s3.us-east-1.amazonaws.com/v1/entities/bafkreieghxzd3ptjpnnkfdoa3n2hthtwel7khaz7qzafh77up4u2yemib4/body.png
     urns:
     - urn:decentraland:off-chain:base-avatars:casual_hair_01
     - urn:decentraland:off-chain:base-avatars:eyes_00
@@ -2430,7 +2430,7 @@ Transform:
   m_GameObject: {fileID: 1992614800948951230}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.4855835, y: -0.02, z: -3.57}
+  m_LocalPosition: {x: -0.9097633, y: -0.02, z: -3.57}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
