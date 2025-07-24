@@ -14,6 +14,7 @@ namespace UI.Views
         private readonly Label _header;
         private readonly VisualElement _sidebar;
         private readonly VisualElement _itemsContainer;
+        private readonly DCLDropdownElement _colorDropdown;
 
         private List<CategoryDefinition> _collection;
 
@@ -22,10 +23,18 @@ namespace UI.Views
         private WearableItemElement _selectedWearableElement;
         private readonly Dictionary<string, EntityDefinition> _selectedItems = new();
 
+        private readonly ColorPopupView _colorPopupView;
+
         public override string SelectedCategory => _selectedCategoryElement.Category;
 
         public event Action<string> CategoryChanged;
         public event Action<string, EntityDefinition> WearableSelected;
+        public event Action<Color> ColorSelected;
+
+        private Color[] _hairColorPresets;
+        private Color[] _eyeColorPresets;
+        private Color _currentHairColor;
+        private Color _currentEyeColor;
 
         public WearablesView(VisualElement root, string title, string confirmButtonText, int confirmButtonWidth,
             bool canSkip) : base(root, title, confirmButtonText, confirmButtonWidth, canSkip)
@@ -33,6 +42,10 @@ namespace UI.Views
             _header = root.Q<Label>("CategoryHeader");
             _sidebar = root.Q<VisualElement>("Sidebar");
             _itemsContainer = root.Q("Items");
+
+            _colorDropdown = root.Q<DCLDropdownElement>("ColorDropdown");
+            _colorPopupView = new ColorPopupView(_colorDropdown.Q("ColorPopup"), _colorDropdown.Icon);
+            _colorPopupView.ColorSelected += OnColorSelected;
 
             foreach (var ve in _itemsContainer.Children())
             {
@@ -90,6 +103,26 @@ namespace UI.Views
         {
             var category = _selectedCategoryElement.Category;
 
+            // Ugly but ok
+            if (category == WearablesConstants.Categories.EYES)
+            {
+                _colorDropdown.SetVisibility(true);
+                _colorPopupView.SetColors(_eyeColorPresets);
+                _colorPopupView.SetSelectedColor(_currentEyeColor);
+                _colorDropdown.Text = "EYE COLOR";
+            }
+            else if (category == WearablesConstants.Categories.HAIR)
+            {
+                _colorDropdown.SetVisibility(true);
+                _colorPopupView.SetColors(_hairColorPresets);
+                _colorPopupView.SetSelectedColor(_currentHairColor);
+                _colorDropdown.Text = "HAIR COLOR";
+            }
+            else
+            {
+                _colorDropdown.SetVisibility(false);
+            }
+
             _header.text = "<font-weight=600>" + _selectedCategoryElement.Title;
 
             var categoryDefinition = _collection.First(cd => cd.id == category);
@@ -107,7 +140,7 @@ namespace UI.Views
                 {
                     var wearable = categoryDefinition.Definitions[index];
 
-                    ve.SetDisplay(true);
+                    ve.SetVisibility(true);
                     var wpbe = (WearableItemElement)ve;
                     wpbe.EmptyTexture = categoryDefinition.emptyThumbnail;
                     wpbe.SetWearable(wearable);
@@ -121,11 +154,48 @@ namespace UI.Views
                 }
                 else
                 {
-                    ve.style.display = DisplayStyle.None;
+                    ve.SetVisibility(false);
                 }
 
                 index++;
             }
+        }
+
+        public void SetColorPresets(Color[] hairColorPresets, Color[] eyeColorPresets)
+        {
+            _hairColorPresets = hairColorPresets;
+            _eyeColorPresets = eyeColorPresets;
+        }
+
+        public void SetSelectedColors(Color hairColor, Color eyeColor)
+        {
+            _currentHairColor = hairColor;
+            _currentEyeColor = eyeColor;
+            
+            var category = _selectedCategoryElement?.Category;
+            if (category == WearablesConstants.Categories.HAIR)
+            {
+                _colorPopupView.SetSelectedColor(hairColor);
+            }
+            else if (category == WearablesConstants.Categories.EYES)
+            {
+                _colorPopupView.SetSelectedColor(eyeColor);
+            }
+        }
+
+        private void OnColorSelected(Color color)
+        {
+            var category = _selectedCategoryElement.Category;
+            if (category == WearablesConstants.Categories.HAIR)
+            {
+                _currentHairColor = color;
+            }
+            else if (category == WearablesConstants.Categories.EYES)
+            {
+                _currentEyeColor = color;
+            }
+            
+            ColorSelected!(color);
         }
 
         private void OnWearableClicked(WearableItemElement wpbe)

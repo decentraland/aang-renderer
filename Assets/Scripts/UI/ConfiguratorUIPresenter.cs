@@ -46,6 +46,7 @@ namespace UI
         public event Action<string> CategoryChanged;
         public event Action<Color> SkinColorSelected;
         public event Action<Color> HairColorSelected;
+        public event Action<Color> EyeColorSelected;
         public event Action<BodyShape> BodyShapeSelected;
         public event Action<string, EntityDefinition> WearableSelected;
         public event Action<PresetDefinition> PresetSelected;
@@ -87,7 +88,7 @@ namespace UI
 
             _backButton.Clicked += OnBackClicked;
             _confirmButton.Clicked += OnNextClicked;
-            _skipButton.Clicked += () => _confirmPopupView.Show(true);
+            _skipButton.Clicked += () => Confirmed!();
 
             _loader = root.Q("Loader");
             _loaderIcon = _loader.Q("Icon");
@@ -109,11 +110,6 @@ namespace UI
             _skinColorPopupView = new ColorPopupView(skinColorDropdown.Q("ColorPopup"), skinColorDropdown.Icon);
             _skinColorPopupView.ColorSelected += skinColor => SkinColorSelected!(skinColor);
 
-            // var hairColorDropdown = root.Q<DCLDropdownElement>("HairColorDropdown");
-            // _hairColorPopupView = new ColorPopupView(hairColorDropdown.Q("ColorPopup"), hairColorDropdown.Icon,
-            //     presetHairColors);
-            // _hairColorPopupView.ColorSelected += hairColor => HairColorSelected!(hairColor);
-
             _headWearablesView = new WearablesView(
                 root.Q("HeadWearables"),
                 "2. Customize {0}'s face",
@@ -122,6 +118,18 @@ namespace UI
                 true);
             _headWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
             _headWearablesView.CategoryChanged += c => CategoryChanged!(c);
+            _headWearablesView.ColorSelected += c =>
+            {
+                switch (_headWearablesView.SelectedCategory)
+                {
+                    case WearablesConstants.Categories.EYES:
+                        EyeColorSelected!(c);
+                        break;
+                    case WearablesConstants.Categories.HAIR:
+                        HairColorSelected!(c);
+                        break;
+                }
+            };
 
             _bodyWearablesView = new WearablesView(
                 root.Q("BodyWearables"),
@@ -192,6 +200,7 @@ namespace UI
 
         public void LoadCompleted()
         {
+            RefreshCurrentStage();
             _configuratorContainer.SetVisibility(true);
             _loader.SetDisplay(false);
         }
@@ -201,11 +210,15 @@ namespace UI
             _username = username;
         }
 
-        public void SetPresets(PresetDefinition[] avatarPresets, int selectedAvatarPresetIndex,
-            Color[] skinColorPresets, Color[] hairColorPresets)
+        public void SetAvatarPresets(PresetDefinition[] avatarPresets, int selectedAvatarPresetIndex)
+        {
+            _presetsView.SetPresets(avatarPresets, selectedAvatarPresetIndex);
+        }
+
+        public void SetColorPresets(Color[] skinColorPresets, Color[] hairColorPresets, Color[] eyeColorPresets)
         {
             _skinColorPopupView.SetColors(skinColorPresets);
-            _presetsView.SetPresets(avatarPresets, selectedAvatarPresetIndex);
+            _headWearablesView.SetColorPresets(hairColorPresets, eyeColorPresets);
         }
 
         public void SetCollection(List<CategoryDefinition> faceCollection, List<CategoryDefinition> bodyCollection)
@@ -239,6 +252,12 @@ namespace UI
         {
             _headWearablesView.SetSelectedItems(selectedItems);
             _bodyWearablesView.SetSelectedItems(selectedItems);
+        }
+
+        public void SetColors(Color skinColor, Color hairColor, Color eyeColor)
+        {
+            _skinColorPopupView.SetSelectedColor(skinColor);
+            _headWearablesView.SetSelectedColors(hairColor, eyeColor);
         }
 
         public void ClearPresetSelection()

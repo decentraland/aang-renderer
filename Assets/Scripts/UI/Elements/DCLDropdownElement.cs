@@ -85,6 +85,7 @@ namespace UI.Elements
                 _popupRoot.RegisterCallbackOnce<PointerDownEvent, DCLDropdownElement>(static (_, e) => e.Show(false),
                     this);
                 _popupRoot.RegisterCallback<GeometryChangedEvent>(RefreshPosition);
+                _popupRoot.pickingMode = PickingMode.Position;
 
                 _popup = contentContainer.Children().First();
                 _popup.RemoveFromHierarchy();
@@ -94,6 +95,7 @@ namespace UI.Elements
             }
             else
             {
+                _popupRoot.pickingMode = PickingMode.Ignore;
                 _popupRoot.UnregisterCallback<GeometryChangedEvent>(RefreshPosition);
                 _popup.UnregisterCallback<GeometryChangedEvent>(RefreshPosition);
                 _popup.RemoveFromHierarchy();

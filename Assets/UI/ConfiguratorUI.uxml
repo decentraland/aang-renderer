@@ -45,8 +45,8 @@
                 <ui:VisualElement name="BodyTypePopup" class="popup-bodytype dcl-dropdown-popup">
                     <ui:Label name="Title" text="&lt;font-weight=600&gt;BODY TYPE" class="dcl-dropdown-popup__title" />
                     <ui:VisualElement name="ButtonContainer" class="popup-bodytype__button-container">
-                        <UI.Elements.PreviewButtonElement name="MaleBodyButton" class="popup-bodytype__button popup-bodytype__button--male" />
                         <UI.Elements.PreviewButtonElement name="FemaleBodyButton" class="popup-bodytype__button popup-bodytype__button--female" />
+                        <UI.Elements.PreviewButtonElement name="MaleBodyButton" class="popup-bodytype__button popup-bodytype__button--male" />
                     </ui:VisualElement>
                 </ui:VisualElement>
             </UI.Elements.DCLDropdownElement>

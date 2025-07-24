@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Data;
 using UI;
 using UnityEngine;
@@ -25,6 +24,7 @@ public class ConfiguratorController : MonoBehaviour
 
     [SerializeField] private Color[] skinColorPresets;
     [SerializeField] private Color[] hairColorPresets;
+    [SerializeField] private Color[] eyeColorPresets;
 
     private BodyShape _bodyShape;
     private readonly Dictionary<string, EntityDefinition> _selectedItems = new();
@@ -43,10 +43,26 @@ public class ConfiguratorController : MonoBehaviour
         uiPresenter.WearableSelected += OnWearableSelected;
         uiPresenter.PresetSelected += OnPresetSelected;
         uiPresenter.SkinColorSelected += OnSkinColorSelected;
+        uiPresenter.HairColorSelected += OnHairColorSelected;
+        uiPresenter.EyeColorSelected += OnEyeColorSelected;
         uiPresenter.CharacterAreaDrag += previewRotator.OnDrag;
         uiPresenter.Confirmed += OnConfirmed;
 
         StartCoroutine(InitialLoad());
+    }
+
+    private void OnEyeColorSelected(Color color)
+    {
+        _eyeColor = color;
+
+        StartCoroutine(ReloadPreview());
+    }
+
+    private void OnHairColorSelected(Color color)
+    {
+        _hairColor = color;
+
+        StartCoroutine(ReloadPreview());
     }
 
     private void OnConfirmed()
@@ -145,6 +161,7 @@ public class ConfiguratorController : MonoBehaviour
 
         uiPresenter.SetBodyShape(_bodyShape);
         uiPresenter.SetSelectedItems(_selectedItems);
+        uiPresenter.SetColors(_skinColor, _hairColor, _eyeColor);
     }
 
     private async Awaitable ReloadPreview()
@@ -191,17 +208,11 @@ public class ConfiguratorController : MonoBehaviour
             RemoteTextureService.Instance.PreloadTexture(ed.Thumbnail);
         }
 
-        // Shuffle avatar presets
-        for (var i = 0; i < avatarPresets.Length; ++i)
-        {
-            var r = Random.Range(i, avatarPresets.Length);
-            (avatarPresets[i], avatarPresets[r]) = (avatarPresets[r], avatarPresets[i]);
-        }
-
         // Set data
+        uiPresenter.SetColorPresets(skinColorPresets, hairColorPresets, eyeColorPresets);
         uiPresenter.SetUsername(Username);
         uiPresenter.SetCollection(faceCategories, bodyCategories);
-        uiPresenter.SetPresets(avatarPresets, randomPresetIndex, skinColorPresets, hairColorPresets);
+        uiPresenter.SetAvatarPresets(avatarPresets, randomPresetIndex);
         RemoteTextureService.Instance.Pause(false);
 
         // Load initial preset

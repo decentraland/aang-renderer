@@ -34,6 +34,11 @@ namespace UI.Views
             }
         }
 
+        public void SetSelectedColor(Color color)
+        {
+            _icon.style.backgroundColor = color;
+        }
+
         private void OnColorSelected(Color color)
         {
             _icon.style.backgroundColor = color;
