@@ -189,9 +189,8 @@
     height: 256px;
 }
 
-.popup-bodytype__button > .preview-button__container {
-    padding-top: 8px;
-    padding-bottom: 8px;
+.popup-bodytype__button .preview-button__thumbnail {
+    background-size: 120% 120%;
 }
 
 .popup-bodytype__button--male .preview-button__thumbnail {

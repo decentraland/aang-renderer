@@ -98,7 +98,7 @@ public class ConfiguratorController : MonoBehaviour
     private void OnCategoryChanged(string category)
     {
         avatarLoader.TryHideCategory(WearablesConstants.Categories.EYEWEAR,
-            category != WearablesConstants.Categories.EYES);
+            category is WearablesConstants.Categories.EYES or WearablesConstants.Categories.EYEBROWS);
     }
 
     private static EntityDefinition GetEmote(string category)
