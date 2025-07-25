@@ -1510,7 +1510,7 @@ Transform:
   m_GameObject: {fileID: 1411485568905184141}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.39485902, y: -0.02, z: -3.57}
+  m_LocalPosition: {x: -1.5523418, y: -0.02, z: -3.57}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2698,7 +2698,7 @@ Transform:
   m_GameObject: {fileID: 1992614800948951230}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.39485902, y: -0.02, z: -3.57}
+  m_LocalPosition: {x: -1.5523418, y: -0.02, z: -3.57}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2906,7 +2906,7 @@ Transform:
   m_GameObject: {fileID: 4086221261368998185}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.4855019, y: 0.243, z: -1.5}
+  m_LocalPosition: {x: -0.18348561, y: 0.243, z: -1.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3075,7 +3075,7 @@ Transform:
   m_GameObject: {fileID: 6885348085314093834}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.32366794, y: 0.76, z: -1}
+  m_LocalPosition: {x: -0.122323744, y: 0.76, z: -1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3493,7 +3493,7 @@ Transform:
   m_GameObject: {fileID: 263851112852000120}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.62791586, y: -0.4, z: -1.94}
+  m_LocalPosition: {x: -0.23730807, y: -0.4, z: -1.94}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3682,6 +3682,8 @@ MonoBehaviour:
   - {fileID: 5292346034607102669}
   - {fileID: 7332022124291876573}
   - {fileID: 7946611345237176528}
+  mobileDistanceModifier: 2
+  mobileXRotation: 25
 --- !u!4 &9046510647564263496
 Transform:
   m_ObjectHideFlags: 0
@@ -3711,8 +3713,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   uiDocument: {fileID: 4363583478864355584}
   uiPresenter: {fileID: 4634088016188469603}
+  cameraController: {fileID: 8911191390660122407}
   portraitMatchLimit: 1.73
-  portraitForceLimit: 0.73
+  portraitForceLimit: 0.65
   landscapeMatchResolution: {x: 1920, y: 866}
   portraitMatchResolution: {x: 1496, y: 866}
   portraitForceResolution: {x: 500, y: 977}

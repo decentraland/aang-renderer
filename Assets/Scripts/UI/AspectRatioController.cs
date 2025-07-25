@@ -8,7 +8,8 @@ namespace UI
     {
         [SerializeField] private UIDocument uiDocument;
         [SerializeField] private ConfiguratorUIPresenter uiPresenter;
-        
+        [SerializeField] private ConfiguratorCameraController cameraController;
+
         [SerializeField] private float portraitMatchLimit = 1f;
         [SerializeField] private float portraitForceLimit = 2f;
 
@@ -17,7 +18,7 @@ namespace UI
         [SerializeField] private Vector2Int portraitForceResolution;
 
         [SerializeField] private bool continuousUpdate;
-        
+
         private Mode _currentMode = Mode.LandscapeMatch;
         private VisualElement _root;
 
@@ -64,18 +65,21 @@ namespace UI
                     uiDocument.panelSettings.referenceResolution = landscapeMatchResolution;
                     _root.EnableInClassList("portrait", false);
                     uiPresenter.SetUsingMobileMode(false);
+                    cameraController.SetUsingMobileMode(false);
                     break;
                 case Mode.PortraitMatch:
                     uiDocument.panelSettings.match = 0f;
                     uiDocument.panelSettings.referenceResolution = portraitMatchResolution;
                     _root.EnableInClassList("portrait", false);
                     uiPresenter.SetUsingMobileMode(false);
+                    cameraController.SetUsingMobileMode(false);
                     break;
                 case Mode.PortraitForce:
                     uiDocument.panelSettings.match = 0f;
                     uiDocument.panelSettings.referenceResolution = portraitForceResolution;
                     _root.EnableInClassList("portrait", true);
                     uiPresenter.SetUsingMobileMode(true);
+                    cameraController.SetUsingMobileMode(true);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(newMode), newMode, null);

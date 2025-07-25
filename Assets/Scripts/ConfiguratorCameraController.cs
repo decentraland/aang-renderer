@@ -16,7 +16,12 @@ public class ConfiguratorCameraController : MonoBehaviour
     [SerializeField] private CinemachineCamera centerStageCamera;
     [SerializeField] private CinemachinePositionComposer[] positionComposers;
 
+    [SerializeField] private float mobileDistanceModifier = 2f;
+    [SerializeField] private float mobileXRotation = 25f;
+
     private bool _hasZoomedOut;
+
+    private float[] cameraDistances;
 
     private void Start()
     {
@@ -29,8 +34,24 @@ public class ConfiguratorCameraController : MonoBehaviour
         uiPresenter.CharacterAreaZoom += OnCharacterAreaZoom;
         uiPresenter.Confirmed += OnConfirmed;
 
+        cameraDistances = new float[positionComposers.Length];
+        for (var i = 0; i < cameraDistances.Length; i++)
+        {
+            cameraDistances[i] = positionComposers[i].CameraDistance;
+        }
+
         // Set full body camera
         OnCategoryChanged(null);
+    }
+
+    public void SetUsingMobileMode(bool usingMobile)
+    {
+        for (var i = 0; i < cameraDistances.Length; i++)
+        {
+            var pc = positionComposers[i];
+            pc.CameraDistance = usingMobile ? cameraDistances[i] * mobileDistanceModifier : cameraDistances[i];
+            pc.transform.rotation = Quaternion.Euler(usingMobile ? mobileXRotation : 0f, 0f, 0f);
+        }
     }
 
     private void OnConfirmed(bool open)
@@ -98,7 +119,7 @@ public class ConfiguratorCameraController : MonoBehaviour
         headCamera.gameObject.SetActive(useHeadCamera);
         upperBodyCamera.gameObject.SetActive(useUpperBodyCamera);
         lowerBodyCamera.gameObject.SetActive(useLowerBodyCamera);
-        
+
         previewRotator.LookAtCamera(true);
     }
 }
