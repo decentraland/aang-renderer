@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using UnityEngine.Rendering;
 using UnityEngine.UIElements;
 
 namespace UI
@@ -8,19 +7,18 @@ namespace UI
     public class AspectRatioController : MonoBehaviour
     {
         [SerializeField] private UIDocument uiDocument;
-
-        [SerializeField] private Mode mode = Mode.LandscapeMatch;
-
-        [SerializeField] private bool useRuntimeMatch = false;
-        [SerializeField, Range(0, 1)] private float match;
-
+        [SerializeField] private ConfiguratorUIPresenter uiPresenter;
+        
         [SerializeField] private float portraitMatchLimit = 1f;
         [SerializeField] private float portraitForceLimit = 2f;
-        
+
         [SerializeField] private Vector2Int landscapeMatchResolution;
         [SerializeField] private Vector2Int portraitMatchResolution;
         [SerializeField] private Vector2Int portraitForceResolution;
 
+        [SerializeField] private bool continuousUpdate;
+        
+        private Mode _currentMode = Mode.LandscapeMatch;
         private VisualElement _root;
 
         private void Start()
@@ -55,40 +53,42 @@ namespace UI
 
         private void TryUpdateMode(Mode newMode)
         {
-            if (mode == newMode) return;
+            if (_currentMode == newMode && !continuousUpdate) return;
+
+            Debug.Log($"Switching UI to {newMode}");
 
             switch (newMode)
             {
                 case Mode.LandscapeMatch:
-                    Debug.Log("Switching to Landscape mode");
                     uiDocument.panelSettings.match = 1f;
                     uiDocument.panelSettings.referenceResolution = landscapeMatchResolution;
                     _root.EnableInClassList("portrait", false);
+                    uiPresenter.SetUsingMobileMode(false);
                     break;
                 case Mode.PortraitMatch:
-                    Debug.Log("Switching to PortraitMatch mode");
                     uiDocument.panelSettings.match = 0f;
                     uiDocument.panelSettings.referenceResolution = portraitMatchResolution;
                     _root.EnableInClassList("portrait", false);
+                    uiPresenter.SetUsingMobileMode(false);
                     break;
                 case Mode.PortraitForce:
-                    Debug.Log("Switching to PortraitForce mode");
                     uiDocument.panelSettings.match = 0f;
                     uiDocument.panelSettings.referenceResolution = portraitForceResolution;
                     _root.EnableInClassList("portrait", true);
+                    uiPresenter.SetUsingMobileMode(true);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(newMode), newMode, null);
             }
 
-            mode = newMode;
+            _currentMode = newMode;
         }
 
         private void OnDestroy()
         {
             // Revert for editor
             uiDocument.panelSettings.match = 1f;
-            uiDocument.panelSettings.referenceResolution = landscapeMatchResolution;;
+            uiDocument.panelSettings.referenceResolution = landscapeMatchResolution;
         }
 
         private enum Mode

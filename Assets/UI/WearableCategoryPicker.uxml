@@ -1,9 +1,10 @@
 <ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <ui:VisualElement name="WearableCategoryPicker" class="wearable-category-picker">
-        <ui:VisualElement name="Sidebar" class="wearable-category-picker__sidebar">
+        <ui:ScrollView mode="Horizontal" vertical-scroller-visibility="Hidden" horizontal-scroller-visibility="Hidden"
+                       name="Sidebar" class="wearable-category-picker__sidebar">
             <UI.Elements.WearableCategoryElement />
             <UI.Elements.WearableCategoryElement />
-        </ui:VisualElement>
+        </ui:ScrollView>
         <ui:VisualElement name="Body" class="wearable-category-picker__body">
             <ui:VisualElement name="Header" class="wearable-category-picker__header">
                 <ui:Label text="&lt;font-weight=600&gt;HAIR" name="CategoryHeader" style="font-size: 30px; color: rgb(255, 255, 255); margin-top: 0; padding-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; padding-right: 0; padding-bottom: 0; padding-left: 0;" />

@@ -12,6 +12,7 @@ namespace UI.Elements
         private const string USS_BLOCK = "wearable-category";
         private const string USS_SELECTED = USS_BLOCK + "--selected";
         private const string USS_ICON = USS_BLOCK + "__icon";
+        private const string USS_LABEL = USS_BLOCK + "__label";
         private const string USS_ICON_CATEGORY = USS_BLOCK + "__icon--{0}";
         private const string USS_THUMBNAIL = USS_BLOCK + "__thumbnail";
 
@@ -38,6 +39,10 @@ namespace UI.Elements
             Add(icon);
             icon.AddToClassList(USS_ICON);
             icon.AddToClassList(string.Format(USS_ICON_CATEGORY, category));
+
+            var label = new Label("<font-weight=600>" + title) { name = "title", pickingMode = PickingMode.Ignore };
+            Add(label);
+            label.AddToClassList(USS_LABEL);
 
             Add(_thumbnail = new WearableItemElement { name = "thumbnail", pickingMode = PickingMode.Ignore });
             _thumbnail.EmptyTexture = emptyIcon;

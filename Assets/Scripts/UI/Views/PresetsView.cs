@@ -19,7 +19,8 @@ namespace UI.Views
         public override string SelectedCategory => null;
 
         public PresetsView(VisualElement root, string title, string confirmButtonText, int confirmButtonWidth,
-            bool canSkip) : base(root, title, confirmButtonText, confirmButtonWidth, canSkip)
+            string confirmButtonTextMobile, bool canSkip) : base(root, title, confirmButtonText, confirmButtonWidth,
+            confirmButtonTextMobile, canSkip)
         {
             _previewButtons = root.Q("Body").Query<PreviewButtonElement>().ToList();
         }

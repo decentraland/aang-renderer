@@ -24,6 +24,7 @@ namespace UI
         private DCLButtonElement _confirmButton;
 
         private Label _stageTitle;
+        private Label _stageNumber;
 
         private VisualElement _confirmContainer;
 
@@ -55,6 +56,7 @@ namespace UI
         public event Action<bool> Confirmed;
 
         private bool _confirmationOpen;
+        private bool _usingMobile;
 
         private void Start()
         {
@@ -66,7 +68,7 @@ namespace UI
             characterArea.RegisterCallback<GeometryChangedEvent, VisualElement>((_, area) =>
             {
                 if (_confirmationOpen) return;
-                
+
                 var panel = area.panel;
                 var layoutSize = panel.visualTree.layout; // This is in panel space
 
@@ -86,6 +88,7 @@ namespace UI
             characterArea.AddManipulator(new DragManipulator(d => CharacterAreaDrag!(d)));
 
             _stageTitle = root.Q<Label>("StageTitle");
+            _stageNumber = root.Q<Label>("StageNumber");
 
             _backButton = root.Q<DCLButtonElement>("BackButton");
             _skipButton = root.Q<DCLButtonElement>("SkipButton");
@@ -100,9 +103,10 @@ namespace UI
 
             var presetsContainer = root.Q("Presets");
             _presetsView = new PresetsView(presetsContainer,
-                "1. Choose {0}'s starting look",
+                "Choose {0}'s starting look",
                 "START CUSTOMIZING",
                 221,
+                "START",
                 true);
             _presetsView.PresetSelected += preset => PresetSelected!(preset);
 
@@ -121,9 +125,10 @@ namespace UI
 
             _headWearablesView = new WearablesView(
                 root.Q("HeadWearables"),
-                "2. Customize {0}'s face",
+                "Customize {0}'s face",
                 "CUSTOMIZE OUTFIT",
                 209,
+                "OUTFIT",
                 true);
             _headWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
             _headWearablesView.CategoryChanged += c => CategoryChanged!(c);
@@ -142,9 +147,10 @@ namespace UI
 
             _bodyWearablesView = new WearablesView(
                 root.Q("BodyWearables"),
-                "2. Customize {0}'s outfit",
+                "Customize {0}'s outfit",
                 "FINISH",
                 123,
+                "FINISH",
                 false);
             _bodyWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
             _bodyWearablesView.CategoryChanged += c => CategoryChanged!(c);
@@ -158,7 +164,7 @@ namespace UI
                 _headWearablesView,
                 _bodyWearablesView
             };
-            
+
             // Confirm stage
             _confirmContainer = root.Q("Confirm");
             _confirmContainer.Q<DCLButtonElement>("BackButton").Clicked += () => OpenConfirm(false);
@@ -197,20 +203,32 @@ namespace UI
             _confirmationOpen = open;
             Confirmed!(open);
             _confirmContainer.SetDisplay(open);
-            _configuratorContainer.SetDisplay(!open); // TODO: Display but take care of avatar area
+            _configuratorContainer.SetDisplay(!open);
         }
 
         private void RefreshCurrentStage()
         {
             var stage = _stages[_currentStageIndex];
             _stageTitle.text = string.Format(stage.Title, _username);
-            _confirmButton.Text = stage.ConfirmButtonText;
-            //_confirmButton.style.width = stage.ConfirmButtonWidth;
+            _stageNumber.text = $"{_currentStageIndex + 1}.";
+            _confirmButton.Text = _usingMobile ? stage.ConfirmButtonTextMobile : stage.ConfirmButtonText;
+
+            // No animations on mobile
+            if (_usingMobile)
+            {
+                _confirmButton.style.width = StyleKeyword.Auto;
+            }
+            else
+            {
+                _confirmButton.style.width = stage.ConfirmButtonWidth;
+            }
+
             _confirmButton.ButtonIcon = _currentStageIndex == _stages.Length - 1
                 ? DCLButtonElement.Icon.Check
                 : DCLButtonElement.Icon.Forward;
 
-            _skipButton.EnableInClassList("dcl-button--hidden-down", !stage.CanSkip);
+            _skipButton.EnableInClassList("dcl-button--hidden-down",
+                !stage.CanSkip || _usingMobile && _currentStageIndex != 0);
             _backButton.EnableInClassList("dcl-button--hidden-down", _currentStageIndex == 0);
 
             CategoryChanged!(stage.SelectedCategory);
@@ -227,6 +245,13 @@ namespace UI
             RefreshCurrentStage();
             _configuratorContainer.SetVisibility(true);
             _loader.SetDisplay(false);
+        }
+
+        public void SetUsingMobileMode(bool usingMobile)
+        {
+            // TODO
+            _usingMobile = usingMobile;
+            RefreshCurrentStage();
         }
 
         public void SetUsername(string username)

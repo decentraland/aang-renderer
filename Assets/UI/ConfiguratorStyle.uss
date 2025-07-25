@@ -29,29 +29,38 @@
 }
 
 .customization-window__header {
-    height: 77px;
     background-color: rgb(0, 0, 0);
+    flex-direction: row;
+    font-size: 34px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    -unity-text-align: middle-left;
+    white-space: normal;
+    padding-left: 27px;
+    padding-right: 27px;
+    padding-top: 8px;
+    padding-bottom: 12px;
 }
 
 .customization-window__header-title {
-    font-size: 34px;
-    color: rgb(255, 255, 255);
-    flex-grow: 1;
-    -unity-font-style: bold;
     margin-top: 0;
     margin-right: 0;
     margin-bottom: 0;
-    margin-left: 0;
+    margin-left: 8px;
     padding-top: 0;
     padding-right: 0;
     padding-bottom: 0;
-    padding-left: 27px;
-    -unity-text-align: middle-left;
+    padding-left: 0;
+    white-space: normal;
 }
 
 .customization-window__header-bar {
     height: 4px;
     background-image: url("project://database/Assets/UI/Sprites/Configurator/header_gradient.png?fileID=2800000&guid=13a6c17620ed745efb50f3df36e4f44c&type=3#header_gradient");
+    bottom: 0;
+    left: 0;
+    right: 0;
+    position: absolute;
 }
 
 .customization-window__body {
@@ -91,14 +100,11 @@
     flex-direction: row;
 }
 
-.customization-window__buttons-container > #SkipButton {
-    margin-right: 16px;
-}
-
 .customization-window__buttons-container > #ConfirmButton {
     transition-property: scale, translate, opacity, width;
     overflow: hidden;
     justify-content: flex-end;
+    margin-left: 16px;
 }
 
 .presets-content {
@@ -149,6 +155,10 @@
 
 .wearable-category-picker__sidebar {
     margin-right: 48px;
+}
+
+.wearable-category-picker__sidebar .unity-scroll-view__content-container {
+    flex-direction: column;
 }
 
 .wearable-category-picker__body {
@@ -335,4 +345,126 @@
     flex-grow: 1;
     justify-content: center;
     align-items: center;
+}
+
+.portrait {
+    align-items: stretch;
+}
+
+.portrait .container {
+    flex-direction: column-reverse;
+    flex-grow: 1;
+}
+
+.portrait .customization-window {
+    height: 478px;
+    width: 100%;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.portrait .customization-window__header {
+    height: 102px;
+}
+
+.portrait .customization-window__body {
+    padding: 16px;
+}
+
+.portrait .customization-window__buttons-container .dcl-button {
+    height: 73px;
+}
+
+.portrait .dcl-button--hidden-down {
+    display: none;
+}
+
+.portrait .dcl-button__label {
+    font-size: 20px;
+}
+
+.portrait #Spreader {
+    display: none;
+}
+
+.portrait #BackButton {
+    width: 146px;
+}
+
+.portrait #SkipButton {
+    flex-grow: 1;
+    flex-basis: 1px;
+}
+
+.portrait #ConfirmButton {
+    justify-content: center;
+    flex-grow: 1;
+    flex-basis: 1px;
+}
+
+.portrait #ConfirmButton > .dcl-button__label {
+    font-size: 26px;
+}
+
+.portrait .container__character-area {
+    width: 100%;
+    flex-grow: 1;
+    padding-right: 12px;
+    padding-top: 12px;
+}
+
+.portrait .presets-content__body .unity-scroll-view__content-container {
+    flex-direction: row;
+    justify-content: flex-start;
+    align-content: flex-start;
+    flex-wrap: nowrap;
+}
+
+.portrait .presets-content__body .preview-button {
+    flex-grow: 0;
+    margin-top: 9px;
+    margin-right: 9px;
+    width: 120px;
+}
+
+.portrait .wearable-category-picker {
+    flex-direction: column;
+    justify-content: space-evenly;
+}
+
+.portrait .wearable-category-picker__sidebar {
+    margin-right: 0;
+}
+
+.portrait .wearable-category-picker__sidebar .unity-scroll-view__content-container {
+    flex-direction: row;
+}
+
+.portrait .wearable-category-picker__header {
+    display: none;
+}
+
+.portrait .wearable-category-picker__body {
+    flex-grow: 0;
+}
+
+.portrait .wearable-category-picker__items-container .unity-scroll-view__content-container {
+    flex-direction: row;
+    justify-content: flex-start;
+    align-content: flex-start;
+    flex-wrap: nowrap;
+    align-items: center;
+}
+
+.portrait .wearable-category {
+    width: auto;
+    height: 40px;
+}
+
+.portrait .wearable-category--selected > .wearable-category__label {
+    display: flex;
+}
+
+.portrait .wearable-category__thumbnail {
+    display: none;
 }

@@ -8,17 +8,19 @@ namespace UI.Views
 
         public readonly string Title;
         public readonly string ConfirmButtonText;
+        public readonly string ConfirmButtonTextMobile;
         public readonly int ConfirmButtonWidth; // This is ugly but the only way to get it to animate nicely
         public readonly bool CanSkip;
 
         public abstract string SelectedCategory { get; }
 
 
-        protected StageView(VisualElement root, string title, string confirmButtonText, int confirmButtonWidth, bool canSkip)
+        protected StageView(VisualElement root, string title, string confirmButtonText, int confirmButtonWidth, string confirmButtonTextMobile, bool canSkip)
         {
             _root = root;
             Title = title;
             ConfirmButtonText = confirmButtonText;
+            ConfirmButtonTextMobile = confirmButtonTextMobile;
             CanSkip = canSkip;
             ConfirmButtonWidth = confirmButtonWidth;
         }

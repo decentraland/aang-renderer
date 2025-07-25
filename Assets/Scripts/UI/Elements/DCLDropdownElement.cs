@@ -85,6 +85,7 @@ namespace UI.Elements
             if (show)
             {
                 _popupRoot ??= panel.visualTree.Q("dcl-dropdown-popup-root");
+                _popupRoot.SetDisplay(true);
                 _popupRoot.RegisterCallbackOnce<PointerDownEvent, DCLDropdownElement>(static (_, e) => e.Show(false),
                     this);
                 _popupRoot.RegisterCallback<GeometryChangedEvent>(RefreshPosition);

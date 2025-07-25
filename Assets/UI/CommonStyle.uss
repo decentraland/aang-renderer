@@ -234,6 +234,13 @@
     width: 80px;
 }
 
+.wearable-category__label {
+    display: none;
+    color: white;
+    margin-right: 16px;
+    font-size:  18px;
+}
+
 .wearable-category-picker {
     flex-grow: 1;
     display: flex;

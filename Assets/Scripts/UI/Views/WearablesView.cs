@@ -37,7 +37,8 @@ namespace UI.Views
         private Color _currentEyeColor;
 
         public WearablesView(VisualElement root, string title, string confirmButtonText, int confirmButtonWidth,
-            bool canSkip) : base(root, title, confirmButtonText, confirmButtonWidth, canSkip)
+            string confirmButtonTextMobile, bool canSkip) : base(root, title, confirmButtonText, confirmButtonWidth,
+            confirmButtonTextMobile, canSkip)
         {
             _header = root.Q<Label>("CategoryHeader");
             _sidebar = root.Q<VisualElement>("Sidebar");
@@ -171,7 +172,7 @@ namespace UI.Views
         {
             _currentHairColor = hairColor;
             _currentEyeColor = eyeColor;
-            
+
             var category = _selectedCategoryElement?.Category;
             if (category == WearablesConstants.Categories.HAIR)
             {
@@ -194,7 +195,7 @@ namespace UI.Views
             {
                 _currentEyeColor = color;
             }
-            
+
             ColorSelected!(color);
         }
 

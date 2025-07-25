@@ -8,12 +8,13 @@
         <ui:VisualElement name="Container" picking-mode="Ignore" class="container">
             <ui:VisualElement name="CustomizationWindow" class="customization-window">
                 <ui:VisualElement name="Header" class="customization-window__header">
-                    <ui:Label text="1. Chose your starting look" name="StageTitle" class="customization-window__header-title" />
+                    <ui:Label text="1." name="StageNumber" />
+                    <ui:Label text="Choose [username]&apos;s starting look" name="StageTitle" class="customization-window__header-title" />
                     <ui:VisualElement name="Bar" class="customization-window__header-bar" />
                 </ui:VisualElement>
                 <ui:VisualElement name="Body" class="customization-window__body">
                     <ui:VisualElement name="Content" class="customization-window__content">
-                        <ui:VisualElement name="Presets" usage-hints="DynamicTransform" class="presets-content customization-window__content-item">
+                        <ui:VisualElement name="Presets" usage-hints="DynamicTransform" class="presets-content customization-window__content-item" style="display: flex;">
                             <ui:ScrollView mode="Horizontal" vertical-scroller-visibility="Hidden" horizontal-scroller-visibility="Hidden" name="Body" class="presets-content__body">
                                 <UI.Elements.PreviewButtonElement />
                                 <UI.Elements.PreviewButtonElement />
@@ -28,7 +29,6 @@
                                 <UI.Elements.PreviewButtonElement />
                                 <UI.Elements.PreviewButtonElement />
                             </ui:ScrollView>
-                            <ui:VisualElement name="Body" class="presets-content__body" style="display: none;" />
                         </ui:VisualElement>
                         <ui:Instance template="WearableCategoryPicker" name="HeadWearables" usage-hints="DynamicTransform" class="customization-window__content-item customization-window__content-item--hide-right" />
                         <ui:Instance template="WearableCategoryPicker" name="BodyWearables" usage-hints="DynamicTransform" class="customization-window__content-item customization-window__content-item--hide-right" />
@@ -36,8 +36,8 @@
                     <ui:VisualElement name="Buttons" class="customization-window__buttons-container">
                         <UI.Elements.DCLButtonElement text="BACK" button-type="Secondary" button-icon="Back" name="BackButton" />
                         <ui:VisualElement name="Spreader" style="flex-grow: 1;" />
-                        <UI.Elements.DCLButtonElement text="SKIP CUSTOMIZATION" button-type="Secondary" button-icon="None" name="SkipButton" style="border-top-width: 2px; border-right-width: 2px; border-bottom-width: 2px; border-left-width: 2px;" />
-                        <UI.Elements.DCLButtonElement text="START CUSTOMIZING" button-type="Primary" button-icon="Forward" name="ConfirmButton" />
+                        <UI.Elements.DCLButtonElement text="SKIP" button-type="Secondary" button-icon="None" name="SkipButton" />
+                        <UI.Elements.DCLButtonElement text="START" button-type="Primary" button-icon="Forward" name="ConfirmButton" />
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
@@ -76,7 +76,7 @@
         <ui:VisualElement name="Confirm" style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; align-items: center; justify-content: flex-end; padding-top: 32px; padding-right: 32px; padding-bottom: 32px; padding-left: 32px; display: none;">
             <UI.Elements.DCLButtonElement text="BACK" button-type="Secondary" name="BackButton" style="width: 200px;" />
         </ui:VisualElement>
-        <ui:VisualElement name="dcl-dropdown-popup-root" picking-mode="Ignore" style="top: 0; bottom: 0; right: 0; left: 0;" />
+        <ui:VisualElement name="dcl-dropdown-popup-root" picking-mode="Ignore" style="top: 0; bottom: 0; right: 0; left: 0; display: none;" />
         <ui:VisualElement name="ConfirmationPopup" class="confirmation-popup confirmation-popup--hidden">
             <ui:VisualElement name="Popup" class="confirmation-popup__popup">
                 <ui:Label text="&lt;font-weight=600&gt;Ready to jump in?" class="confirmation-popup__title" />
