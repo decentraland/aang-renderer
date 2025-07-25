@@ -1510,7 +1510,7 @@ Transform:
   m_GameObject: {fileID: 1411485568905184141}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.3657411, y: -0.02, z: -3.57}
+  m_LocalPosition: {x: -1.2078954, y: -0.02, z: -3.57}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1865,6 +1865,7 @@ GameObject:
   - component: {fileID: 9046510647564263496}
   - component: {fileID: 4363583478864355584}
   - component: {fileID: 4634088016188469603}
+  - component: {fileID: 9046510647564263497}
   m_Layer: 0
   m_Name: UI
   m_TagString: Untagged
@@ -2697,7 +2698,7 @@ Transform:
   m_GameObject: {fileID: 1992614800948951230}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.3657411, y: -0.02, z: -3.57}
+  m_LocalPosition: {x: -1.2078954, y: -0.02, z: -3.57}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3696,6 +3697,27 @@ Transform:
   m_Children: []
   m_Father: {fileID: 3430729342261155268}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &9046510647564263497
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3816329908432618724}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42bd1a781ffe4c628cf17913be7a2c34, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  uiDocument: {fileID: 4363583478864355584}
+  mode: 0
+  useRuntimeMatch: 0
+  match: 0
+  portraitMatchLimit: 1.73
+  portraitForceLimit: 0.73
+  landscapeMatchResolution: {x: 1920, y: 866}
+  portraitMatchResolution: {x: 1473, y: 866}
+  portraitForceResolution: {x: 550, y: 866}
 --- !u!114 &9111843866944192540
 MonoBehaviour:
   m_ObjectHideFlags: 0
