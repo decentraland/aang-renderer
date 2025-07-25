@@ -468,3 +468,19 @@
 .portrait .wearable-category__thumbnail {
     display: none;
 }
+
+.portrait .dcl-dropdown {
+    --auto-position: false;
+}
+
+.portrait .dcl-dropdown-popup {
+    width:  100%;
+    height: 100%;
+    border-radius: 0;
+    margin: 0;
+}
+
+.portrait .popup-bodytype__button {
+    width: 50%;
+    height: 450px;
+}

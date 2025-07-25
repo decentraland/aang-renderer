@@ -13,7 +13,7 @@ namespace UI.Manipulators
 
         private void InternalClicked()
         {
-            AudioService.Instance.PlaySFX(SFXType.UIClick);
+            AudioService.Instance?.PlaySFX(SFXType.UIClick);
         }
 
         protected override void RegisterCallbacksOnTarget()
@@ -30,7 +30,7 @@ namespace UI.Manipulators
 
         private void OnPointerEnter(PointerEnterEvent evt)
         {
-            AudioService.Instance.PlaySFX(SFXType.UIHover);
+            AudioService.Instance?.PlaySFX(SFXType.UIHover);
         }
     }
 }

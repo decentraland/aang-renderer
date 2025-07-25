@@ -15,6 +15,8 @@ namespace UI.Elements
         private const string USS_LABEL = USS_BLOCK + "__label";
         private const string USS_CONTAINER = USS_BLOCK + "__container";
 
+        private static readonly CustomStyleProperty<bool> AUTO_POSITION = new("--auto-position");
+
         public readonly VisualElement Icon;
 
         private readonly Label _label;
@@ -39,6 +41,7 @@ namespace UI.Elements
         }
 
         private bool _showing;
+        private bool _autoPosition = true;
 
         public override VisualElement contentContainer { get; }
 
@@ -71,6 +74,28 @@ namespace UI.Elements
             this.AddManipulator(new AudioClickable(Toggle));
 
             RegisterCallback<DetachFromPanelEvent, DCLDropdownElement>(static (_, e) => { e.Show(false); }, this);
+
+            RegisterCallback<CustomStyleResolvedEvent>(OnCustomStyleResolved);
+        }
+
+        private void OnCustomStyleResolved(CustomStyleResolvedEvent evt)
+        {
+            if (!evt.customStyle.TryGetValue(AUTO_POSITION, out var newAutoPosition))
+            {
+                newAutoPosition = true;
+            }
+
+
+            if (_autoPosition != newAutoPosition)
+            {
+                _autoPosition = newAutoPosition;
+
+                if (_showing)
+                {
+                    Show(false);
+                    Show(true);
+                }
+            }
         }
 
         private void Toggle()
@@ -88,14 +113,17 @@ namespace UI.Elements
                 _popupRoot.SetDisplay(true);
                 _popupRoot.RegisterCallbackOnce<PointerDownEvent, DCLDropdownElement>(static (_, e) => e.Show(false),
                     this);
-                _popupRoot.RegisterCallback<GeometryChangedEvent>(RefreshPosition);
                 _popupRoot.pickingMode = PickingMode.Position;
 
                 _popup = contentContainer.Children().First();
                 _popup.RemoveFromHierarchy();
                 _popupRoot.Add(_popup);
 
-                _popup.RegisterCallback<GeometryChangedEvent>(RefreshPosition);
+                if (_autoPosition)
+                {
+                    _popupRoot.RegisterCallback<GeometryChangedEvent>(RefreshPosition);
+                    _popup.RegisterCallback<GeometryChangedEvent>(RefreshPosition);
+                }
             }
             else
             {
