@@ -16,6 +16,7 @@ public class ConfiguratorController : MonoBehaviour
     [SerializeField] private AvatarLoader avatarLoader;
     [SerializeField] private PreviewRotator previewRotator;
     [SerializeField] private GameObject platform;
+    [SerializeField] private GameObject confirmationVFX;
 
     [SerializeField] private List<CategoryDefinition> faceCategories;
     [SerializeField] private List<CategoryDefinition> bodyCategories;
@@ -66,9 +67,10 @@ public class ConfiguratorController : MonoBehaviour
         StartCoroutine(ReloadPreview());
     }
 
-    private void OnConfirmed()
+    private void OnConfirmed(bool open)
     {
-        Debug.Log("Confirmed!");
+        confirmationVFX.SetActive(open);
+        platform.SetActive(!open);
     }
 
     private void OnSkinColorSelected(Color color)

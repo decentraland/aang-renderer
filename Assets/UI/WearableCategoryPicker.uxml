@@ -28,7 +28,7 @@
                     </ui:VisualElement>
                 </UI.Elements.DCLDropdownElement>
             </ui:VisualElement>
-            <ui:VisualElement name="Items" class="wearable-category-picker__items-container" style="flex-grow: 1;">
+            <ui:ScrollView mode="Horizontal" vertical-scroller-visibility="Hidden" horizontal-scroller-visibility="Hidden" name="Items" class="wearable-category-picker__items-container" style="flex-grow: 1;">
                 <UI.Elements.WearableItemElement />
                 <UI.Elements.WearableItemElement />
                 <UI.Elements.WearableItemElement />
@@ -49,7 +49,7 @@
                 <UI.Elements.WearableItemElement />
                 <UI.Elements.WearableItemElement />
                 <UI.Elements.WearableItemElement />
-            </ui:VisualElement>
+            </ui:ScrollView>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

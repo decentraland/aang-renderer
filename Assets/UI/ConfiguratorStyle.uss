@@ -1,8 +1,4 @@
 :root {
-    align-items: stretch;
-    justify-content: center;
-    padding-left: 50px;
-    padding-right: 50px;
 }
 
 .loader {
@@ -124,7 +120,14 @@
     flex-wrap: wrap;
 }
 
-.presets-content__body > .preview-button {
+.presets-content__body .unity-scroll-view__content-container {
+    flex-direction: row;
+    justify-content: space-around;
+    align-content: stretch;
+    flex-wrap: wrap;
+}
+
+.presets-content__body .preview-button {
     flex-grow: 1;
     margin-top: 9px;
     margin-right: 9px;
@@ -173,6 +176,13 @@
     flex-wrap: wrap;
     justify-content: space-between;
     align-content: stretch;
+}
+
+.wearable-category-picker__items-container .unity-scroll-view__content-container {
+    flex-direction: row;
+    justify-content: space-around;
+    align-content: stretch;
+    flex-wrap: wrap;
 }
 
 .dcl-dropdown--bodyshape > .dcl-dropdown__icon {
@@ -253,10 +263,9 @@
 .container__character-area {
     flex-direction: column;
     justify-content: flex-start;
-    max-width: 538px;
-    flex-grow: 1;
     cursor: url("project://database/Assets/UI/Sprites/Configurator/cursor_rotate.png?fileID=2800000&guid=797e032bcecb14d79865077f5670d471&type=3#cursor_rotate");
     align-items: flex-end;
+    width: 538px;
 }
 
 .confirmation-popup {
@@ -320,4 +329,10 @@
     padding: 0;
     margin-left: 8px;
     margin-right: 8px;
+}
+
+.root {
+    flex-grow: 1;
+    justify-content: center;
+    align-items: center;
 }

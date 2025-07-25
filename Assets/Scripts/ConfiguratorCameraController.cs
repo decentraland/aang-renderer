@@ -13,6 +13,7 @@ public class ConfiguratorCameraController : MonoBehaviour
     [SerializeField] private CinemachineCamera headCamera;
     [SerializeField] private CinemachineCamera upperBodyCamera;
     [SerializeField] private CinemachineCamera lowerBodyCamera;
+    [SerializeField] private CinemachineCamera centerStageCamera;
     [SerializeField] private CinemachinePositionComposer[] positionComposers;
 
     private bool _hasZoomedOut;
@@ -26,9 +27,15 @@ public class ConfiguratorCameraController : MonoBehaviour
         uiPresenter.CategoryChanged += OnCategoryChanged;
         uiPresenter.CharacterAreaCenterChanged += OnCharacterAreaCenterChanged;
         uiPresenter.CharacterAreaZoom += OnCharacterAreaZoom;
+        uiPresenter.Confirmed += OnConfirmed;
 
         // Set full body camera
         OnCategoryChanged(null);
+    }
+
+    private void OnConfirmed(bool open)
+    {
+        centerStageCamera.gameObject.SetActive(open);
     }
 
     private void OnCharacterAreaZoom(float delta)

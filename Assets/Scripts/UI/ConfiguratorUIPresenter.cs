@@ -25,6 +25,8 @@ namespace UI
 
         private Label _stageTitle;
 
+        private VisualElement _confirmContainer;
+
         private string _username;
 
         // Views
@@ -50,8 +52,9 @@ namespace UI
         public event Action<BodyShape> BodyShapeSelected;
         public event Action<string, EntityDefinition> WearableSelected;
         public event Action<PresetDefinition> PresetSelected;
+        public event Action<bool> Confirmed;
 
-        public event Action Confirmed;
+        private bool _confirmationOpen;
 
         private void Start()
         {
@@ -62,6 +65,8 @@ namespace UI
 
             characterArea.RegisterCallback<GeometryChangedEvent, VisualElement>((_, area) =>
             {
+                if (_confirmationOpen) return;
+                
                 var panel = area.panel;
                 var layoutSize = panel.visualTree.layout; // This is in panel space
 
@@ -88,7 +93,7 @@ namespace UI
 
             _backButton.Clicked += OnBackClicked;
             _confirmButton.Clicked += OnNextClicked;
-            _skipButton.Clicked += () => Confirmed!();
+            _skipButton.Clicked += () => OpenConfirm(true);
 
             _loader = root.Q("Loader");
             _loaderIcon = _loader.Q("Icon");
@@ -144,8 +149,8 @@ namespace UI
             _bodyWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
             _bodyWearablesView.CategoryChanged += c => CategoryChanged!(c);
 
-            _confirmPopupView = new ConfirmPopupView(root.Q("ConfirmationPopup"));
-            _confirmPopupView.Confirmed += () => Confirmed!();
+            // _confirmPopupView = new ConfirmPopupView(root.Q("ConfirmationPopup"));
+            // _confirmPopupView.Confirmed += () => Confirmed!();
 
             _stages = new StageView[]
             {
@@ -153,6 +158,10 @@ namespace UI
                 _headWearablesView,
                 _bodyWearablesView
             };
+            
+            // Confirm stage
+            _confirmContainer = root.Q("Confirm");
+            _confirmContainer.Q<DCLButtonElement>("BackButton").Clicked += () => OpenConfirm(false);
 
             RefreshCurrentStage();
             _configuratorContainer.SetVisibility(false);
@@ -173,7 +182,7 @@ namespace UI
         {
             if (_currentStageIndex == _stages.Length - 1)
             {
-                Confirmed!();
+                OpenConfirm(true);
                 return;
             }
 
@@ -181,6 +190,14 @@ namespace UI
             _stages[++_currentStageIndex].Show();
 
             RefreshCurrentStage();
+        }
+
+        private void OpenConfirm(bool open)
+        {
+            _confirmationOpen = open;
+            Confirmed!(open);
+            _confirmContainer.SetDisplay(open);
+            _configuratorContainer.SetDisplay(!open); // TODO: Display but take care of avatar area
         }
 
         private void RefreshCurrentStage()
