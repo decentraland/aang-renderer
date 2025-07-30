@@ -42,9 +42,11 @@
     padding-bottom: 12px;
 }
 
+.customization-window__header-number {
+}
+
 .customization-window__header-title {
     margin-top: 0;
-    margin-right: 0;
     margin-bottom: 0;
     margin-left: 8px;
     padding-top: 0;
@@ -52,6 +54,9 @@
     padding-bottom: 0;
     padding-left: 0;
     white-space: normal;
+    margin-right: 0;
+    flex-basis: 1px;
+    flex-grow: 1;
 }
 
 .customization-window__header-bar {
@@ -255,6 +260,12 @@
     margin-right: 7px;
     margin-top: 7px;
     margin-left: 7px;
+    border-width: 3px;
+    border-color: var(--dcl-color-orange-transparent);
+}
+
+.popup-color__preset--selected {
+    border-color: var(--dcl-color-orange);
 }
 
 .popup-color__presets-container {
@@ -357,22 +368,33 @@
 }
 
 .portrait .customization-window {
-    height: 478px;
+    height: 342px;
     width: 100%;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
 }
 
 .portrait .customization-window__header {
-    height: 102px;
+    height: 66px;
+    font-size: 20px;
+}
+
+.portrait .customization-window__header-bar {
+    height: 2px;
 }
 
 .portrait .customization-window__body {
-    padding: 16px;
+    padding-top: 20px;
+    padding-bottom: 16px;
+    padding-left: 0;
+    padding-right: 0;
 }
 
-.portrait .customization-window__buttons-container .dcl-button {
-    height: 73px;
+.portrait .customization-window__buttons-container {
+    height: 50px;
+    margin-top: 12px;
+    margin-left: 16px;
+    margin-right: 16px;
 }
 
 .portrait .dcl-button--hidden-down {
@@ -380,7 +402,7 @@
 }
 
 .portrait .dcl-button__label {
-    font-size: 20px;
+    font-size: 13px;
 }
 
 .portrait #Spreader {
@@ -400,17 +422,18 @@
     justify-content: center;
     flex-grow: 1;
     flex-basis: 1px;
+    margin-left: 10px;
 }
 
 .portrait #ConfirmButton > .dcl-button__label {
-    font-size: 26px;
+    font-size: 18px;
 }
 
 .portrait .container__character-area {
     width: 100%;
     flex-grow: 1;
-    padding-right: 12px;
-    padding-top: 12px;
+    padding-right: 10px;
+    padding-top: 10px;
 }
 
 .portrait .presets-content__body .unity-scroll-view__content-container {
@@ -418,18 +441,21 @@
     justify-content: flex-start;
     align-content: flex-start;
     flex-wrap: nowrap;
+    padding-left: 14px;
+    padding-right: 20px;
 }
 
 .portrait .presets-content__body .preview-button {
     flex-grow: 0;
-    margin-top: 9px;
-    margin-right: 9px;
-    width: 120px;
+    margin-top: 0;
+    margin-right: 2px;
+    width: 86px;
 }
 
 .portrait .wearable-category-picker {
     flex-direction: column;
-    justify-content: space-evenly;
+    justify-content: space-between;
+    margin-bottom: 18px;
 }
 
 .portrait .wearable-category-picker__sidebar {
@@ -438,6 +464,8 @@
 
 .portrait .wearable-category-picker__sidebar .unity-scroll-view__content-container {
     flex-direction: row;
+    padding-left: 18px;
+    padding-right: 8px;
 }
 
 .portrait .wearable-category-picker__header {
@@ -453,12 +481,23 @@
     justify-content: flex-start;
     align-content: flex-start;
     flex-wrap: nowrap;
-    align-items: center;
+    padding-left: 14px;
+    padding-right: 10px;
+}
+
+.portrait .wearable-category-picker__items-container .preview-button {
+    flex-grow: 0;
+    margin-top: 0;
+    margin-right: 2px;
+    width: 86px;
+    height: 86px;
 }
 
 .portrait .wearable-category {
     width: auto;
-    height: 40px;
+    height: 38px;
+    margin-right: 6px;
+    padding-left: 8px;
 }
 
 .portrait .wearable-category--selected > .wearable-category__label {
@@ -474,13 +513,49 @@
 }
 
 .portrait .dcl-dropdown-popup {
-    width:  100%;
+    width: 100%;
     height: 100%;
     border-radius: 0;
     margin: 0;
+    padding-top: 24px;
+    padding-bottom: 24px;
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
+.portrait .dcl-dropdown-popup__close {
+    display: flex;
 }
 
 .portrait .popup-bodytype__button {
     width: 50%;
     height: 450px;
+}
+
+.portrait .popup-color__presets-label {
+    display: none;
+}
+
+.portrait .popup-color__presets-container {
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+.portrait .popup-color__preset {
+    width: 60px;
+    height: 60px;
+    margin: 6px;
+}
+
+.wearable-category > .dcl-dropdown {
+    background-color: transparent;
+    padding-left: 0;
+}
+
+.wearable-category .dcl-dropdown__label {
+    display: none;
+}
+
+.wearable-category .dcl-dropdown__arrow {
+    -unity-background-image-tint-color: white;
 }

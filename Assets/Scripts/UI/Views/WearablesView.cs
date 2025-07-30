@@ -14,6 +14,7 @@ namespace UI.Views
         private readonly Label _header;
         private readonly VisualElement _sidebar;
         private readonly VisualElement _itemsContainer;
+        private readonly VisualElement _colorDropdownParent;
         private readonly DCLDropdownElement _colorDropdown;
 
         private List<CategoryDefinition> _collection;
@@ -21,7 +22,7 @@ namespace UI.Views
         private readonly Dictionary<string, WearableCategoryElement> _categoryElements = new();
         private WearableCategoryElement _selectedCategoryElement;
         private WearableItemElement _selectedWearableElement;
-        private readonly Dictionary<string, EntityDefinition> _selectedItems = new();
+        private Dictionary<string, EntityDefinition> _selectedItems = new();
 
         private readonly ColorPopupView _colorPopupView;
 
@@ -36,6 +37,8 @@ namespace UI.Views
         private Color _currentHairColor;
         private Color _currentEyeColor;
 
+        private bool _usingMobile;
+
         public WearablesView(VisualElement root, string title, string confirmButtonText, int confirmButtonWidth,
             string confirmButtonTextMobile, bool canSkip) : base(root, title, confirmButtonText, confirmButtonWidth,
             confirmButtonTextMobile, canSkip)
@@ -45,7 +48,8 @@ namespace UI.Views
             _itemsContainer = root.Q("Items");
 
             _colorDropdown = root.Q<DCLDropdownElement>("ColorDropdown");
-            _colorPopupView = new ColorPopupView(_colorDropdown.Q("ColorPopup"), _colorDropdown.Icon);
+            _colorDropdownParent = _colorDropdown.parent;
+            _colorPopupView = new ColorPopupView(_colorDropdown, _colorDropdown.Q("ColorPopup"), _colorDropdown.Icon);
             _colorPopupView.ColorSelected += OnColorSelected;
 
             foreach (var ve in _itemsContainer.Children())
@@ -54,7 +58,7 @@ namespace UI.Views
             }
         }
 
-        public void SetCollection(List<CategoryDefinition> collection)
+        public void SetCollection(List<CategoryDefinition> collection, string selectedCategory = null)
         {
             _collection = collection;
             _sidebar.Clear();
@@ -68,13 +72,51 @@ namespace UI.Views
                 _categoryElements[cd.id] = categoryElement;
                 _selectedItems[cd.id] = null;
 
-                if (categorySet) continue;
+                if (categorySet || (selectedCategory != null && cd.id != selectedCategory)) continue;
 
                 categorySet = true;
                 _selectedCategoryElement = categoryElement;
                 _selectedCategoryElement.SetSelected(true);
                 RefreshCurrentCategory();
             }
+        }
+
+        public override void SetUsingMobileMode(bool usingMobile)
+        {
+            if (usingMobile == _usingMobile) return;
+
+            if (!usingMobile)
+            {
+                _colorDropdown.RemoveFromHierarchy();
+                _colorDropdownParent.Add(_colorDropdown);
+            }
+
+            _usingMobile = usingMobile;
+
+            RefreshCurrentCategory();
+        }
+
+        public override object GetData()
+        {
+            return (_collection, _selectedItems, _hairColorPresets, _eyeColorPresets, _currentHairColor,
+                _currentEyeColor, _selectedCategoryElement.Category, _colorDropdown.IsOpen);
+        }
+
+        public override void SetData(object data)
+        {
+            var cast =
+                ((List<CategoryDefinition> collection, Dictionary<string, EntityDefinition> selectedItems, Color[]
+                    hairColorPresets, Color[] eyeColorPresets, Color currentHairColor, Color currentEyeColor, string
+                    selectedCategory, bool colorDropdownOpen))data;
+
+            SetColorPresets(cast.hairColorPresets, cast.eyeColorPresets);
+            _currentHairColor = cast.currentHairColor;
+            _currentEyeColor = cast.currentEyeColor;
+
+            SetCollection(cast.collection, cast.selectedCategory);
+            SetSelectedItems(cast.selectedItems);
+
+            _colorDropdown.Open(cast.colorDropdownOpen);
         }
 
         public void SetSelectedItems(Dictionary<string, EntityDefinition> selectedItems)
@@ -107,21 +149,29 @@ namespace UI.Views
             // Ugly but ok
             if (category == WearablesConstants.Categories.EYES)
             {
-                _colorDropdown.SetVisibility(true);
+                _colorDropdown.SetDisplay(true);
                 _colorPopupView.SetColors(_eyeColorPresets);
                 _colorPopupView.SetSelectedColor(_currentEyeColor);
-                _colorPopupView.SetTitle(_colorDropdown.Text = "EYE COLOR");
+                _colorPopupView.SetTitle("EYE COLOR");
+                _colorDropdown.Text = _usingMobile ? null : "EYE COLOR";
             }
             else if (category == WearablesConstants.Categories.HAIR)
             {
-                _colorDropdown.SetVisibility(true);
+                _colorDropdown.SetDisplay(true);
                 _colorPopupView.SetColors(_hairColorPresets);
                 _colorPopupView.SetSelectedColor(_currentHairColor);
-                _colorPopupView.SetTitle(_colorDropdown.Text = "HAIR COLOR");
+                _colorPopupView.SetTitle("HAIR COLOR");
+                _colorDropdown.Text = _usingMobile ? null : "HAIR COLOR";
             }
             else
             {
-                _colorDropdown.SetVisibility(false);
+                _colorDropdown.SetDisplay(false);
+            }
+
+            if (_usingMobile)
+            {
+                _colorDropdown.RemoveFromHierarchy();
+                _selectedCategoryElement.Add(_colorDropdown);
             }
 
             _header.text = "<font-weight=600>" + _selectedCategoryElement.Title;

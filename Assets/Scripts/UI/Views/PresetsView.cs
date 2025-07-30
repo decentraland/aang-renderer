@@ -17,6 +17,18 @@ namespace UI.Views
         private PresetDefinition[] _presets;
 
         public override string SelectedCategory => null;
+        
+        public override object GetData()
+        {
+            return (_presets, _selectedPreset == null ? -1 : _selectedPreset.parent.IndexOf(_selectedPreset));
+        }
+
+        public override void SetData(object data)
+        {
+            var cast = ((PresetDefinition[] presets, int selectedIndex)) data;
+            
+            SetPresets(cast.presets, cast.selectedIndex);
+        }
 
         public PresetsView(VisualElement root, string title, string confirmButtonText, int confirmButtonWidth,
             string confirmButtonTextMobile, bool canSkip) : base(root, title, confirmButtonText, confirmButtonWidth,

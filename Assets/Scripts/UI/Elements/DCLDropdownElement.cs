@@ -39,14 +39,16 @@ namespace UI.Elements
             get => contentContainer.style.display == DisplayStyle.Flex;
             set => contentContainer.SetDisplay(value);
         }
+        
+        public bool IsOpen { get; private set; }
 
-        private bool _showing;
         private bool _autoPosition = true;
 
         public override VisualElement contentContainer { get; }
 
         private VisualElement _popupRoot;
         private VisualElement _popup;
+        private AudioClickable _popupCloseButtonClickable;
 
         public DCLDropdownElement()
         {
@@ -73,7 +75,7 @@ namespace UI.Elements
 
             this.AddManipulator(new AudioClickable(Toggle));
 
-            RegisterCallback<DetachFromPanelEvent, DCLDropdownElement>(static (_, e) => { e.Show(false); }, this);
+            RegisterCallback<DetachFromPanelEvent, DCLDropdownElement>(static (_, e) => { e.Open(false); }, this);
 
             RegisterCallback<CustomStyleResolvedEvent>(OnCustomStyleResolved);
         }
@@ -85,38 +87,39 @@ namespace UI.Elements
                 newAutoPosition = true;
             }
 
-
             if (_autoPosition != newAutoPosition)
             {
                 _autoPosition = newAutoPosition;
 
-                if (_showing)
+                if (IsOpen)
                 {
-                    Show(false);
-                    Show(true);
+                    Open(false);
+                    Open(true);
                 }
             }
         }
 
         private void Toggle()
         {
-            Show(!_showing);
+            Open(!IsOpen);
         }
 
-        public void Show(bool show)
+        public void Open(bool open)
         {
-            if (panel == null || show == _showing) return;
+            if (panel == null || open == IsOpen) return;
 
-            if (show)
+            if (open)
             {
                 _popupRoot ??= panel.visualTree.Q("dcl-dropdown-popup-root");
                 _popupRoot.SetDisplay(true);
-                _popupRoot.RegisterCallbackOnce<PointerDownEvent, DCLDropdownElement>(static (_, e) => e.Show(false),
+                _popupRoot.RegisterCallbackOnce<PointerDownEvent, DCLDropdownElement>(static (_, e) => e.Open(false),
                     this);
                 _popupRoot.pickingMode = PickingMode.Position;
 
                 _popup = contentContainer.Children().First();
+                _popup.Q("CloseButton").AddManipulator(_popupCloseButtonClickable = new AudioClickable(() => Open(false)));
                 _popup.RemoveFromHierarchy();
+                _popup.RegisterCallback<PointerDownEvent>(StopPropagation);
                 _popupRoot.Add(_popup);
 
                 if (_autoPosition)
@@ -129,15 +132,23 @@ namespace UI.Elements
             {
                 _popupRoot.pickingMode = PickingMode.Ignore;
                 _popupRoot.UnregisterCallback<GeometryChangedEvent>(RefreshPosition);
+                _popup.Q("CloseButton").RemoveManipulator(_popupCloseButtonClickable);
                 _popup.UnregisterCallback<GeometryChangedEvent>(RefreshPosition);
+                _popup.UnregisterCallback<PointerDownEvent>(StopPropagation);
                 _popup.RemoveFromHierarchy();
                 contentContainer.Add(_popup);
                 _popup.style.left = StyleKeyword.Initial;
                 _popup.style.top = StyleKeyword.Initial;
                 _popup = null;
+                _popupCloseButtonClickable = null;
             }
 
-            _showing = show;
+            IsOpen = open;
+        }
+
+        private static void StopPropagation(PointerDownEvent evt)
+        {
+            evt.StopPropagation();
         }
 
         private void RefreshPosition(GeometryChangedEvent _)

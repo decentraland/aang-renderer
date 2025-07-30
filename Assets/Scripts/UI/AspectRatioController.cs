@@ -22,9 +22,16 @@ namespace UI
         private Mode _currentMode = Mode.LandscapeMatch;
         private VisualElement _root;
 
-        private void Start()
+        private void OnEnable()
         {
             _root = uiDocument.rootVisualElement.Q("root");
+            Update();
+        }
+
+        private void OnDisable()
+        {
+            // This will be reset the settings to original, used for UI Toolkit live reload
+            TryUpdateMode(Mode.LandscapeMatch);
         }
 
         private void Update()

@@ -2,19 +2,19 @@
     <ui:Template name="WearableCategoryPicker" src="project://database/Assets/UI/WearableCategoryPicker.uxml?fileID=9197481963319205126&amp;guid=ee3d5b15e073b48fdbb6cc9bf63bb2ff&amp;type=3#WearableCategoryPicker" />
     <Style src="project://database/Assets/UI/ConfiguratorStyle.uss?fileID=7433441132597879392&amp;guid=83de1c6279f824cdcbe4149342d94f6f&amp;type=3#ConfiguratorStyle" />
     <ui:VisualElement name="root" class="root">
-        <ui:VisualElement picking-mode="Ignore" name="Loader" class="loader">
+        <ui:VisualElement picking-mode="Ignore" name="Loader" class="loader" style="display: none;">
             <ui:VisualElement picking-mode="Ignore" name="Icon" class="loader__icon" />
         </ui:VisualElement>
         <ui:VisualElement name="Container" picking-mode="Ignore" class="container">
             <ui:VisualElement name="CustomizationWindow" class="customization-window">
                 <ui:VisualElement name="Header" class="customization-window__header">
-                    <ui:Label text="1." name="StageNumber" />
+                    <ui:Label text="1." name="StageNumber" class="customization-window__header-number" />
                     <ui:Label text="Choose [username]&apos;s starting look" name="StageTitle" class="customization-window__header-title" />
                     <ui:VisualElement name="Bar" class="customization-window__header-bar" />
                 </ui:VisualElement>
                 <ui:VisualElement name="Body" class="customization-window__body">
                     <ui:VisualElement name="Content" class="customization-window__content">
-                        <ui:VisualElement name="Presets" usage-hints="DynamicTransform" class="presets-content customization-window__content-item" style="display: flex;">
+                        <ui:VisualElement name="Presets" usage-hints="DynamicTransform" class="presets-content customization-window__content-item">
                             <ui:ScrollView mode="Horizontal" vertical-scroller-visibility="Hidden" horizontal-scroller-visibility="Hidden" name="Body" class="presets-content__body">
                                 <UI.Elements.PreviewButtonElement />
                                 <UI.Elements.PreviewButtonElement />
@@ -49,6 +49,7 @@
                             <UI.Elements.PreviewButtonElement name="FemaleBodyButton" class="popup-bodytype__button popup-bodytype__button--female" />
                             <UI.Elements.PreviewButtonElement name="MaleBodyButton" class="popup-bodytype__button popup-bodytype__button--male" />
                         </ui:VisualElement>
+                        <ui:VisualElement name="CloseButton" class="dcl-dropdown-popup__close dcl-clickable" />
                     </ui:VisualElement>
                 </UI.Elements.DCLDropdownElement>
                 <UI.Elements.DCLDropdownElement hidden="true" name="SkinColorDropdown">
@@ -69,6 +70,7 @@
                             <ui:VisualElement class="popup-color__preset" />
                             <ui:VisualElement class="popup-color__preset" />
                         </ui:VisualElement>
+                        <ui:VisualElement name="CloseButton" class="dcl-dropdown-popup__close dcl-clickable" />
                     </ui:VisualElement>
                 </UI.Elements.DCLDropdownElement>
             </ui:VisualElement>
@@ -88,4 +90,5 @@
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
+    <ui:Label text="123" name="FPSCounter" style="position: absolute; right: 0; bottom: 0; font-size: 24px; color: rgb(255, 255, 255); border-top-left-radius: 8px; background-color: rgb(0, 0, 0); padding-top: 7px; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; padding-left: 8px; width: 62px; -unity-text-align: upper-right; padding-right: 8px; display: none;" />
 </ui:UXML>

@@ -1510,7 +1510,7 @@ Transform:
   m_GameObject: {fileID: 1411485568905184141}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.5523418, y: -0.02, z: -3.57}
+  m_LocalPosition: {x: -0.45926946, y: -0.02, z: -3.57}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2698,7 +2698,7 @@ Transform:
   m_GameObject: {fileID: 1992614800948951230}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.5523418, y: -0.02, z: -3.57}
+  m_LocalPosition: {x: -0.45926946, y: -0.02, z: -3.57}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3715,10 +3715,10 @@ MonoBehaviour:
   uiPresenter: {fileID: 4634088016188469603}
   cameraController: {fileID: 8911191390660122407}
   portraitMatchLimit: 1.73
-  portraitForceLimit: 0.65
+  portraitForceLimit: 0.7
   landscapeMatchResolution: {x: 1920, y: 866}
   portraitMatchResolution: {x: 1496, y: 866}
-  portraitForceResolution: {x: 500, y: 977}
+  portraitForceResolution: {x: 360, y: 550}
   continuousUpdate: 0
 --- !u!114 &9111843866944192540
 MonoBehaviour:

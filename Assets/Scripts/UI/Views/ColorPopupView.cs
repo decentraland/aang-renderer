@@ -1,21 +1,25 @@
 using System;
-using System.Collections.Generic;
+using UI.Elements;
 using UI.Manipulators;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace UI.Views
 {
-    public class ColorPopupView
+    public class ColorPopupView : IRefreshableView
     {
         public event Action<Color> ColorSelected;
 
+        private readonly DCLDropdownElement _dropdown;
         private readonly VisualElement _icon;
         private readonly VisualElement _container;
         private readonly Label _title;
 
-        public ColorPopupView(VisualElement root, VisualElement icon)
+        private Color[] _colors;
+
+        public ColorPopupView(DCLDropdownElement dropdown, VisualElement root, VisualElement icon)
         {
+            _dropdown = dropdown;
             _icon = icon;
             _container = root.Q("PresetsContainer");
             _title = root.Q<Label>("Title");
@@ -28,6 +32,7 @@ namespace UI.Views
 
         public void SetColors(Color[] colors)
         {
+            _colors = colors;
             _container.Clear();
 
             foreach (var color in colors)
@@ -45,12 +50,30 @@ namespace UI.Views
         public void SetSelectedColor(Color color)
         {
             _icon.style.backgroundColor = color;
+
+            foreach (var preset in _container.Children())
+            {
+                preset.EnableInClassList("popup-color__preset--selected", preset.style.backgroundColor.value == color);
+            }
         }
 
         private void OnColorSelected(Color color)
         {
-            _icon.style.backgroundColor = color;
+            SetSelectedColor(color);
             ColorSelected!(color);
+        }
+
+        public object GetData()
+        {
+            return (_colors, _icon.style.backgroundColor.value, _dropdown.IsOpen);
+        }
+
+        public void SetData(object data)
+        {
+            var cast = ((Color[] colors, Color selectedColor, bool isOpen))data;
+            _icon.style.backgroundColor = cast.selectedColor;
+            SetColors(cast.colors);
+            _dropdown.Open(cast.isOpen);
         }
     }
 }

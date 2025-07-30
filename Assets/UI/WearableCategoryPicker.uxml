@@ -26,6 +26,7 @@
                             <ui:VisualElement class="popup-color__preset" />
                             <ui:VisualElement class="popup-color__preset" />
                         </ui:VisualElement>
+                        <ui:VisualElement name="CloseButton" class="dcl-dropdown-popup__close dcl-clickable"/>
                     </ui:VisualElement>
                 </UI.Elements.DCLDropdownElement>
             </ui:VisualElement>

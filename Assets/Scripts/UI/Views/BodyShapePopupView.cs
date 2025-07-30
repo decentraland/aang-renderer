@@ -5,15 +5,17 @@ using UnityEngine.UIElements;
 
 namespace UI.Views
 {
-    public class BodyShapePopupView
+    public class BodyShapePopupView : IRefreshableView
     {
+        private readonly DCLDropdownElement _dropdown;
         private readonly PreviewButtonElement _maleBodyButton;
         private readonly PreviewButtonElement _femaleBodyButton;
 
         public event Action<BodyShape> BodyShapeSelected;
 
-        public BodyShapePopupView(VisualElement root)
+        public BodyShapePopupView(DCLDropdownElement dropdown, VisualElement root)
         {
+            _dropdown = dropdown;
             _maleBodyButton = root.Q<PreviewButtonElement>("MaleBodyButton");
             _femaleBodyButton = root.Q<PreviewButtonElement>("FemaleBodyButton");
 
@@ -39,6 +41,19 @@ namespace UI.Views
             _femaleBodyButton.Selected = false;
             _maleBodyButton.Selected = true;
             BodyShapeSelected!(BodyShape.Male);
+        }
+
+        public object GetData()
+        {
+            return (_femaleBodyButton.Selected ? BodyShape.Female : BodyShape.Male, _dropdown.IsOpen);
+        }
+
+        public void SetData(object data)
+        {
+            var cast = ((BodyShape bodyShape, bool isOpen))data;
+
+            SetBodyShape(cast.bodyShape);
+            _dropdown.Open(cast.isOpen);
         }
     }
 }

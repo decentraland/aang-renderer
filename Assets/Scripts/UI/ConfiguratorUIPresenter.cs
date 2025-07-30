@@ -10,7 +10,7 @@ using Utils;
 
 namespace UI
 {
-    [DefaultExecutionOrder(10)]
+    [DefaultExecutionOrder(5)]
     public class ConfiguratorUIPresenter : MonoBehaviour
     {
         [SerializeField] private UIDocument uiDocument;
@@ -27,6 +27,8 @@ namespace UI
         private Label _stageNumber;
 
         private VisualElement _confirmContainer;
+
+        private Label _fpsCounter;
 
         private string _username;
 
@@ -57,8 +59,12 @@ namespace UI
 
         private bool _confirmationOpen;
         private bool _usingMobile;
+        private bool _showingFPS;
 
-        private void Start()
+        private (object presets, object headWearables, object bodyWearables, object skinColorPopup, object
+            bodyShapePopup)? _viewData;
+
+        private void OnEnable()
         {
             var root = uiDocument.rootVisualElement;
 
@@ -111,16 +117,17 @@ namespace UI
             _presetsView.PresetSelected += preset => PresetSelected!(preset);
 
             // Dropdowns
-            var bodyTypeDropdown = root.Q<DCLDropdownElement>("BodyTypeDropdown");
-            _bodyShapePopupView = new BodyShapePopupView(bodyTypeDropdown.Q("BodyTypePopup"));
+            var bodyShapeDropdown = root.Q<DCLDropdownElement>("BodyTypeDropdown");
+            _bodyShapePopupView = new BodyShapePopupView(bodyShapeDropdown, bodyShapeDropdown.Q("BodyTypePopup"));
             _bodyShapePopupView.BodyShapeSelected += bs =>
             {
-                bodyTypeDropdown.Show(false);
+                bodyShapeDropdown.Open(false);
                 BodyShapeSelected!(bs);
             };
 
             var skinColorDropdown = root.Q<DCLDropdownElement>("SkinColorDropdown");
-            _skinColorPopupView = new ColorPopupView(skinColorDropdown.Q("ColorPopup"), skinColorDropdown.Icon);
+            _skinColorPopupView = new ColorPopupView(skinColorDropdown, skinColorDropdown.Q("ColorPopup"),
+                skinColorDropdown.Icon);
             _skinColorPopupView.ColorSelected += skinColor => SkinColorSelected!(skinColor);
 
             _headWearablesView = new WearablesView(
@@ -155,9 +162,6 @@ namespace UI
             _bodyWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
             _bodyWearablesView.CategoryChanged += c => CategoryChanged!(c);
 
-            // _confirmPopupView = new ConfirmPopupView(root.Q("ConfirmationPopup"));
-            // _confirmPopupView.Confirmed += () => Confirmed!();
-
             _stages = new StageView[]
             {
                 _presetsView,
@@ -169,7 +173,57 @@ namespace UI
             _confirmContainer = root.Q("Confirm");
             _confirmContainer.Q<DCLButtonElement>("BackButton").Clicked += () => OpenConfirm(false);
 
+            // Debug FPS Counter
+            _fpsCounter = root.Q<Label>("FPSCounter");
+
+            // To allow live reload during runtime in the editor
+            if (_viewData.HasValue)
+            {
+                _presetsView.SetData(_viewData.Value.presets);
+                _headWearablesView.SetData(_viewData.Value.headWearables);
+                _bodyWearablesView.SetData(_viewData.Value.bodyWearables);
+                _skinColorPopupView.SetData(_viewData.Value.skinColorPopup);
+                _bodyShapePopupView.SetData(_viewData.Value.bodyShapePopup);
+
+                for (var i = 0; i < _stages.Length; i++)
+                {
+                    var stage = _stages[i];
+                    stage.Show();
+
+                    if (i < _currentStageIndex)
+                    {
+                        stage.HideLeft();
+                    }
+                    else if (i > _currentStageIndex)
+                    {
+                        stage.HideRight();
+                    }
+                }
+
+                if (_confirmationOpen)
+                {
+                    OpenConfirm(true);
+                }
+            }
+
             RefreshCurrentStage();
+        }
+
+        private void OnDisable()
+        {
+            if (!Application.isEditor) return;
+
+            _viewData = (
+                presets: _presetsView.GetData(),
+                headWearables: _headWearablesView.GetData(),
+                bodyWearables: _bodyWearablesView.GetData(),
+                skinColorPopup: _skinColorPopupView.GetData(),
+                bodyShapePopup: _bodyShapePopupView.GetData()
+            );
+        }
+
+        private void Start()
+        {
             _configuratorContainer.SetVisibility(false);
             _loader.SetDisplay(true);
         }
@@ -213,6 +267,8 @@ namespace UI
             _stageNumber.text = $"{_currentStageIndex + 1}.";
             _confirmButton.Text = _usingMobile ? stage.ConfirmButtonTextMobile : stage.ConfirmButtonText;
 
+            stage.SetUsingMobileMode(_usingMobile);
+
             // No animations on mobile
             if (_usingMobile)
             {
@@ -229,15 +285,30 @@ namespace UI
 
             _skipButton.EnableInClassList("dcl-button--hidden-down",
                 !stage.CanSkip || _usingMobile && _currentStageIndex != 0);
+            _skipButton.Text = _usingMobile ? "SKIP" : "SKIP CUSTOMIZATION";
             _backButton.EnableInClassList("dcl-button--hidden-down", _currentStageIndex == 0);
 
-            CategoryChanged!(stage.SelectedCategory);
+            // TODO: Change?
+            CategoryChanged?.Invoke(stage.SelectedCategory);
         }
 
         private void Update()
         {
             // Rotate the loader icon
             _loaderIcon.RotateBy(360f * Time.deltaTime);
+
+            // FPS
+            if (_showingFPS)
+            {
+                _fpsCounter.text = ((int)(1f / Time.unscaledDeltaTime)).ToString();
+            }
+        }
+
+        public void ShowFPS(bool show)
+        {
+            // TODO: Move to a common UI overlay
+            _showingFPS = show;
+            _fpsCounter.SetDisplay(show);
         }
 
         public void LoadCompleted()

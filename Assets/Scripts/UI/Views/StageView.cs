@@ -2,7 +2,7 @@ using UnityEngine.UIElements;
 
 namespace UI.Views
 {
-    public abstract class StageView
+    public abstract class StageView: IRefreshableView
     {
         private readonly VisualElement _root;
 
@@ -13,8 +13,7 @@ namespace UI.Views
         public readonly bool CanSkip;
 
         public abstract string SelectedCategory { get; }
-
-
+        
         protected StageView(VisualElement root, string title, string confirmButtonText, int confirmButtonWidth, string confirmButtonTextMobile, bool canSkip)
         {
             _root = root;
@@ -40,5 +39,13 @@ namespace UI.Views
             _root.RemoveFromClassList("customization-window__content-item--hide-left");
             _root.RemoveFromClassList("customization-window__content-item--hide-right");
         }
+
+        public virtual void SetUsingMobileMode(bool usingMobile)
+        {
+            
+        }
+
+        public abstract object GetData();
+        public abstract void SetData(object data);
     }
 }
