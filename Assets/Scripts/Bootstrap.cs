@@ -20,17 +20,14 @@ public class Bootstrap : MonoBehaviour
         CommonAssets.FacialFeaturesMaterial = facialFeaturesMat;
         CommonAssets.IdleAnimation = idleAnimation;
 
-        // Sets uninterrupted defer agent for fastest loading
-        GltfImport.SetDefaultDeferAgent(new UninterruptedDeferAgent());
-
-        // Let's make it a bit smoother
-        Application.targetFrameRate = 60;
-
-        // Disable logging in release builds
-        Debug.unityLogger.logEnabled = Debug.isDebugBuild;
-
         var url = Application.isEditor ? debugUrl : Application.absoluteURL;
         var initialConfig = URLParser.Parse(url);
+
+        if (initialConfig.UninterruptedDeferAgent)
+        {
+            // Sets uninterrupted defer agent for fastest loading
+            GltfImport.SetDefaultDeferAgent(new UninterruptedDeferAgent());
+        }
 
         if (initialConfig.Mode == PreviewMode.Configurator)
         {
@@ -38,8 +35,7 @@ public class Bootstrap : MonoBehaviour
             configuratorController.gameObject.SetActive(true);
             previewController.gameObject.SetActive(false);
 
-            configuratorController.UseBrowserPreload = initialConfig.UseBrowserPreload;
-            configuratorController.Username = initialConfig.Username;
+            configuratorController.Config = initialConfig;
         }
         else
         {

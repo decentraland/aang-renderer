@@ -5,6 +5,17 @@ Shader "Custom/GradientBackground"
     #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
     ENDHLSL
 
+    Properties
+    {
+        [HideInInspector] _InnerColor ("Inner Color", Color) = (1,1,1,1)
+        [HideInInspector] _OuterColor ("Outer Color", Color) = (1,1,1,1)
+        [HideInInspector] _BackgroundCenter ("Background Center", Vector) = (1,1,1,1)
+        [HideInInspector] _BackgroundSize ("Background Size", Float) = 1
+        [HideInInspector] _HighlightColor ("HighlightColor", Color) = (1,1,1,1)
+        [HideInInspector] _HighlightCenter ("Highlight Center", Vector) = (1,1,1,1)
+        [HideInInspector] _HighlightSize ("Highlight Size", Vector) = (1,1,1,1)
+    }
+
     SubShader
     {
         Tags
@@ -34,13 +45,9 @@ Shader "Custom/GradientBackground"
 
             float4 frag(Varyings IN) : SV_Target
             {
-                float3 inner_color = SRGBToLinear(_InnerColor.rgb);
-                float3 outer_color = SRGBToLinear(_OuterColor.rgb);
-                float3 highlight_color = SRGBToLinear(_HighlightColor.rgb);
-
                 // Background
                 float t = saturate(distance(IN.texcoord, _BackgroundCenter) * _BackgroundSize);
-                float3 base_color = lerp(inner_color, outer_color, smoothstep(0.0, 1.0, t));
+                float3 base_color = lerp(_InnerColor.rgb, _OuterColor.rgb, smoothstep(0.0, 1.0, t));
 
                 // Highlight
                 float2 diff = (IN.texcoord - _HighlightCenter) / _HighlightSize;
@@ -48,7 +55,7 @@ Shader "Custom/GradientBackground"
                 
                 // Smooth the falloff using a curve
                 float mask = 1.0 - smoothstep(0.0, 1.0, t2);
-                float3 color = lerp(base_color, highlight_color, mask * _HighlightColor.a);
+                float3 color = lerp(base_color, _HighlightColor.rgb, mask * _HighlightColor.a);
 
                 return float4(color, 1.0);
             }

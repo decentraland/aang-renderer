@@ -34,9 +34,8 @@ public class ConfiguratorController : MonoBehaviour
     private Color _hairColor;
     private Color _eyeColor;
     private EntityDefinition _emoteToLoad;
-
-    public bool UseBrowserPreload { get; set; }
-    public string Username { get; set; }
+    
+    public PreviewConfiguration Config { get; set; }
 
     private void Start()
     {
@@ -49,6 +48,8 @@ public class ConfiguratorController : MonoBehaviour
         uiPresenter.EyeColorSelected += OnEyeColorSelected;
         uiPresenter.CharacterAreaDrag += previewRotator.OnDrag;
         uiPresenter.Confirmed += OnConfirmed;
+        
+        uiPresenter.ShowFPS(Config.ShowFPS);
 
         StartCoroutine(InitialLoad());
     }
@@ -171,7 +172,7 @@ public class ConfiguratorController : MonoBehaviour
     {
         Debug.Log("Reloading preview...");
         await avatarLoader.LoadAvatar(_bodyShape, _selectedItems.Values, _emoteToLoad, Array.Empty<string>(),
-            new AvatarColors(_eyeColor, _hairColor, _skinColor));
+            new AvatarColors(_eyeColor, _hairColor, _skinColor), Config.SequentialLoad);
     }
 
     private async Awaitable InitialLoad()
@@ -213,7 +214,7 @@ public class ConfiguratorController : MonoBehaviour
 
         // Set data
         uiPresenter.SetColorPresets(skinColorPresets, hairColorPresets, eyeColorPresets);
-        uiPresenter.SetUsername(Username);
+        uiPresenter.SetUsername(Config.Username);
         uiPresenter.SetCollection(faceCategories, bodyCategories);
         uiPresenter.SetAvatarPresets(avatarPresets, randomPresetIndex);
         RemoteTextureService.Instance.Pause(false);
@@ -226,7 +227,7 @@ public class ConfiguratorController : MonoBehaviour
         platform.SetActive(true);
         uiPresenter.LoadCompleted();
 
-        if (UseBrowserPreload)
+        if (Config.UseBrowserPreload)
         {
             EntityService.PreloadCachedEntityAssets();
             JSBridge.NativeCalls.PreloadURLs(

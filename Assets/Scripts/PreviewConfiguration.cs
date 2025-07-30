@@ -191,6 +191,23 @@ public class PreviewConfiguration
     /// The username used in the avatar creator
     /// </summary>
     public string Username { get; set; }
+
+    /// <summary>
+    /// Shows or hides the FPS counter.
+    /// </summary>
+    public bool ShowFPS { get; set; }
+
+    /// <summary>
+    /// If true we load individual items for an avatar one after another, instead of concurrently.
+    /// </summary>
+    public bool SequentialLoad { get; set; }
+
+    /// <summary>
+    /// If true we use the <see cref="GLTFast.UninterruptedDeferAgent"/> for loading GLB files. If false, the
+    /// default frame time limit one is used. Using the uninterrupted agent will produce faster loads but might
+    /// case FPS dips / crashes on mobile devices.
+    /// </summary>
+    public bool UninterruptedDeferAgent { get; set; } = true;
 }
 
 public enum PreviewMode

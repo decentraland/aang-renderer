@@ -46,7 +46,8 @@ public class AvatarLoader : MonoBehaviour
     private readonly HashSet<string> _hiddenCategories = new();
 
     public async Awaitable LoadAvatar(BodyShape bodyShape, IEnumerable<EntityDefinition> wearableDefinitions,
-        [CanBeNull] EntityDefinition emoteDefinition, string[] forceRenderUrns, AvatarColors colors)
+        [CanBeNull] EntityDefinition emoteDefinition, string[] forceRenderUrns, AvatarColors colors,
+        bool sequentialLoad = false)
     {
         var bodyEntity = EntityService.GetBodyEntity(bodyShape);
         var definitions = wearableDefinitions.Prepend(bodyEntity).ToList();
@@ -65,11 +66,15 @@ public class AvatarLoader : MonoBehaviour
         {
             if (def.Type is EntityType.Body or EntityType.Wearable)
             {
-                modelLoadTasks.Add(GLTFLoader.LoadModel(bodyShape, def, transform));
+                var task = GLTFLoader.LoadModel(bodyShape, def, transform);
+                modelLoadTasks.Add(task);
+                if (sequentialLoad) await task;
             }
             else if (def.Type is EntityType.FacialFeature)
             {
-                facialFeaturesLoadTasks.Add(GLTFLoader.LoadFacialFeature(bodyShape, def));
+                var task = GLTFLoader.LoadFacialFeature(bodyShape, def);
+                facialFeaturesLoadTasks.Add(task);
+                if (sequentialLoad) await task;
             }
             else
             {

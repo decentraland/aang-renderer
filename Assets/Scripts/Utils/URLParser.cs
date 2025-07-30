@@ -87,6 +87,15 @@ namespace Utils
                     case "username":
                         config.Username = value;
                         break;
+                    case "showFPS":
+                        config.ShowFPS = bool.Parse(value);
+                        break;
+                    case "sequentialLoad":
+                        config.SequentialLoad = bool.Parse(value);
+                        break;
+                    case "uninterruptedDeferAgent":
+                        config.UninterruptedDeferAgent = bool.Parse(value);
+                        break;
                     default:
                         Debug.LogWarning($"Unknown parameter in URL: {key}");
                         break;
@@ -132,6 +141,9 @@ namespace Utils
             sb.AppendFormat("&disableLoader={0}", config.DisableLoader);
             sb.AppendFormat("&useBrowserPreload={0}", config.UseBrowserPreload);
             sb.AppendFormat("&username={0}", config.Username);
+            sb.AppendFormat("&showFPS={0}", config.ShowFPS);
+            sb.AppendFormat("&sequentialLoad={0}", config.SequentialLoad);
+            sb.AppendFormat("&useUninterruptedDeferAgent={0}", config.UninterruptedDeferAgent);
 
             return sb.ToString();
         }

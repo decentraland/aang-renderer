@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
-using UnityEngine.Serialization;
 
 namespace Rendering
 {
@@ -53,12 +52,12 @@ namespace Rendering
 
             if (renderingData.cameraData.cameraType == CameraType.Game)
             {
-                UpdateDynamicHighlight();
+                UpdateMaterial();
                 renderer.EnqueuePass(renderPass);
             }
         }
 
-        private void UpdateDynamicHighlight()
+        private void UpdateMaterial()
         {
             if (HighlightBounds.HasValue)
             {
@@ -84,6 +83,9 @@ namespace Rendering
             {
                 DestroyImmediate(material);
             }
+
+            material = null;
+            HighlightBounds = null;
         }
     }
 
@@ -96,7 +98,6 @@ namespace Rendering
         public float size;
 
 
-        [Header("Dynamic Highlight")]
-        public Color highlightColor;
+        [Header("Dynamic Highlight")] public Color highlightColor;
     }
 }
