@@ -13,7 +13,7 @@ namespace UI.Views
     {
         private readonly Label _header;
         private readonly VisualElement _sidebar;
-        private readonly VisualElement _itemsContainer;
+        private readonly ScrollView _itemsContainer;
         private readonly VisualElement _colorDropdownParent;
         private readonly DCLDropdownElement _colorDropdown;
 
@@ -37,15 +37,13 @@ namespace UI.Views
         private Color _currentHairColor;
         private Color _currentEyeColor;
 
-        private bool _usingMobile;
-
         public WearablesView(VisualElement root, string title, string confirmButtonText, int confirmButtonWidth,
             string confirmButtonTextMobile, bool canSkip) : base(root, title, confirmButtonText, confirmButtonWidth,
             confirmButtonTextMobile, canSkip)
         {
             _header = root.Q<Label>("CategoryHeader");
             _sidebar = root.Q<VisualElement>("Sidebar");
-            _itemsContainer = root.Q("Items");
+            _itemsContainer = root.Q<ScrollView>("Items");
 
             _colorDropdown = root.Q<DCLDropdownElement>("ColorDropdown");
             _colorDropdownParent = _colorDropdown.parent;
@@ -83,15 +81,17 @@ namespace UI.Views
 
         public override void SetUsingMobileMode(bool usingMobile)
         {
-            if (usingMobile == _usingMobile) return;
+            if (usingMobile == UsingMobile) return;
+
+            base.SetUsingMobileMode(usingMobile);
+
+            _colorPopupView.SetAutoClose(usingMobile);
 
             if (!usingMobile)
             {
                 _colorDropdown.RemoveFromHierarchy();
                 _colorDropdownParent.Add(_colorDropdown);
             }
-
-            _usingMobile = usingMobile;
 
             RefreshCurrentCategory();
         }
@@ -153,7 +153,7 @@ namespace UI.Views
                 _colorPopupView.SetColors(_eyeColorPresets);
                 _colorPopupView.SetSelectedColor(_currentEyeColor);
                 _colorPopupView.SetTitle("EYE COLOR");
-                _colorDropdown.Text = _usingMobile ? null : "EYE COLOR";
+                _colorDropdown.Text = UsingMobile ? null : "EYE COLOR";
             }
             else if (category == WearablesConstants.Categories.HAIR)
             {
@@ -161,14 +161,14 @@ namespace UI.Views
                 _colorPopupView.SetColors(_hairColorPresets);
                 _colorPopupView.SetSelectedColor(_currentHairColor);
                 _colorPopupView.SetTitle("HAIR COLOR");
-                _colorDropdown.Text = _usingMobile ? null : "HAIR COLOR";
+                _colorDropdown.Text = UsingMobile ? null : "HAIR COLOR";
             }
             else
             {
                 _colorDropdown.SetDisplay(false);
             }
 
-            if (_usingMobile)
+            if (UsingMobile)
             {
                 _colorDropdown.RemoveFromHierarchy();
                 _selectedCategoryElement.Add(_colorDropdown);
@@ -185,13 +185,15 @@ namespace UI.Views
             }
 
             var index = 0;
+            _selectedWearableElement = null;
             foreach (var ve in _itemsContainer.Children())
             {
+                ve.SetVisibility(true);
+                ve.SetDisplay(true);
+
                 if (index < categoryDefinition.Definitions.Count)
                 {
                     var wearable = categoryDefinition.Definitions[index];
-
-                    ve.SetVisibility(true);
                     var wpbe = (WearableItemElement)ve;
                     wpbe.EmptyTexture = categoryDefinition.emptyThumbnail;
                     wpbe.SetWearable(wearable);
@@ -205,10 +207,23 @@ namespace UI.Views
                 }
                 else
                 {
-                    ve.SetVisibility(false);
+                    if (UsingMobile)
+                    {
+                        ve.SetDisplay(false);
+                    }
+                    else
+                    {
+                        ve.SetVisibility(false);
+                    }
                 }
 
                 index++;
+            }
+
+            if (UsingMobile && _selectedWearableElement != null)
+            {
+                _itemsContainer.scrollOffset = Vector2.zero;
+                _itemsContainer.ScrollTo(_selectedWearableElement);
             }
         }
 

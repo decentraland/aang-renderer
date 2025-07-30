@@ -119,11 +119,8 @@ namespace UI
             // Dropdowns
             var bodyShapeDropdown = root.Q<DCLDropdownElement>("BodyTypeDropdown");
             _bodyShapePopupView = new BodyShapePopupView(bodyShapeDropdown, bodyShapeDropdown.Q("BodyTypePopup"));
-            _bodyShapePopupView.BodyShapeSelected += bs =>
-            {
-                bodyShapeDropdown.Open(false);
-                BodyShapeSelected!(bs);
-            };
+            _bodyShapePopupView.BodyShapeSelected += bs => BodyShapeSelected!(bs);
+            _bodyShapePopupView.SetAutoClose(true);
 
             var skinColorDropdown = root.Q<DCLDropdownElement>("SkinColorDropdown");
             _skinColorPopupView = new ColorPopupView(skinColorDropdown, skinColorDropdown.Q("ColorPopup"),
@@ -322,6 +319,9 @@ namespace UI
         {
             // TODO
             _usingMobile = usingMobile;
+            
+            _skinColorPopupView.SetAutoClose(usingMobile);
+            
             RefreshCurrentStage();
         }
 

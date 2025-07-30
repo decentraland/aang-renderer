@@ -13,6 +13,8 @@ namespace UI.Views
         public readonly bool CanSkip;
 
         public abstract string SelectedCategory { get; }
+
+        protected bool UsingMobile;
         
         protected StageView(VisualElement root, string title, string confirmButtonText, int confirmButtonWidth, string confirmButtonTextMobile, bool canSkip)
         {
@@ -34,7 +36,7 @@ namespace UI.Views
             _root.AddToClassList("customization-window__content-item--hide-right");
         }
 
-        public virtual void Show()
+        public void Show()
         {
             _root.RemoveFromClassList("customization-window__content-item--hide-left");
             _root.RemoveFromClassList("customization-window__content-item--hide-right");
@@ -42,7 +44,7 @@ namespace UI.Views
 
         public virtual void SetUsingMobileMode(bool usingMobile)
         {
-            
+            UsingMobile = usingMobile;
         }
 
         public abstract object GetData();

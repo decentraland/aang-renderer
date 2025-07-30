@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Services;
 using UI.Elements;
+using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.UIElements;
 
@@ -13,6 +14,7 @@ namespace UI.Views
 
         private PreviewButtonElement _selectedPreset;
 
+        private readonly ScrollView _presetsContainer;
         private readonly List<PreviewButtonElement> _previewButtons;
         private PresetDefinition[] _presets;
 
@@ -34,7 +36,8 @@ namespace UI.Views
             string confirmButtonTextMobile, bool canSkip) : base(root, title, confirmButtonText, confirmButtonWidth,
             confirmButtonTextMobile, canSkip)
         {
-            _previewButtons = root.Q("Body").Query<PreviewButtonElement>().ToList();
+            _presetsContainer = root.Q<ScrollView>("Body");
+            _previewButtons = _presetsContainer.Query<PreviewButtonElement>().ToList();
         }
 
         public void SetPresets(PresetDefinition[] presets, int initialSelection)
@@ -51,15 +54,11 @@ namespace UI.Views
 
                 button.Clicked += () => OnPresetClicked(index);
 
-                if (i == initialSelection)
-                {
-                    button.Selected = true;
-                    _selectedPreset = button;
-                }
-
                 // TODO: Error handling?
                 RemoteTextureService.Instance.RequestTexture(presetAvatar.thumbnail, tex => button.SetTexture(tex));
             }
+            
+            RefreshSelection(initialSelection);
         }
 
         public void ClearSelection()
@@ -68,6 +67,7 @@ namespace UI.Views
 
             _selectedPreset.Selected = false;
             _selectedPreset = null;
+            _presetsContainer.scrollOffset = Vector2.zero;
         }
 
         private void OnPresetClicked(int index)
@@ -82,6 +82,12 @@ namespace UI.Views
             if (_selectedPreset != null) _selectedPreset.Selected = false;
             _selectedPreset = _previewButtons[index];
             _selectedPreset.Selected = true;
+
+            if (UsingMobile)
+            {
+                _presetsContainer.scrollOffset = Vector2.zero;
+                _presetsContainer.ScrollTo(_selectedPreset);
+            }
         }
     }
 }

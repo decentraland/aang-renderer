@@ -17,6 +17,8 @@ namespace UI.Views
 
         private Color[] _colors;
 
+        private bool _autoClose;
+
         public ColorPopupView(DCLDropdownElement dropdown, VisualElement root, VisualElement icon)
         {
             _dropdown = dropdown;
@@ -57,10 +59,17 @@ namespace UI.Views
             }
         }
 
+        public void SetAutoClose(bool autoClose)
+        {
+            _autoClose = autoClose;
+        }
+
         private void OnColorSelected(Color color)
         {
             SetSelectedColor(color);
             ColorSelected!(color);
+
+            if (_autoClose) _dropdown.Open(false);
         }
 
         public object GetData()

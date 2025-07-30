@@ -12,6 +12,8 @@ namespace UI.Views
         private readonly PreviewButtonElement _femaleBodyButton;
 
         public event Action<BodyShape> BodyShapeSelected;
+        
+        private bool _autoClose;
 
         public BodyShapePopupView(DCLDropdownElement dropdown, VisualElement root)
         {
@@ -34,6 +36,8 @@ namespace UI.Views
             _femaleBodyButton.Selected = true;
             _maleBodyButton.Selected = false;
             BodyShapeSelected!(BodyShape.Female);
+            
+            if(_autoClose) _dropdown.Open(false);
         }
 
         private void OnMaleBodyClicked()
@@ -41,6 +45,13 @@ namespace UI.Views
             _femaleBodyButton.Selected = false;
             _maleBodyButton.Selected = true;
             BodyShapeSelected!(BodyShape.Male);
+
+            if (_autoClose) _dropdown.Open(false);
+        }
+
+        public void SetAutoClose(bool autoClose)
+        {
+            _autoClose = autoClose;
         }
 
         public object GetData()
