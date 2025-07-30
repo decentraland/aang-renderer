@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Data;
+using JetBrains.Annotations;
 using UI.Elements;
 using UI.Manipulators;
 using UI.Views;
@@ -15,9 +16,11 @@ namespace UI
     {
         [SerializeField] private UIDocument uiDocument;
 
-        private VisualElement _configuratorContainer;
+        private VisualElement _container;
         private VisualElement _loader;
         private VisualElement _loaderIcon;
+        private VisualElement _enterNameWindow;
+        private VisualElement _customizationWindow;
 
         private DCLButtonElement _backButton;
         private DCLButtonElement _skipButton;
@@ -33,6 +36,7 @@ namespace UI
         private string _username;
 
         // Views
+        private EnterNameView _enterNameView;
         private WearablesView _headWearablesView;
         private WearablesView _bodyWearablesView;
         private PresetsView _presetsView;
@@ -68,8 +72,14 @@ namespace UI
         {
             var root = uiDocument.rootVisualElement;
 
-            _configuratorContainer = root.Q("Container");
+            _container = root.Q("Container");
+            _enterNameWindow = _container.Q("EnterNameWindow");
+            _customizationWindow = _container.Q("CustomizationWindow");
             var characterArea = root.Q("CharacterArea");
+            
+            // Enter name
+            _enterNameView = new EnterNameView(_enterNameWindow);
+            _enterNameView.Confirmed += OnNameConfirmed;
 
             characterArea.RegisterCallback<GeometryChangedEvent, VisualElement>((_, area) =>
             {
@@ -206,6 +216,19 @@ namespace UI
             RefreshCurrentStage();
         }
 
+        private void OnNameConfirmed(string username, [CanBeNull] string email)
+        {
+            _username = username;
+            ShowEnterName(false);
+            RefreshCurrentStage();
+        }
+
+        public void ShowEnterName(bool show)
+        {
+            _container.EnableInClassList("container--enter-name", show);
+            _container.EnableInClassList("container--customize", !show);
+        }
+
         private void OnDisable()
         {
             if (!Application.isEditor) return;
@@ -221,7 +244,7 @@ namespace UI
 
         private void Start()
         {
-            _configuratorContainer.SetVisibility(false);
+            _container.SetVisibility(false);
             _loader.SetDisplay(true);
         }
 
@@ -254,7 +277,7 @@ namespace UI
             _confirmationOpen = open;
             Confirmed!(open);
             _confirmContainer.SetDisplay(open);
-            _configuratorContainer.SetDisplay(!open);
+            _container.SetDisplay(!open);
         }
 
         private void RefreshCurrentStage()
@@ -311,7 +334,7 @@ namespace UI
         public void LoadCompleted()
         {
             RefreshCurrentStage();
-            _configuratorContainer.SetVisibility(true);
+            _container.SetVisibility(true);
             _loader.SetDisplay(false);
         }
 
@@ -343,22 +366,6 @@ namespace UI
 
         public void SetCollection(List<CategoryDefinition> faceCollection, List<CategoryDefinition> bodyCollection)
         {
-            /*
-               Category: body_shape - 2
-
-               Category: eyewear - 14
-               Category: upper_body - 56
-               Category: facial_hair - 13
-               Category: lower_body - 38
-               Category: feet - 24
-               Category: hands_wear - 4
-               Category: earring - 12
-               Category: hair - 33
-               Category: eyebrows - 26
-               Category: eyes - 35
-               Category: mouth - 20
-             */
-
             _bodyWearablesView.SetCollection(bodyCollection);
             _headWearablesView.SetCollection(faceCollection);
         }

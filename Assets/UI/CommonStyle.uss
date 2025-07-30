@@ -4,6 +4,7 @@
     --dcl-color-snow: rgb(252, 252, 252);
     --dcl-color-ruby: rgb(255, 45, 85);
     --dcl-color-white_70: rgba(255, 255, 255, 0.7);
+    --dcl-color-silver: #A09BA8;
     -unity-font-definition: url("project://database/Assets/UI/Font/Inter_18pt-Regular%20SDF.asset?fileID=11400000&guid=ac33835a7d3724b99af9e75a108d285d&type=2#Inter_18pt-Regular SDF");
 }
 
@@ -91,6 +92,10 @@
     padding-bottom: 16px;
     opacity: 1;
     transition-property: scale, translate, opacity;
+}
+
+.dcl-button:disabled {
+    opacity: 0.35;
 }
 
 .dcl-button--hidden-down {
@@ -347,4 +352,129 @@
     background-image: url("project://database/Assets/UI/Sprites/Configurator/icon_close.png?fileID=2800000&guid=d760ea74e977e477ba51d3f30636d776&type=3#icon_close");
     width: 40px;
     height: 40px;
+}
+
+
+.dcl-text-field {
+    flex-direction: column;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-left: 0;
+    padding-right: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.dcl-text-field > .unity-text-field__label {
+    color: rgb(255, 255, 255);
+    font-size: 23px;
+    padding-left: 0;
+    padding-right: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0;
+    margin-bottom: 16px;
+}
+
+.dcl-text-field > .unity-text-field__input {
+    border-left-width: 0;
+    border-right-width: 0;
+    border-top-width: 0;
+    border-bottom-width: 0;
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    border-bottom-right-radius: 14px;
+    border-bottom-left-radius: 14px;
+    background-color: rgb(255, 255, 255);
+    padding-top: 12px;
+    padding-bottom: 12px;
+    padding-right: 16px;
+    padding-left: 16px;
+    color: black;
+    font-size: 16px;
+}
+
+.dcl-text-field > .unity-base-text-field__input--placeholder {
+    color: var(--dcl-color-silver);
+}
+
+.dcl-text-field:focus:enabled > .unity-text-field__label {
+    color: white;
+}
+
+.dcl-toggle {
+    flex-direction: row-reverse;
+    align-items: center;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-left: 0;
+    padding-right: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.dcl-toggle > .unity-toggle__input {
+    width: 24px;
+    height: 24px;
+    flex-grow: 0;
+    min-width: 24px;
+    min-height: 24px;
+    flex-basis: auto;
+    margin-top: 12px;
+    margin-right: 12px;
+    margin-bottom: 12px;
+    margin-left: 12px;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+    border-top-width: 3px;
+    border-right-width: 3px;
+    border-bottom-width: 3px;
+    border-left-width: 3px;
+    background-color: rgba(0, 0, 0, 0);
+    border-color: var(--dcl-color-white_70);
+}
+
+.dcl-toggle > .unity-toggle__input:checked {
+    border-width: 0;
+}
+
+.dcl-toggle:focus:enabled > .unity-toggle__label {
+    color: white;
+}
+
+.dcl-toggle > .unity-toggle__label {
+    flex-basis: 1px;
+    flex-grow: 1;
+    color: rgb(255, 255, 255);
+    font-size: 16px;
+    padding-left: 0;
+    padding-right: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    white-space: normal;
+}
+
+.dcl-toggle > .unity-toggle__input > .unity-toggle__checkmark {
+    background-color: transparent;
+    border-left-width: 0;
+    border-right-width: 0;
+    border-top-width: 0;
+    border-bottom-width: 0;
+}
+
+.dcl-toggle > .unity-toggle__input:checked > .unity-toggle__checkmark {
+    background-color: var(--dcl-color-ruby);
+    -unity-background-image-tint-color: rgb(255, 255, 255);
 }

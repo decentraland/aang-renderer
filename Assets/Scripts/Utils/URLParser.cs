@@ -96,6 +96,9 @@ namespace Utils
                     case "uninterruptedDeferAgent":
                         config.UninterruptedDeferAgent = bool.Parse(value);
                         break;
+                    case "showEnterName":
+                        config.ShowEnterName = bool.Parse(value);
+                        break;
                     default:
                         Debug.LogWarning($"Unknown parameter in URL: {key}");
                         break;
@@ -144,6 +147,7 @@ namespace Utils
             sb.AppendFormat("&showFPS={0}", config.ShowFPS);
             sb.AppendFormat("&sequentialLoad={0}", config.SequentialLoad);
             sb.AppendFormat("&useUninterruptedDeferAgent={0}", config.UninterruptedDeferAgent);
+            sb.AppendFormat("&showEnterName={0}", config.ShowEnterName);
 
             return sb.ToString();
         }

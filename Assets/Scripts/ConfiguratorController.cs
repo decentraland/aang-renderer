@@ -50,6 +50,7 @@ public class ConfiguratorController : MonoBehaviour
         uiPresenter.Confirmed += OnConfirmed;
         
         uiPresenter.ShowFPS(Config.ShowFPS);
+        uiPresenter.ShowEnterName(Config.ShowEnterName);
 
         StartCoroutine(InitialLoad());
     }

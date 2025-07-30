@@ -1,6 +1,12 @@
 :root {
 }
 
+.root {
+    flex-grow: 1;
+    justify-content: center;
+    align-items: center;
+}
+
 .loader {
     position: absolute;
     top: 0;
@@ -18,6 +24,7 @@
 }
 
 .customization-window {
+    display: none;
     width: 874px;
     height: 791px;
     border-top-left-radius: 20px;
@@ -26,6 +33,10 @@
     border-bottom-left-radius: 20px;
     overflow: hidden;
     background-color: rgb(57, 22, 82);
+}
+
+.container--customize > .customization-window {
+    display: flex;
 }
 
 .customization-window__header {
@@ -281,12 +292,19 @@
     justify-content: center;
 }
 
+.container__body {
+}
+
 .container__character-area {
     flex-direction: column;
     justify-content: flex-start;
     cursor: url("project://database/Assets/UI/Sprites/Configurator/cursor_rotate.png?fileID=2800000&guid=797e032bcecb14d79865077f5670d471&type=3#cursor_rotate");
     align-items: flex-end;
     width: 538px;
+}
+
+.container--enter-name > .container__character-area {
+    visibility: hidden;
 }
 
 .confirmation-popup {
@@ -352,10 +370,48 @@
     margin-right: 8px;
 }
 
-.root {
-    flex-grow: 1;
+.enter-name-window {
+    display: none;
+    width: 874px;
+    height: 791px;
+    flex-direction: column;
+    align-items: flex-start;
     justify-content: center;
-    align-items: center;
+}
+
+.enter-name-window > * {
+    margin-bottom: 32px;
+}
+
+.container--enter-name > .enter-name-window {
+    display: flex;
+}
+
+.enter-name-window__logo {
+    background-image: url("project://database/Assets/UI/Sprites/Configurator/logo_dcl.png?fileID=2800000&guid=dea1e3a71c2be40f083b54062cb6fbc3&type=3#logo_dcl");
+    width: 63px;
+    height: 63px;
+}
+
+.enter-name-window__welcome {
+    font-size: 48px;
+    color: rgb(255, 255, 255);
+    margin-top: 0;
+    margin-right: 0;
+    margin-left: 0;
+    padding-top: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    white-space: normal;
+}
+
+.enter-name-window__text-field {
+    width: 500px;
+}
+
+.enter-name-window__tos-toggle {
+    width: 100%;
 }
 
 .portrait {
@@ -558,4 +614,38 @@
 
 .wearable-category .dcl-dropdown__arrow {
     -unity-background-image-tint-color: white;
+}
+
+.portrait .enter-name-window {
+    width: 100%;
+    padding-top: 32px;
+    padding-bottom: 32px;
+    padding-left: 24px;
+    padding-right: 24px;
+    align-items: stretch;
+}
+
+.portrait .container--enter-name > .container__character-area {
+    display: none;
+}
+
+.portrait .enter-name-window__welcome {
+    font-size: 40px;
+}
+
+.portrait .enter-name-window .dcl-text-field {
+    width: 100%;
+}
+
+.portrait .enter-name-window .unity-text-field__label {
+    font-size: 20px;
+    margin-bottom: 12px;
+}
+
+.portrait .enter-name-window > * {
+    margin-bottom: 16px;
+}
+
+.portrait .enter-name-window > #CustomizeButton {
+    margin-bottom: 0;
 }

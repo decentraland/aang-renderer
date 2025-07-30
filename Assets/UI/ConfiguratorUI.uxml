@@ -5,8 +5,16 @@
         <ui:VisualElement picking-mode="Ignore" name="Loader" class="loader" style="display: none;">
             <ui:VisualElement picking-mode="Ignore" name="Icon" class="loader__icon" />
         </ui:VisualElement>
-        <ui:VisualElement name="Container" picking-mode="Ignore" class="container">
-            <ui:VisualElement name="CustomizationWindow" class="customization-window">
+        <ui:VisualElement name="Container" picking-mode="Ignore" class="container container--customize">
+            <ui:VisualElement name="EnterNameWindow" class="container__body enter-name-window">
+                <ui:VisualElement name="Logo" class="enter-name-window__logo" />
+                <ui:Label text="&lt;font-weight=600&gt;Welcome to Decentraland!" name="Welcome" class="enter-name-window__welcome" />
+                <ui:TextField label="Enter your username" placeholder-text="Any name you want" name="UsernameField" max-length="15" hide-placeholder-on-focus="true" class="dcl-text-field enter-name-window__text-field" />
+                <ui:TextField label="Email (optional)" placeholder-text="We won&apos;t send you spam" name="EmailField" hide-placeholder-on-focus="true" keyboard-type="EmailAddress" class="dcl-text-field enter-name-window__text-field" />
+                <ui:Toggle label="I agree with Decentraland’s &lt;u&gt;&lt;link=&quot;tos&quot;&gt;Terms of Use&lt;/link&gt;&lt;/u&gt; and &lt;u&gt;&lt;link=&quot;pp&quot;&gt;Privacy Policy&lt;/link&gt;&lt;/u&gt;." name="TOSToggle" class="dcl-toggle enter-name-window__tos-toggle" />
+                <UI.Elements.DCLButtonElement text="CUSTOMIZE MY AVATAR" name="CustomizeButton" button-type="Primary" enabled="false" />
+            </ui:VisualElement>
+            <ui:VisualElement name="CustomizationWindow" class="customization-window container__body">
                 <ui:VisualElement name="Header" class="customization-window__header">
                     <ui:Label text="1." name="StageNumber" class="customization-window__header-number" />
                     <ui:Label text="Choose [username]&apos;s starting look" name="StageTitle" class="customization-window__header-title" />

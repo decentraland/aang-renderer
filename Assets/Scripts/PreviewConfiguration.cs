@@ -208,6 +208,11 @@ public class PreviewConfiguration
     /// case FPS dips / crashes on mobile devices.
     /// </summary>
     public bool UninterruptedDeferAgent { get; set; } = true;
+    
+    /// <summary>
+    /// Shows the enter name stage at the start of avatar customization.
+    /// </summary>
+    public bool ShowEnterName { get; set; }
 }
 
 public enum PreviewMode
