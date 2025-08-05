@@ -356,6 +356,28 @@ public class PreviewLoader : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Enables sound playback by setting audio source volume to 1.
+    /// </summary>
+    public void EnableSound()
+    {
+        if (audioSource != null)
+        {
+            audioSource.volume = 1f;
+        }
+    }
+
+    /// <summary>
+    /// Disables sound playback by setting audio source volume to 0.
+    /// </summary>
+    public void DisableSound()
+    {
+        if (audioSource != null)
+        {
+            audioSource.volume = 0f;
+        }
+    }
+
     private async Task LoadWearable(string category, WearableDefinition wd, AvatarColors avatarColors)
     {
         Debug.Log($"Loading wearable({category}): {wd.Pointer}");
