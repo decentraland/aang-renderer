@@ -1,13 +1,12 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 public static class WearablesConstants
 {
-    public const string EMPTY_DEFAULT_WEARABLE = "EMPTY_DEFAULT_WEARABLE";
-    
     public const string BODY_SHAPE_MALE = "urn:decentraland:off-chain:base-avatars:BaseMale";
     public const string BODY_SHAPE_FEMALE = "urn:decentraland:off-chain:base-avatars:BaseFemale";
 
-    //Used for hiding algorithm
+    // Used for hiding algorithm
     public static readonly IList<string> CATEGORIES_PRIORITY = new List<string>
     {
         Categories.SKIN, // Highest priority
@@ -30,7 +29,7 @@ public static class WearablesConstants
         Categories.BODY_SHAPE,
     };
 
-    //Used for hiding algorithm
+    // Used for hiding algorithm
     public static readonly string[] SKIN_IMPLICIT_CATEGORIES =
     {
         Categories.EYES,
@@ -45,43 +44,12 @@ public static class WearablesConstants
         Categories.HEAD,
         Categories.FACIAL_HAIR,
     };
-
-    //Used for hiding algorithm
-    public static readonly string[] UPPER_BODY_DEFAULT_HIDES =
-    {
-        Categories.HANDS,
-    };
     
     public static readonly HashSet<string> FACIAL_FEATURES = new()
     {
         Categories.EYEBROWS,
         Categories.EYES,
         Categories.MOUTH,
-    };
-    
-    public static Dictionary<string, string> READABLE_CATEGORIES = new Dictionary<string, string>
-    {
-        {Categories.BODY_SHAPE, "Body shape"},
-        {Categories.UPPER_BODY, "Upper body"},
-        {Categories.LOWER_BODY, "Lower body"},
-        {Categories.FEET, "Feet"},
-        {Categories.EYES, "Eyes"},
-        {Categories.EYEBROWS, "Eyebrows"},
-        {Categories.MOUTH, "Mouth"},
-        {Categories.FACIAL, "Facial"},
-        {Categories.HAIR, "Hair"},
-        {Categories.SKIN, "Skin"},
-        {Categories.FACIAL_HAIR, "Facial hair"},
-        {Categories.EYEWEAR, "Eyewear"},
-        {Categories.TIARA, "Tiara"},
-        {Categories.EARRING, "Earring"},
-        {Categories.HAT, "Hat"},
-        {Categories.TOP_HEAD, "Top head"},
-        {Categories.HELMET, "Helmet"},
-        {Categories.MASK, "Mask"},
-        {Categories.HANDS, "Hands"},
-        {Categories.HANDS_WEAR, "Hands wear"},
-        {Categories.HEAD, "Head"}
     };
     
     public static readonly (string, string)[] BODY_PARTS_MAPPING =
@@ -119,5 +87,12 @@ public static class WearablesConstants
         public const string HANDS = "hands";
         public const string HANDS_WEAR = "hands_wear";
         public const string HEAD = "head";
+    }
+
+    public static class Shaders
+    {
+        public static readonly int BASE_COLOR_ID = Shader.PropertyToID("_BaseColor");
+        public static readonly int MAIN_TEX_ID = Shader.PropertyToID("_MainTex");
+        public static readonly int MASK_TEX_ID = Shader.PropertyToID("_MaskTex");
     }
 }

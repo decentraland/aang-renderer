@@ -298,7 +298,7 @@
 .container__character-area {
     flex-direction: column;
     justify-content: flex-start;
-    cursor: url("project://database/Assets/UI/Sprites/Configurator/cursor_rotate.png?fileID=2800000&guid=797e032bcecb14d79865077f5670d471&type=3#cursor_rotate");
+    cursor: var(--dcl-cursor-rotate);
     align-items: flex-end;
     width: 538px;
 }

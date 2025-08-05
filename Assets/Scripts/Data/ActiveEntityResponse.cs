@@ -39,9 +39,9 @@ namespace Data
             {
                 public string category;
                 public Representation[] representations;
-                public string[] hides;
-                public string[] replaces;
-                public string[] removesDefaultHiding;
+                public string[] hides = Array.Empty<string>();
+                public string[] replaces = Array.Empty<string>();
+                public string[] removesDefaultHiding = Array.Empty<string>();
             }
             
             [Serializable]
@@ -49,9 +49,9 @@ namespace Data
             {
                 public string[] bodyShapes;
                 public string mainFile;
-                public string[] contents;
-                public string[] overrideHides;
-                public string[] overrideReplaces;
+                public string[] contents = Array.Empty<string>();
+                public string[] overrideHides = Array.Empty<string>();
+                public string[] overrideReplaces = Array.Empty<string>();
             }
 
             [Serializable]

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using JetBrains.Annotations;
+using Preview;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -17,59 +18,62 @@ public class JSBridge : MonoBehaviour
     [SerializeField] private PreviewController previewController;
 
     [UsedImplicitly]
-    public void ParseFromURL() => previewController.ParseFromURL();
+    public void ParseFromURL() => AangConfiguration.RecreateFrom(Application.absoluteURL);
 
     [UsedImplicitly]
-    public void SetMode(string value) => previewController.Config.SetMode(value);
+    public void ParseFromString(string url) => AangConfiguration.RecreateFrom(url);
 
     [UsedImplicitly]
-    public void SetProfile(string value) => previewController.Config.Profile = value;
+    public void SetMode(string value) => AangConfiguration.Instance.SetMode(value);
 
     [UsedImplicitly]
-    public void SetEmote(string value) => previewController.Config.Emote = value;
+    public void SetProfile(string value) => AangConfiguration.Instance.Profile = value;
 
     [UsedImplicitly]
-    public void AddBase64(string value) => previewController.Config.AddBase64(value);
+    public void SetEmote(string value) => AangConfiguration.Instance.Emote = value;
 
     [UsedImplicitly]
-    public void ClearBase64(string value) => previewController.Config.Base64.Clear();
+    public void AddBase64(string value) => AangConfiguration.Instance.AddBase64(value);
+
+    [UsedImplicitly]
+    public void ClearBase64(string value) => AangConfiguration.Instance.Base64.Clear();
 
     [UsedImplicitly]
     public void SetUrns(string value) =>
-        previewController.Config.Urns = value.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+        AangConfiguration.Instance.Urns = value.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
 
     [UsedImplicitly]
-    public void SetBackground(string value) => previewController.Config.SetBackground(value);
+    public void SetBackground(string value) => AangConfiguration.Instance.SetBackground(value);
 
     [UsedImplicitly]
-    public void SetSkinColor(string value) => previewController.Config.SetSkinColor(value);
+    public void SetSkinColor(string value) => AangConfiguration.Instance.SetSkinColor(value);
 
     [UsedImplicitly]
-    public void SetHairColor(string value) => previewController.Config.SetHairColor(value);
+    public void SetHairColor(string value) => AangConfiguration.Instance.SetHairColor(value);
 
     [UsedImplicitly]
-    public void SetEyeColor(string value) => previewController.Config.SetEyeColor(value);
+    public void SetEyeColor(string value) => AangConfiguration.Instance.SetEyeColor(value);
 
     [UsedImplicitly]
-    public void SetBodyShape(string value) => previewController.Config.BodyShape = value;
+    public void SetBodyShape(string value) => AangConfiguration.Instance.BodyShape = value;
 
     [UsedImplicitly]
-    public void SetShowAnimationReference(string value) => previewController.Config.ShowAnimationReference = bool.Parse(value);
+    public void SetShowAnimationReference(string value) => AangConfiguration.Instance.ShowAnimationReference = bool.Parse(value);
 
     [UsedImplicitly]
-    public void SetProjection(string value) => previewController.Config.Projection = value;
+    public void SetProjection(string value) => AangConfiguration.Instance.Projection = value;
 
     [UsedImplicitly]
-    public void SetContract(string value) => previewController.Config.Contract = value;
+    public void SetContract(string value) => AangConfiguration.Instance.Contract = value;
 
     [UsedImplicitly]
-    public void SetItemID(string value) => previewController.Config.ItemID = value;
+    public void SetItemID(string value) => AangConfiguration.Instance.ItemID = value;
 
     [UsedImplicitly]
-    public void SetTokenID(string value) => previewController.Config.TokenID = value;
+    public void SetTokenID(string value) => AangConfiguration.Instance.TokenID = value;
 
     [UsedImplicitly]
-    public void SetDisableLoader(string value) => previewController.Config.DisableLoader = bool.Parse(value);
+    public void SetDisableLoader(string value) => AangConfiguration.Instance.DisableLoader = bool.Parse(value);
 
     [UsedImplicitly]
     public void Reload() => previewController.InvokeReload();
@@ -138,6 +142,7 @@ public class JSBridge : MonoBehaviour
 
         public static void OnError(string message) => Debug.LogError($"NativeCall OnError({message})");
         
+        // ReSharper disable once InconsistentNaming
         public static void PreloadURLs(string urlsCSV) => Debug.Log($"NativeCall PreloadURLs({urlsCSV})");
 #else
         [System.Runtime.InteropServices.DllImport("__Internal")]

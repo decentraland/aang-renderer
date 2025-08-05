@@ -1,6 +1,7 @@
+using Configurator;
 using GLTFast;
+using Preview;
 using UnityEngine;
-using Utils;
 
 public class Bootstrap : MonoBehaviour
 {
@@ -13,7 +14,7 @@ public class Bootstrap : MonoBehaviour
 
     [SerializeField] private string debugUrl;
 
-    private void Awake()
+    private void Start()
     {
         // Common assets
         CommonAssets.AvatarMaterial = baseMat;
@@ -21,29 +22,28 @@ public class Bootstrap : MonoBehaviour
         CommonAssets.IdleAnimation = idleAnimation;
 
         var url = Application.isEditor ? debugUrl : Application.absoluteURL;
-        var initialConfig = URLParser.Parse(url);
+        AangConfiguration.RecreateFrom(url);
 
-        if (initialConfig.UninterruptedDeferAgent)
+        if (AangConfiguration.Instance.UninterruptedDeferAgent)
         {
             // Sets uninterrupted defer agent for fastest loading
             GltfImport.SetDefaultDeferAgent(new UninterruptedDeferAgent());
         }
 
-        if (initialConfig.Mode == PreviewMode.Configurator)
+        if (AangConfiguration.Instance.Mode == PreviewMode.Configurator)
         {
-            // TODO: Change this to instantiate before release!
             configuratorController.gameObject.SetActive(true);
             previewController.gameObject.SetActive(false);
-
-            configuratorController.Config = initialConfig;
         }
         else
         {
             configuratorController.gameObject.SetActive(false);
             previewController.gameObject.SetActive(true);
-
-            previewController.Config = initialConfig;
-            previewController.InvokeReload();
         }
+    }
+
+    public void Reload()
+    {
+        
     }
 }

@@ -23,6 +23,18 @@ namespace Data
                 public ColorData hair;
                 public ColorData skin;
                 public Snapshot snapshots;
+
+                public BodyShape GetBodyShape()
+                {
+                    return bodyShape.Equals(WearablesConstants.BODY_SHAPE_MALE, StringComparison.OrdinalIgnoreCase)
+                        ? BodyShape.Male
+                        : BodyShape.Female;
+                }
+
+                public AvatarColors GetAvatarColors()
+                {
+                    return new AvatarColors(eyes.color, hair.color, skin.color);
+                }
                 
                 [Serializable]
                 public class ColorData

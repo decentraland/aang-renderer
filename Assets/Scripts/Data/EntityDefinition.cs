@@ -37,6 +37,11 @@ namespace Data
             }
         }
 
+        public bool HasRepresentation(BodyShape bodyShape)
+        {
+            return _representations[bodyShape] != null;
+        }
+
         public Representation this[BodyShape shape] => _representations[shape] ?? throw new InvalidOperationException(
             $"Missing {shape} representation for {URN}");
 

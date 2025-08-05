@@ -5,13 +5,17 @@
     --dcl-color-ruby: rgb(255, 45, 85);
     --dcl-color-white_70: rgba(255, 255, 255, 0.7);
     --dcl-color-silver: #A09BA8;
+    
+    --dcl-cursor-rotate: url("project://database/Assets/UI/Sprites/Configurator/cursor_rotate.png?fileID=2800000&guid=797e032bcecb14d79865077f5670d471&type=3#cursor_rotate");
+    --dcl-cursor-interactive: url("project://database/Assets/UI/Sprites/Configurator/cursor_interactive.png?fileID=2800000&guid=e16855ab158be494b97fd679ca9c6968&type=3#cursor_interactive");
+    
     -unity-font-definition: url("project://database/Assets/UI/Font/Inter_18pt-Regular%20SDF.asset?fileID=11400000&guid=ac33835a7d3724b99af9e75a108d285d&type=2#Inter_18pt-Regular SDF");
 }
 
 .dcl-clickable {
     transition-property: scale;
     transition-duration: 0.2s;
-    cursor: url("project://database/Assets/UI/Sprites/Configurator/cursor_interactive.png?fileID=2800000&guid=e16855ab158be494b97fd679ca9c6968&type=3#cursor_interactive");
+    cursor: var(--dcl-cursor-interactive);
 }
 
 .dcl-clickable:hover {

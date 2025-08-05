@@ -1,3 +1,17 @@
+.container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    margin-top: 20px;
+    margin-right: 20px;
+    margin-bottom: 20px;
+    margin-left: 20px;
+    cursor: var(--dcl-cursor-rotate);
+    -unity-font-definition: url("project://database/Assets/UI/Font/Inter-UI-Bold%20SDF.asset?fileID=11400000&guid=d16b4f6c5b0564f9aafdb059ebd77bff&type=2#Inter-UI-Bold SDF");
+}
+
 .switcher {
     position: absolute;
     right: 0;
@@ -17,10 +31,12 @@
     flex-grow: 1;
     transition-duration: 0.1s;
     background-size: 20px 20px;
+    cursor: var(--dcl-cursor-interactive);
 }
 
 .switcher__button:disabled {
     background-color: rgb(128, 128, 128);
+    cursor: initial;
 }
 
 .switcher__button--selected {
@@ -56,6 +72,7 @@
     height: 32px;
     background-size: 85% 85%;
     transition-duration: 0.15s;
+    cursor: var(--dcl-cursor-interactive);
 }
 
 .zoomer__button:hover {
@@ -97,15 +114,6 @@
     padding-right: 0;
     padding-top: 0;
     padding-bottom: 0;
-    transition-duration: 0.15s;
-}
-
-.emote-controls__button:hover {
-    translate: 0 -3px;
-}
-
-.emote-controls__button:active {
-    background-color: rgb(200, 200, 200);
 }
 
 .emote-controls__button-play {

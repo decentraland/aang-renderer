@@ -1,4 +1,5 @@
 using System;
+using Configurator;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -25,7 +26,6 @@ namespace UI
         private void OnEnable()
         {
             _root = uiDocument.rootVisualElement.Q("root");
-            Update();
         }
 
         private void OnDisable()

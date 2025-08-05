@@ -6,12 +6,12 @@ namespace UI.Manipulators
 {
     public class DragManipulator : PointerManipulator
     {
-        private readonly Action<Vector2> _dragged;
+        private readonly Action<Vector2, float> _dragged;
 
         private bool active;
         private Vector2 _lastDelta;
 
-        public DragManipulator(Action<Vector2> dragged)
+        public DragManipulator(Action<Vector2, float> dragged)
         {
             _dragged = dragged;
 
@@ -66,9 +66,9 @@ namespace UI.Manipulators
             evt.StopPropagation();
         }
 
-        private void OnUpdate()
+        private void OnUpdate(TimerState ts)
         {
-            _dragged(_lastDelta);
+            _dragged(_lastDelta, ts.deltaTime / 1000f);
             _lastDelta = Vector2.zero;
         }
     }

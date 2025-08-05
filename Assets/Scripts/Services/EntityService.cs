@@ -21,7 +21,7 @@ namespace Services
                     (await APIService.GetActiveEntities(missingEntities))
                     .Select(EntityDefinition.FromActiveEntity).ToList();
 
-                Assert.AreEqual(urns.Length, results.Count);
+                Assert.AreEqual(missingEntities.Length, results.Count);
 
                 foreach (var ed in results)
                 {
@@ -42,6 +42,15 @@ namespace Services
                 BodyShape.Female => CACHED_ENTITIES[WearablesConstants.BODY_SHAPE_FEMALE.ToLowerInvariant()],
                 _ => throw new ArgumentOutOfRangeException(nameof(bodyShape), bodyShape, null)
             };
+        }
+
+        public static async Awaitable PreloadBodyEntities()
+        {
+            await GetEntities(new[]
+            {
+                WearablesConstants.BODY_SHAPE_MALE.ToLowerInvariant(),
+                WearablesConstants.BODY_SHAPE_FEMALE.ToLowerInvariant()
+            });
         }
 
         public static void PreloadCachedEntityAssets()
