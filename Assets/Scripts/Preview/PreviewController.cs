@@ -23,7 +23,7 @@ namespace Preview
         [SerializeField] private EmoteAnimationController emoteAnimationController;
 
         [SerializeField] private GameObject animationReference;
-        [SerializeField] private GameObject authPlatform;
+        [SerializeField] private GameObject platform;
 
         [SerializeField] private float wearablePadding = 0.15f;
 
@@ -109,7 +109,7 @@ namespace Preview
                 wearableLoader.gameObject.SetActive(true);
 
                 animationReference.SetActive(config.ShowAnimationReference);
-                authPlatform.SetActive(config.Mode is PreviewMode.Authentication);
+                platform.SetActive(config.Mode is PreviewMode.Authentication);
                 mainCamera.backgroundColor = config.Background;
                 mainCamera.orthographic = config.Projection == "orthographic";
                 previewUIPresenter.EnableLoader(!config.DisableLoader);
@@ -153,6 +153,7 @@ namespace Preview
                             break;
                         case PreviewMode.Authentication:
                         case PreviewMode.Profile:
+                            showingAvatar = true;
                             await LoadForProfile(config.Profile, config.Emote);
                             break;
                         // case PreviewMode.Builder:
