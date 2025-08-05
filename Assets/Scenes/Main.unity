@@ -3541,7 +3541,7 @@ MonoBehaviour:
   idleAnimation: {fileID: -8739580579227139561, guid: 77a74a14408e74041baaa38e7122d9f2, type: 3}
   configuratorController: {fileID: 3845507387249961957}
   previewController: {fileID: 1667190199235124708}
-  debugUrl: ?mode=marketplace&profile=0x3f574d05ec670fe2c92305480b175654ca512005&urn=urn:decentraland:matic:collections-v2:0x1b4e20251ec5da51c749f96a4993f3cebf066853:0&background=039dfc
+  debugUrl: ?mode=configurator&username=Miha
 --- !u!4 &983774208
 Transform:
   m_ObjectHideFlags: 0

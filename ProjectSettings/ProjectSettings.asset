@@ -831,7 +831,9 @@ PlayerSettings:
   webEnableSubmoduleStrippingCompatibility: 0
   scriptingDefineSymbols:
     WebGL: 
-  additionalCompilerArguments: {}
+  additionalCompilerArguments:
+    WebGL:
+    - -warnaserror+
   platformArchitecture: {}
   scriptingBackend:
     Android: 1
