@@ -832,8 +832,7 @@ PlayerSettings:
   scriptingDefineSymbols:
     WebGL: 
   additionalCompilerArguments:
-    WebGL:
-    - -warnaserror+
+    WebGL: []
   platformArchitecture: {}
   scriptingBackend:
     Android: 1

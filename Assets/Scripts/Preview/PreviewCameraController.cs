@@ -1,76 +1,63 @@
 using System;
+using Unity.Cinemachine;
 using UnityEngine;
 
 namespace Preview
 {
     public class PreviewCameraController : MonoBehaviour
     {
-        [SerializeField] private Camera mainCamera;
-        [SerializeField] private float minFOV = 40f;
-        [SerializeField] private float maxFOV = 100f;
+        [SerializeField] private float minFOV = 10f;
+        [SerializeField] private float maxFOV = 30f;
+        [SerializeField] private float zoomStep = 5f;
         [SerializeField] private float lerpSpeed = 1f;
 
-        [Header("Presets")]
-        [SerializeField] private Vector3 marketplacePosition;
-        [SerializeField] private Quaternion marketplaceRotation;
-    
-        [Space]
-        [SerializeField] private Vector3 authPosition;
-        [SerializeField] private Quaternion authRotation;
-
-        [Space]
-        [SerializeField] private Vector3 profilePosition;
-        [SerializeField] private Quaternion profileRotation;
-
-        [Space]
-        [SerializeField] private Vector3 builderPosition;
-        [SerializeField] private Quaternion builderRotation;
+        [SerializeField] private CinemachineCamera authProfileCamera;
+        [SerializeField] private CinemachineCamera marketplaceCamera;
+        [SerializeField] private CinemachineCamera builderCamera;
 
         private float _targetFOV;
         private float _initialFOV;
 
         private void Awake()
         {
-            _targetFOV = _initialFOV = mainCamera.fieldOfView;
+            _targetFOV = _initialFOV = marketplaceCamera.Lens.FieldOfView;
         }
 
         public void SetMode(PreviewMode mode)
         {
             // Reset FOV when switching modes
-            mainCamera.fieldOfView = _targetFOV = _initialFOV;
-        
-            transform.position = mode switch
+            marketplaceCamera.Lens.FieldOfView = _targetFOV = _initialFOV;
+            
+            switch (mode)
             {
-                PreviewMode.Marketplace => marketplacePosition,
-                PreviewMode.Authentication => authPosition,
-                PreviewMode.Profile => profilePosition,
-                PreviewMode.Builder => builderPosition,
-                _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
-            };
-
-            transform.rotation = mode switch
-            {
-                PreviewMode.Marketplace => marketplaceRotation,
-                PreviewMode.Authentication => authRotation,
-                PreviewMode.Profile => profileRotation,
-                PreviewMode.Builder => builderRotation,
-                _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
-            };
+                case PreviewMode.Marketplace:
+                    marketplaceCamera.Prioritize();
+                    break;
+                case PreviewMode.Authentication:
+                case PreviewMode.Profile:
+                    authProfileCamera.Prioritize();
+                    break;
+                case PreviewMode.Builder:
+                    builderCamera.Prioritize();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(mode), mode, null);
+            }
         }
 
         private void Update()
         {
-            mainCamera.fieldOfView = Mathf.Lerp(mainCamera.fieldOfView, _targetFOV, Time.deltaTime * lerpSpeed);
+            marketplaceCamera.Lens.FieldOfView = Mathf.Lerp(marketplaceCamera.Lens.FieldOfView, _targetFOV, Time.deltaTime * lerpSpeed);
         }
 
         public void ZoomIn()
         {
-            _targetFOV = Mathf.Clamp(_targetFOV - 10, minFOV, maxFOV);
+            _targetFOV = Mathf.Clamp(_targetFOV - zoomStep, minFOV, maxFOV);
         }
 
         public void ZoomOut()
         {
-            _targetFOV = Mathf.Clamp(_targetFOV + 10, minFOV, maxFOV);
+            _targetFOV = Mathf.Clamp(_targetFOV + zoomStep, minFOV, maxFOV);
         }
     }
 }

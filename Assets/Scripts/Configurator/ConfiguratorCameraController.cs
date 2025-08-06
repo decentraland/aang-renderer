@@ -1,14 +1,11 @@
 using Unity.Cinemachine;
 using UnityEngine;
-using UnityEngine.Serialization;
-using UnityEngine.UIElements;
 
 namespace Configurator
 {
     public class ConfiguratorCameraController : MonoBehaviour
     {
-        [SerializeField] private UIDocument uiDocument;
-        [FormerlySerializedAs("previewRotator")] [SerializeField] private DragRotator dragRotator;
+        [SerializeField] private DragRotator dragRotator;
         [SerializeField] private ConfiguratorUIPresenter uiPresenter;
         [SerializeField] private CinemachineCamera fullBodyCamera;
         [SerializeField] private CinemachineCamera headCamera;
@@ -23,6 +20,12 @@ namespace Configurator
         private bool _hasZoomedOut;
 
         private float[] cameraDistances;
+
+        private void Awake()
+        {
+            // If we do this in Awake we don't get the initial blend
+            fullBodyCamera.Prioritize();
+        }
 
         private void Start()
         {
@@ -40,9 +43,6 @@ namespace Configurator
             {
                 cameraDistances[i] = positionComposers[i].CameraDistance;
             }
-
-            // Set full body camera
-            OnCategoryChanged(null);
         }
 
         public void SetUsingMobileMode(bool usingMobile)
@@ -87,11 +87,6 @@ namespace Configurator
         {
             _hasZoomedOut = false;
 
-            var useFullBodyCamera = false;
-            var useHeadCamera = false;
-            var useUpperBodyCamera = false;
-            var useLowerBodyCamera = false;
-
             switch (category)
             {
                 case "mouth":
@@ -101,25 +96,20 @@ namespace Configurator
                 case "hair":
                 case "eyes":
                 case "eyebrows":
-                    useHeadCamera = true;
+                    headCamera.Prioritize();
                     break;
                 case "lower_body":
                 case "feet":
-                    useLowerBodyCamera = true;
+                    lowerBodyCamera.Prioritize();
                     break;
                 case "hands_wear":
                 case "upper_body":
-                    useUpperBodyCamera = true;
+                    upperBodyCamera.Prioritize();
                     break;
                 default:
-                    useFullBodyCamera = true;
+                    fullBodyCamera.Prioritize();
                     break;
             }
-
-            fullBodyCamera.gameObject.SetActive(useFullBodyCamera);
-            headCamera.gameObject.SetActive(useHeadCamera);
-            upperBodyCamera.gameObject.SetActive(useUpperBodyCamera);
-            lowerBodyCamera.gameObject.SetActive(useLowerBodyCamera);
 
             dragRotator.LookAtCamera(true);
         }
