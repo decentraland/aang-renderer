@@ -74,6 +74,9 @@ public class JSBridge : MonoBehaviour
 
     [UsedImplicitly]
     public void SetDisableLoader(string value) => AangConfiguration.Instance.DisableLoader = bool.Parse(value);
+    
+    [UsedImplicitly]
+    public void SetUsername(string value) => AangConfiguration.Instance.Username = value;
 
     [UsedImplicitly]
     public void Reload() => previewController.InvokeReload();

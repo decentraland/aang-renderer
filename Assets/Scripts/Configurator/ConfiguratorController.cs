@@ -214,10 +214,19 @@ namespace Configurator
 
             // Set data
             uiPresenter.SetColorPresets(skinColorPresets, hairColorPresets, eyeColorPresets);
-            uiPresenter.SetUsername(AangConfiguration.Instance.Username);
             uiPresenter.SetCollection(faceCategories, bodyCategories);
             uiPresenter.SetAvatarPresets(avatarPresets, randomPresetIndex);
             RemoteTextureService.Instance.Pause(false);
+
+            // Wait for the username
+            Debug.Log("Waiting for username...");
+            while (string.IsNullOrEmpty(AangConfiguration.Instance.Username))
+            {
+                await Awaitable.NextFrameAsync();
+            }
+            Debug.Log($"Username received: {AangConfiguration.Instance.Username}");
+
+            uiPresenter.SetUsername(AangConfiguration.Instance.Username);
 
             // Load initial preset
             SetPreset(avatarPresets[randomPresetIndex]);

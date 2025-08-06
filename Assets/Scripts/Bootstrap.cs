@@ -41,9 +41,4 @@ public class Bootstrap : MonoBehaviour
             previewController.gameObject.SetActive(true);
         }
     }
-
-    public void Reload()
-    {
-        
-    }
 }
