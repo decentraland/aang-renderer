@@ -23,8 +23,30 @@
     background-image: url("project://database/Assets/UI/Sprites/Spinner.png?fileID=2800000&guid=7277d900fbbbd4d2986e2ff79fd14803&type=3#Spinner");
 }
 
+.customize-container {
+    flex-direction: row;
+    justify-content: center;
+    position: absolute;
+}
+
+.customize-container--hidden {
+}
+
+.customize-container__character-area {
+    flex-direction: column;
+    justify-content: flex-start;
+    cursor: var(--dcl-cursor-rotate);
+    align-items: flex-end;
+    width: 538px;
+    transition-duration: 0.3s;
+    transition-timing-function: ease-in-out-cubic;
+}
+
+.customize-container--hidden > .customize-container__character-area {
+    translate: 300% 0;
+}
+
 .customization-window {
-    display: none;
     width: 874px;
     height: 791px;
     border-top-left-radius: 20px;
@@ -33,10 +55,12 @@
     border-bottom-left-radius: 20px;
     overflow: hidden;
     background-color: rgb(57, 22, 82);
+    transition-duration: 0.3s;
+    transition-timing-function: ease-in-out-cubic;
 }
 
-.container--customize > .customization-window {
-    display: flex;
+.customize-container--hidden > .customization-window {
+    translate: -200% 0;
 }
 
 .customization-window__header {
@@ -287,50 +311,36 @@
     margin-right: 21px;
 }
 
-.container {
+.enter-name-container {
     flex-direction: row;
     justify-content: center;
+    position: absolute;
 }
 
-.container__body {
-}
-
-.container__character-area {
-    flex-direction: column;
-    justify-content: flex-start;
-    cursor: var(--dcl-cursor-rotate);
-    align-items: flex-end;
-    width: 538px;
-}
-
-.container--enter-name > .container__character-area {
-    visibility: hidden;
-}
-
-.enter-name-window {
+.enter-name-container--hidden {
     display: none;
+}
+
+.enter-name-container__content {
     width: 874px;
     height: 791px;
     flex-direction: column;
     align-items: flex-start;
     justify-content: center;
+    margin-right: 538px;
 }
 
-.enter-name-window > * {
+.enter-name-container__content > * {
     margin-bottom: 32px;
 }
 
-.container--enter-name > .enter-name-window {
-    display: flex;
-}
-
-.enter-name-window__logo {
+.enter-name-container__logo {
     background-image: url("project://database/Assets/UI/Sprites/Configurator/logo_dcl.png?fileID=2800000&guid=dea1e3a71c2be40f083b54062cb6fbc3&type=3#logo_dcl");
     width: 63px;
     height: 63px;
 }
 
-.enter-name-window__welcome {
+.enter-name-container__welcome {
     font-size: 48px;
     color: rgb(255, 255, 255);
     margin-top: 0;
@@ -343,11 +353,11 @@
     white-space: normal;
 }
 
-.enter-name-window__text-field {
+.enter-name-container__text-field {
     width: 500px;
 }
 
-.enter-name-window__tos-toggle {
+.enter-name-container__tos-toggle {
     width: 100%;
 }
 
@@ -587,40 +597,49 @@
     margin-bottom: 0;
 }
 
-.confirmation {
-    position: absolute;
-    top: 80px;
-    right: 0;
-    bottom: 80px;
-    left: 0;
+.confirmation-container {
     align-items: center;
     justify-content: flex-end;
-    padding-top: 32px;
-    padding-right: 32px;
-    padding-bottom: 32px;
-    padding-left: 32px;
     display: flex;
+    height: 693px;
+    margin-bottom: 52px;
+    position: absolute;
 }
 
-.confirmation__title {
+.confirmation-container--hidden {
+}
+
+.confirmation-container__title {
     font-size: 48px;
     color: rgb(255, 255, 255);
+    transition-duration: 0.3s;
+    transition-timing-function: ease-in-out-cubic;
 }
 
-.confirmation__character-area {
-    height: 600px;
+.confirmation-container--hidden > .confirmation-container__title {
+    translate: 0 -250px;
 }
 
-.confirmation__buttons {
+.confirmation-container__character-area {
+    flex-grow: 1;
+}
+
+.confirmation-container__buttons {
     flex-direction: row;
+    transition-duration: 0.3s;
+    transition-timing-function: ease-in-out-cubic;
 }
 
-.confirmation__back-button {
+.confirmation-container--hidden > .confirmation-container__buttons {
+    translate: 0 250px;
+}
+
+.confirmation-container__back-button {
     width: 200px;
     margin-right: 8px;
 }
 
-.confirmation__jump-in-button {
+.confirmation-container__jump-in-button {
     width: 200px;
     margin-left: 8px;
 }

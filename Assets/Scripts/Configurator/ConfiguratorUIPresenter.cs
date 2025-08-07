@@ -13,12 +13,17 @@ namespace Configurator
 {
     public class ConfiguratorUIPresenter : MonoBehaviour
     {
+        private const string USS_CUSTOMIZE_CONTAINER_HIDDEN = "customize-container--hidden";
+        private const string USS_ENTER_NAME_HIDDEN = "enter-name-container--hidden";
+        private const string USS_CONFIRMATION_CONTAINER_HIDDEN = "confirmation-container--hidden";
+        
         [SerializeField] private UIDocument uiDocument;
 
-        private VisualElement _container;
+        private VisualElement _customizeContainer;
         private VisualElement _loader;
         private VisualElement _loaderIcon;
-        private VisualElement _enterNameWindow;
+        
+        private VisualElement _enterNameContainer;
 
         private DCLButtonElement _backButton;
         private DCLButtonElement _skipButton;
@@ -72,12 +77,12 @@ namespace Configurator
         {
             var root = uiDocument.rootVisualElement;
 
-            _container = root.Q("Container");
-            _enterNameWindow = _container.Q("EnterNameWindow");
-            var characterArea = root.Q("CharacterArea");
+            _customizeContainer = root.Q("CustomizeContainer");
+            var characterArea = _customizeContainer.Q("CharacterArea");
 
             // Enter name
-            _enterNameView = new EnterNameView(_enterNameWindow);
+            _enterNameContainer = root.Q("EnterNameContainer");
+            _enterNameView = new EnterNameView(_enterNameContainer);
             _enterNameView.Confirmed += OnNameConfirmed;
             ShowEnterName(AangConfiguration.Instance.ShowEnterName);
 
@@ -177,8 +182,8 @@ namespace Configurator
             };
 
             // Confirm stage
-            _confirmContainer = root.Q("Confirmation");
-            _confirmTitle = root.Q<Label>("Title");
+            _confirmContainer = root.Q("ConfirmationContainer");
+            _confirmTitle = _confirmContainer.Q<Label>("Title");
             _confirmContainer.Q<DCLButtonElement>("BackButton").Clicked += () => OpenConfirm(false);
             _confirmContainer.Q<DCLButtonElement>("JumpInButton").Clicked += () => JumpIn!();
 
@@ -224,14 +229,12 @@ namespace Configurator
             _username = username;
             ShowEnterName(false);
             RefreshCurrentStage();
-
-            _confirmTitle.text = $"<font-weight=600>{_username} is Ready to Jump In!";
         }
 
         private void ShowEnterName(bool show)
         {
-            _container.EnableInClassList("container--enter-name", show);
-            _container.EnableInClassList("container--customize", !show);
+            _customizeContainer.EnableInClassList(USS_CUSTOMIZE_CONTAINER_HIDDEN, show);
+            _enterNameContainer.EnableInClassList(USS_ENTER_NAME_HIDDEN, !show);
         }
 
         private void OnDisable()
@@ -249,7 +252,7 @@ namespace Configurator
 
         private void Start()
         {
-            _container.SetVisibility(false);
+            _customizeContainer.SetVisibility(false);
             _loader.SetDisplay(true);
         }
 
@@ -281,8 +284,9 @@ namespace Configurator
         {
             _confirmationOpen = open;
             Confirmed!(open);
-            _confirmContainer.SetDisplay(open);
-            _container.SetDisplay(!open);
+            
+            _customizeContainer.EnableInClassList(USS_CUSTOMIZE_CONTAINER_HIDDEN, open);
+            _confirmContainer.EnableInClassList(USS_CONFIRMATION_CONTAINER_HIDDEN, !open);
         }
 
         private void RefreshCurrentStage()
@@ -332,7 +336,7 @@ namespace Configurator
         public void LoadCompleted()
         {
             RefreshCurrentStage();
-            _container.SetVisibility(true);
+            _customizeContainer.SetVisibility(true);
             _loader.SetDisplay(false);
         }
 
@@ -349,6 +353,7 @@ namespace Configurator
         public void SetUsername(string username)
         {
             _username = username;
+            _confirmTitle.text = $"<font-weight=600>{_username} is Ready to Jump In!";
         }
 
         public void SetAvatarPresets(PresetDefinition[] avatarPresets, int selectedAvatarPresetIndex)
