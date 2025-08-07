@@ -16,7 +16,7 @@ namespace Loading
 {
     public class AvatarLoader : MonoBehaviour
     {
-        private const string IDLE_CLIP_NAME = "Idle_Male";
+        private const string IDLE_CLIP_NAME = "Idle";
 
         [SerializeField] private Camera mainCamera;
 

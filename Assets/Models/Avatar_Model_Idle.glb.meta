@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 77a74a14408e74041baaa38e7122d9f2
+guid: 5b63cb074d2b1474882caf59b30c3739
 ScriptedImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -18,13 +18,10 @@ ScriptedImporter:
     defaultMagFilterMode: 9729
     anisotropicFilterLevel: 1
   instantiationSettings:
-    mask: 4
-    layer: 0
+    mask: 6
+    layer: 6
     skinUpdateWhenOffscreen: 1
     lightIntensityFactor: 1
     sceneObjectCreation: 2
   assetDependencies: []
-  reportItems:
-  - type: 3
-    code: 36
-    messages: []
+  reportItems: []
