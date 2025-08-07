@@ -145,6 +145,8 @@ public class JSBridge : MonoBehaviour
 
         public static void OnError(string message) => Debug.LogError($"NativeCall OnError({message})");
         
+        public static void OnCustomizationDone(string message) => Debug.Log($"NativeCall OnCustomizationDone({message})");
+        
         // ReSharper disable once InconsistentNaming
         public static void PreloadURLs(string urlsCSV) => Debug.Log($"NativeCall PreloadURLs({urlsCSV})");
 #else
@@ -156,6 +158,9 @@ public class JSBridge : MonoBehaviour
 
         [System.Runtime.InteropServices.DllImport("__Internal")]
         public static extern void OnError(string message);
+
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        public static extern void OnCustomizationDone(string message);
         
         [System.Runtime.InteropServices.DllImport("__Internal")]
         public static extern void PreloadURLs(string urlsCSV);

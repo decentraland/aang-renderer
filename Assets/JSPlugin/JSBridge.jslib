@@ -58,6 +58,26 @@ mergeInto(LibraryManager.library, {
       '*'
     )
   },
+  OnCustomizationDone: function (strPtr) {
+      const messageStr = UTF8ToString(strPtr)
+      const targetWindow = (() => {
+        try {
+          return window.self !== window.top ? window : window.parent
+        } catch (e) {
+          return window.parent
+        }
+      })()
+      targetWindow.postMessage(
+        {
+          type: 'unity-renderer',
+          payload: {
+            type: 'customization-done',
+            payload: messageStr,
+          },
+        },
+        '*'
+      )
+    },
   PreloadURLs: function(strPtr) {
     const csv = UTF8ToString(strPtr);
     const urls = csv.split(',');

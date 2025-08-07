@@ -307,69 +307,6 @@
     visibility: hidden;
 }
 
-.confirmation-popup {
-    display: flex;
-    opacity: 1;
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    background-color: rgba(0, 0, 0, 0.85);
-    align-items: center;
-    justify-content: center;
-    transition-property: opacity;
-    transition-duration: 0.3s;
-}
-
-.confirmation-popup--hidden {
-    display: none;
-    opacity: 0;
-}
-
-.confirmation-popup__popup {
-    width: 600px;
-    height: 344px;
-    background-color: rgb(76, 20, 124);
-    border-top-left-radius: 24px;
-    border-top-right-radius: 24px;
-    border-bottom-right-radius: 24px;
-    border-bottom-left-radius: 24px;
-    align-items: center;
-    justify-content: center;
-}
-
-.confirmation-popup__title {
-    color: rgb(255, 255, 255);
-    font-size: 20px;
-    margin-bottom: 32px;
-    margin-top: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-}
-
-.confirmation-popup__subtitle {
-    color: rgb(255, 255, 255);
-    font-size: 16px;
-    -unity-text-align: upper-center;
-    padding-bottom: 0;
-    padding-top: 0;
-    margin-bottom: 64px;
-    margin-top: 0;
-}
-
-.confirmation-popup__buttons-container {
-    flex-direction: row;
-}
-
-.confirmation-popup__buttons-container > .dcl-button {
-    width: 190px;
-    height: 46px;
-    padding: 0;
-    margin-left: 8px;
-    margin-right: 8px;
-}
-
 .enter-name-window {
     display: none;
     width: 874px;
@@ -648,4 +585,42 @@
 
 .portrait .enter-name-window > #CustomizeButton {
     margin-bottom: 0;
+}
+
+.confirmation {
+    position: absolute;
+    top: 80px;
+    right: 0;
+    bottom: 80px;
+    left: 0;
+    align-items: center;
+    justify-content: flex-end;
+    padding-top: 32px;
+    padding-right: 32px;
+    padding-bottom: 32px;
+    padding-left: 32px;
+    display: flex;
+}
+
+.confirmation__title {
+    font-size: 48px;
+    color: rgb(255, 255, 255);
+}
+
+.confirmation__character-area {
+    height: 600px;
+}
+
+.confirmation__buttons {
+    flex-direction: row;
+}
+
+.confirmation__back-button {
+    width: 200px;
+    margin-right: 8px;
+}
+
+.confirmation__jump-in-button {
+    width: 200px;
+    margin-left: 8px;
 }

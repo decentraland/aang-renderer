@@ -1,6 +1,6 @@
 <ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <ui:Template name="WearableCategoryPicker" src="project://database/Assets/UI/Configurator/WearableCategoryPicker.uxml?fileID=9197481963319205126&amp;guid=ee3d5b15e073b48fdbb6cc9bf63bb2ff&amp;type=3#WearableCategoryPicker" />
-    <Style src="project://database/Assets/UI/ConfiguratorStyle.uss?fileID=7433441132597879392&amp;guid=83de1c6279f824cdcbe4149342d94f6f&amp;type=3#ConfiguratorStyle" />
+    <Style src="project://database/Assets/UI/Configurator/ConfiguratorStyle.uss?fileID=7433441132597879392&amp;guid=83de1c6279f824cdcbe4149342d94f6f&amp;type=3#ConfiguratorStyle" />
     <ui:VisualElement name="root" class="root">
         <ui:VisualElement picking-mode="Ignore" name="Loader" class="loader" style="display: none;">
             <ui:VisualElement picking-mode="Ignore" name="Icon" class="loader__icon" />
@@ -83,20 +83,15 @@
                 </UI.Elements.DCLDropdownElement>
             </ui:VisualElement>
         </ui:VisualElement>
-        <ui:VisualElement name="Confirm" style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; align-items: center; justify-content: flex-end; padding-top: 32px; padding-right: 32px; padding-bottom: 32px; padding-left: 32px; display: none;">
-            <UI.Elements.DCLButtonElement text="BACK" button-type="Secondary" name="BackButton" style="width: 200px;" />
-        </ui:VisualElement>
-        <ui:VisualElement name="dcl-dropdown-popup-root" picking-mode="Ignore" style="top: 0; bottom: 0; right: 0; left: 0; display: none;" />
-        <ui:VisualElement name="ConfirmationPopup" class="confirmation-popup confirmation-popup--hidden">
-            <ui:VisualElement name="Popup" class="confirmation-popup__popup">
-                <ui:Label text="&lt;font-weight=600&gt;Ready to jump in?" class="confirmation-popup__title" />
-                <ui:Label text="You&apos;ll find even more customization options in your&#10;Backpack once you&apos;re in-world." class="confirmation-popup__subtitle" />
-                <ui:VisualElement class="confirmation-popup__buttons-container">
-                    <UI.Elements.DCLButtonElement text="CANCEL" button-type="Secondary" name="CancelButton" />
-                    <UI.Elements.DCLButtonElement text="LET&apos;S GO!" name="ConfirmButton" button-type="Primary" />
-                </ui:VisualElement>
+        <ui:VisualElement name="Confirmation" class="confirmation" style="display: none;">
+            <ui:Label text="&lt;font-weight=600&gt;UserName is Ready to Jump In!" name="Title" class="confirmation__title" />
+            <ui:VisualElement name="CharacterArea" class="confirmation__character-area" />
+            <ui:VisualElement name="ButtonsContainer" class="confirmation__buttons">
+                <UI.Elements.DCLButtonElement text="BACK" button-type="Secondary" name="BackButton" class="confirmation__back-button" />
+                <UI.Elements.DCLButtonElement text="BACK" button-type="Primary" name="JumpInButton" class="confirmation__jump-in-button" />
             </ui:VisualElement>
         </ui:VisualElement>
+        <ui:VisualElement name="dcl-dropdown-popup-root" picking-mode="Ignore" style="top: 0; bottom: 0; right: 0; left: 0; display: none;" />
     </ui:VisualElement>
     <ui:Label text="123" name="FPSCounter" style="position: absolute; right: 0; bottom: 0; font-size: 24px; color: rgb(255, 255, 255); border-top-left-radius: 8px; background-color: rgb(0, 0, 0); padding-top: 7px; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; padding-left: 8px; width: 62px; -unity-text-align: upper-right; padding-right: 8px; display: none;" />
 </ui:UXML>

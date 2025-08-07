@@ -12,6 +12,18 @@
     -unity-font-definition: url("project://database/Assets/UI/Font/Inter_18pt-Regular%20SDF.asset?fileID=11400000&guid=ac33835a7d3724b99af9e75a108d285d&type=2#Inter_18pt-Regular SDF");
 }
 
+.unity-label {
+    margin: 0;
+    padding: 0;
+}
+
+.unity-button {
+    border-width: initial;
+    background-color: transparent;
+    margin: 0;
+    padding: 0;
+}
+
 .dcl-clickable {
     transition-property: scale;
     transition-duration: 0.2s;

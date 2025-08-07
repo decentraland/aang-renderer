@@ -16,8 +16,7 @@ namespace Configurator
         [SerializeField] private ConfiguratorUIPresenter uiPresenter;
         [SerializeField] private AvatarLoader avatarLoader;
 
-        [FormerlySerializedAs("previewRotator")] [SerializeField]
-        private DragRotator dragRotator;
+        [SerializeField] private DragRotator dragRotator;
 
         [SerializeField] private GameObject platform;
         [SerializeField] private GameObject confirmationVFX;
@@ -25,9 +24,7 @@ namespace Configurator
         [SerializeField] private List<CategoryDefinition> faceCategories;
         [SerializeField] private List<CategoryDefinition> bodyCategories;
 
-        [FormerlySerializedAs("presets")] [Header("Presets")] [SerializeField]
-        private PresetDefinition[] avatarPresets;
-
+        [Header("Presets")] [SerializeField] private PresetDefinition[] avatarPresets;
         [SerializeField] private Color[] skinColorPresets;
         [SerializeField] private Color[] hairColorPresets;
         [SerializeField] private Color[] eyeColorPresets;
@@ -50,6 +47,7 @@ namespace Configurator
             uiPresenter.EyeColorSelected += OnEyeColorSelected;
             uiPresenter.CharacterAreaDrag += dragRotator.OnDrag;
             uiPresenter.Confirmed += OnConfirmed;
+            uiPresenter.JumpIn += OnJumpIn;
 
             StartCoroutine(InitialLoad());
         }
@@ -72,6 +70,19 @@ namespace Configurator
         {
             confirmationVFX.SetActive(open);
             platform.SetActive(!open);
+        }
+
+        private void OnJumpIn()
+        {
+            JSBridge.NativeCalls.OnCustomizationDone(JsonUtility.ToJson(new AvatarCustomizationConfig(
+                _bodyShape == BodyShape.Male
+                    ? WearablesConstants.BODY_SHAPE_MALE
+                    : WearablesConstants.BODY_SHAPE_FEMALE,
+                _eyeColor,
+                _skinColor,
+                _hairColor,
+                _selectedItems.Values.Select(ed => ed.URN).ToList()
+            )));
         }
 
         private void OnSkinColorSelected(Color color)
@@ -224,6 +235,7 @@ namespace Configurator
             {
                 await Awaitable.NextFrameAsync();
             }
+
             Debug.Log($"Username received: {AangConfiguration.Instance.Username}");
 
             uiPresenter.SetUsername(AangConfiguration.Instance.Username);

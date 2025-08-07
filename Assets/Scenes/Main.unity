@@ -409,7 +409,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &80154233
 Transform:
   m_ObjectHideFlags: 0
@@ -6495,7 +6495,7 @@ MonoBehaviour:
     DefaultMode: 2
   DefaultBlend:
     Style: 1
-    Time: 3
+    Time: 0.5
     CustomCurve:
       serializedVersion: 2
       m_Curve: []
@@ -8624,6 +8624,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   dragRotator: {fileID: 7801264601496514888}
   uiPresenter: {fileID: 4634088016188469603}
+  cinemachineBrain: {fileID: 1642944898842395946}
   fullBodyCamera: {fileID: 1045612922063928384}
   headCamera: {fileID: 4983837072214081674}
   upperBodyCamera: {fileID: 358819228190231287}

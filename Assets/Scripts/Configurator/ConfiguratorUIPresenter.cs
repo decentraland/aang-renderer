@@ -19,7 +19,6 @@ namespace Configurator
         private VisualElement _loader;
         private VisualElement _loaderIcon;
         private VisualElement _enterNameWindow;
-        private VisualElement _customizationWindow;
 
         private DCLButtonElement _backButton;
         private DCLButtonElement _skipButton;
@@ -29,6 +28,7 @@ namespace Configurator
         private Label _stageNumber;
 
         private VisualElement _confirmContainer;
+        private Label _confirmTitle;
 
         private Label _fpsCounter;
 
@@ -59,6 +59,7 @@ namespace Configurator
         public event Action<string, EntityDefinition> WearableSelected;
         public event Action<PresetDefinition> PresetSelected;
         public event Action<bool> Confirmed;
+        public event Action JumpIn;
 
         private bool _confirmationOpen;
         private bool _usingMobile;
@@ -73,7 +74,6 @@ namespace Configurator
 
             _container = root.Q("Container");
             _enterNameWindow = _container.Q("EnterNameWindow");
-            _customizationWindow = _container.Q("CustomizationWindow");
             var characterArea = root.Q("CharacterArea");
 
             // Enter name
@@ -177,8 +177,10 @@ namespace Configurator
             };
 
             // Confirm stage
-            _confirmContainer = root.Q("Confirm");
+            _confirmContainer = root.Q("Confirmation");
+            _confirmTitle = root.Q<Label>("Title");
             _confirmContainer.Q<DCLButtonElement>("BackButton").Clicked += () => OpenConfirm(false);
+            _confirmContainer.Q<DCLButtonElement>("JumpInButton").Clicked += () => JumpIn!();
 
             // Debug FPS Counter
             _fpsCounter = root.Q<Label>("FPSCounter");
@@ -222,6 +224,8 @@ namespace Configurator
             _username = username;
             ShowEnterName(false);
             RefreshCurrentStage();
+
+            _confirmTitle.text = $"<font-weight=600>{_username} is Ready to Jump In!";
         }
 
         private void ShowEnterName(bool show)

@@ -7,6 +7,7 @@ namespace Configurator
     {
         [SerializeField] private DragRotator dragRotator;
         [SerializeField] private ConfiguratorUIPresenter uiPresenter;
+        [SerializeField] private CinemachineBrain cinemachineBrain;
         [SerializeField] private CinemachineCamera fullBodyCamera;
         [SerializeField] private CinemachineCamera headCamera;
         [SerializeField] private CinemachineCamera upperBodyCamera;
@@ -21,14 +22,11 @@ namespace Configurator
 
         private float[] cameraDistances;
 
-        private void Awake()
-        {
-            // If we do this in Awake we don't get the initial blend
-            fullBodyCamera.Prioritize();
-        }
-
         private void Start()
         {
+            fullBodyCamera.Prioritize();
+            cinemachineBrain.ResetState();
+            
             dragRotator.AllowVertical = false;
             dragRotator.EnableAutoRotate = false;
             dragRotator.LookAtCamera(false);
@@ -64,13 +62,13 @@ namespace Configurator
         {
             switch (delta)
             {
-                case > 0 when !fullBodyCamera.gameObject.activeSelf:
+                case > 0 when !fullBodyCamera.IsLive:
                     _hasZoomedOut = true;
-                    fullBodyCamera.gameObject.SetActive(true);
+                    fullBodyCamera.Prioritize();
                     break;
                 case < 0 when _hasZoomedOut:
                     _hasZoomedOut = false;
-                    fullBodyCamera.gameObject.SetActive(false);
+                    fullBodyCamera.Prioritize();
                     break;
             }
         }
