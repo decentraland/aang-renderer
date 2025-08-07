@@ -17,8 +17,8 @@ namespace Data
             public class AvatarData
             {
                 public string bodyShape;
-                public string[] wearables;
-                public string[] forceRender;
+                public string[] wearables = Array.Empty<string>();
+                public string[] forceRender = Array.Empty<string>();
                 public ColorData eyes;
                 public ColorData hair;
                 public ColorData skin;

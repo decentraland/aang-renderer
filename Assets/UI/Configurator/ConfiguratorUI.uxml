@@ -88,7 +88,7 @@
             <ui:VisualElement name="CharacterArea" class="confirmation__character-area" />
             <ui:VisualElement name="ButtonsContainer" class="confirmation__buttons">
                 <UI.Elements.DCLButtonElement text="BACK" button-type="Secondary" name="BackButton" class="confirmation__back-button" />
-                <UI.Elements.DCLButtonElement text="BACK" button-type="Primary" name="JumpInButton" class="confirmation__jump-in-button" />
+                <UI.Elements.DCLButtonElement text="JUMP IN" button-type="Primary" name="JumpInButton" button-icon="Forward" class="confirmation__jump-in-button" />
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="dcl-dropdown-popup-root" picking-mode="Ignore" style="top: 0; bottom: 0; right: 0; left: 0; display: none;" />
