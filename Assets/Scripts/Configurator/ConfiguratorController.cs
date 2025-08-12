@@ -229,6 +229,12 @@ namespace Configurator
             uiPresenter.SetAvatarPresets(avatarPresets, randomPresetIndex);
             RemoteTextureService.Instance.Pause(false);
 
+            // Load initial preset
+            SetPreset(avatarPresets[randomPresetIndex]);
+            await ReloadPreview();
+
+            JSBridge.NativeCalls.OnLoadComplete();
+
             // Wait for the username
             Debug.Log("Waiting for username...");
             while (string.IsNullOrEmpty(AangConfiguration.Instance.Username))
@@ -239,11 +245,6 @@ namespace Configurator
             Debug.Log($"Username received: {AangConfiguration.Instance.Username}");
 
             uiPresenter.SetUsername(AangConfiguration.Instance.Username);
-
-            // Load initial preset
-            SetPreset(avatarPresets[randomPresetIndex]);
-
-            await ReloadPreview();
 
             platform.SetActive(true);
             uiPresenter.LoadCompleted();
