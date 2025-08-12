@@ -85,7 +85,7 @@ namespace Loading
         }
 
         public static async Awaitable<LoadedEmote> LoadEmote(BodyShape bodyShape, EntityDefinition entityDefinition,
-            Transform propParent)
+            Transform propParent, bool loop = false)
         {
             var rep = entityDefinition[bodyShape];
 
@@ -162,11 +162,11 @@ namespace Loading
                 GameObject prop = null;
                 Animation propAnim = null;
                 
-                avatarClip.wrapMode = WrapMode.Clamp;
+                avatarClip.wrapMode = loop ? WrapMode.Loop : WrapMode.Clamp;
 
                 if (propClip != null)
                 {
-                    propClip.wrapMode = WrapMode.Clamp;
+                    propClip.wrapMode = loop ? WrapMode.Loop : WrapMode.Clamp;
 
                     // We have a prop we need to deal with
                     Debug.Log("Lading emote prop");

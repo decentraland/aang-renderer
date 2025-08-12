@@ -128,14 +128,16 @@ namespace Preview
                     {
                         case PreviewMode.Marketplace:
                             var urns = await LoadUrns(config);
-                            Assert.IsTrue(urns.Count == 1, $"Marketplace mode only allows one urn, found: {urns.Count}");
+                            Assert.IsTrue(urns.Count == 1,
+                                $"Marketplace mode only allows one urn, found: {urns.Count}");
                             var result = await LoadForMarketplace(config.Profile, urns[0], config.Emote);
 
                             previewUIPresenter.EnableEmoteControls(result.emoteOverride);
 
                             if (result.validRepresentation)
                             {
-                                showingAvatar = PlayerPrefs.GetInt("PreviewAvatarShown", 0) == 1 || result.emoteOverride;
+                                showingAvatar = PlayerPrefs.GetInt("PreviewAvatarShown", 0) == 1 ||
+                                                result.emoteOverride;
                                 previewUIPresenter.SetSwitcherState(
                                     showingAvatar
                                         ? PreviewUIPresenter.SwitcherState.Avatar
@@ -186,7 +188,8 @@ namespace Preview
                 wearableLoader.gameObject.SetActive(!showingAvatar);
 
                 dragRotator.enabled = true;
-                dragRotator.AllowVertical = config.Mode is PreviewMode.Marketplace or PreviewMode.Builder && !showingAvatar;
+                dragRotator.AllowVertical =
+                    config.Mode is PreviewMode.Marketplace or PreviewMode.Builder && !showingAvatar;
                 dragRotator.EnableAutoRotate = config.Mode is PreviewMode.Marketplace && !hasEmoteOverride;
 
                 previewUIPresenter.EnableEmoteControls(hasEmoteOverride);
@@ -247,7 +250,7 @@ namespace Preview
             // Load the avatar
             if (hasValidRepresentation)
             {
-                await avatarLoader.LoadAvatar(avatarBodyShape, wearables, emoteDefinition,
+                await avatarLoader.LoadAvatar(avatarBodyShape, wearables, emoteDefinition, false,
                     avatar.forceRender.Append(overrideDefinition.Category).ToArray(),
                     avatarColors);
             }
@@ -273,8 +276,8 @@ namespace Preview
             var avatar = await APIService.GetAvatar(profileID);
             var entities = await EntityService.GetEntities(avatar.wearables);
 
-            await avatarLoader.LoadAvatar(avatar.GetBodyShape(), entities, EntityDefinition.FromEmbeddedEmote(defaultEmote),
-                avatar.forceRender, avatar.GetAvatarColors());
+            await avatarLoader.LoadAvatar(avatar.GetBodyShape(), entities,
+                EntityDefinition.FromEmbeddedEmote(defaultEmote), false, avatar.forceRender, avatar.GetAvatarColors());
         }
 
         private async Awaitable<List<string>> LoadUrns(AangConfiguration config)

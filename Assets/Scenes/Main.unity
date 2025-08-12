@@ -636,7 +636,7 @@ Transform:
   m_GameObject: {fileID: 80154232}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.02, z: -5}
+  m_LocalPosition: {x: 0, y: 0.19838215, z: -5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -657,7 +657,7 @@ MonoBehaviour:
   CameraDistance: 5
   DeadZoneDepth: 0
   Composition:
-    ScreenPosition: {x: 0, y: 0}
+    ScreenPosition: {x: 0, y: 0.06}
     DeadZone:
       Enabled: 0
       Size: {x: 0.2, y: 0.2}
@@ -782,7 +782,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!108 &410087040
 Light:
   m_ObjectHideFlags: 0
@@ -1681,6 +1681,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!137 &1715398135 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -440673046031751957, guid: 5b63cb074d2b1474882caf59b30c3739, type: 3}
+  m_PrefabInstance: {fileID: 64509934}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1843021414
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2350,7 +2355,7 @@ Transform:
   m_GameObject: {fileID: 1411485568905184141}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.0163463, y: -0.02, z: -3.57}
+  m_LocalPosition: {x: -0.7016617, y: -0.02, z: -3.57}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2377,7 +2382,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 3430729342261155268}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1992614800948951230
 GameObject:
@@ -2591,6 +2596,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 1787050904338288764}
   - {fileID: 5604122671389785725}
   - {fileID: 9046510647564263496}
   - {fileID: 7801264601496514887}
@@ -2632,7 +2638,7 @@ MonoBehaviour:
   avatarLoader: {fileID: 8085770638703914883}
   dragRotator: {fileID: 7801264601496514888}
   platform: {fileID: 1843021415}
-  confirmationVFX: {fileID: 6651018945777974991}
+  confirmationVFX: {fileID: 6651018945777974993}
   faceCategories:
   - id: hair
     title: HAIR
@@ -3662,7 +3668,7 @@ Transform:
   m_GameObject: {fileID: 4086221261368998185}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.4270363, y: 0.243, z: -1.5}
+  m_LocalPosition: {x: -0.29481584, y: 0.243, z: -1.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3707,7 +3713,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!73398921 &6651018945777974992
 VFXRenderer:
   serializedVersion: 1
@@ -3759,9 +3765,9 @@ VisualEffect:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6651018945777974991}
   m_Enabled: 1
-  m_Asset: {fileID: 8926484042661614526, guid: 7152cb9ce3d424d62a63cf9350bae586, type: 3}
-  m_InitialEventName: OnPlay
-  m_InitialEventNameOverriden: 0
+  m_Asset: {fileID: 8926484042661614526, guid: 369c77ad093b4f3499e2d9e57cca2bad, type: 3}
+  m_InitialEventName: 
+  m_InitialEventNameOverriden: 1
   m_StartSeed: 0
   m_ResetSeedOnPlay: 1
   m_AllowInstancing: 1
@@ -3774,7 +3780,10 @@ VisualEffect:
     m_Vector3f:
       m_Array: []
     m_Vector4f:
-      m_Array: []
+      m_Array:
+      - m_Value: {x: 1.3567125, y: 42.544434, z: 95.87453, w: 0}
+        m_Name: Particles Color
+        m_Overridden: 0
     m_Uint:
       m_Array: []
     m_Int:
@@ -3786,7 +3795,10 @@ VisualEffect:
     m_Gradient:
       m_Array: []
     m_NamedObject:
-      m_Array: []
+      m_Array:
+      - m_Value: {fileID: 1715398135}
+        m_Name: Skinned Mesh Renderer
+        m_Overridden: 1
     m_Bool:
       m_Array: []
 --- !u!1 &6782882736945840319
@@ -4500,4 +4512,3 @@ SceneRoots:
   - {fileID: 1415525478}
   - {fileID: 118240803}
   - {fileID: 1574165137}
-  - {fileID: 1787050904338288764}

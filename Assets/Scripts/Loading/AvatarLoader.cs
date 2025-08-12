@@ -42,7 +42,7 @@ namespace Loading
         private readonly HashSet<string> _hiddenCategories = new();
 
         public async Awaitable LoadAvatar(BodyShape bodyShape, IEnumerable<EntityDefinition> wearableDefinitions,
-            [CanBeNull] EntityDefinition emoteDefinition, string[] forceRenderCategories, AvatarColors colors)
+            [CanBeNull] EntityDefinition emoteDefinition, bool loopEmote, string[] forceRenderCategories, AvatarColors colors)
         {
             var bodyEntity = EntityService.GetBodyEntity(bodyShape);
             var definitions = wearableDefinitions.Prepend(bodyEntity).ToList();
@@ -80,7 +80,7 @@ namespace Loading
             var modelLoadResults = await Task.WhenAll(modelLoadTasks);
             var facialFeaturesLoadResults = await Task.WhenAll(facialFeaturesLoadTasks);
             var emoteLoadResult = emoteDefinition != null && emoteDefinition.URN != _loadedEmote?.Entity.URN
-                ? await GLTFLoader.LoadEmote(bodyShape, emoteDefinition, transform)
+                ? await GLTFLoader.LoadEmote(bodyShape, emoteDefinition, transform, loopEmote)
                 : (LoadedEmote?)null;
 
             var emoteChanged = _loadedEmote?.Entity.URN != emoteDefinition?.URN;
@@ -202,7 +202,10 @@ namespace Loading
             if (_loadedEmote != null)
             {
                 avatarAnimation.CrossFade(_loadedEmote.Value.Entity.URN, 0.3f);
-                avatarAnimation.CrossFadeQueued(IDLE_CLIP_NAME, 0.3f);
+                if (!loopEmote)
+                {
+                    avatarAnimation.CrossFadeQueued(IDLE_CLIP_NAME, 0.3f);
+                }
             }
             else
             {

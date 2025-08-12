@@ -184,7 +184,7 @@ namespace Configurator
             // Confirm stage
             _confirmContainer = root.Q("ConfirmationContainer");
             _confirmTitle = _confirmContainer.Q<Label>("Title");
-            _confirmContainer.Q<DCLButtonElement>("BackButton").Clicked += () => OpenConfirm(false);
+            _confirmContainer.Q<DCLButtonElement>("ConfirmationBackButton").Clicked += () => OpenConfirm(false);
             _confirmContainer.Q<DCLButtonElement>("JumpInButton").Clicked += () => JumpIn!();
 
             // Debug FPS Counter
@@ -291,6 +291,8 @@ namespace Configurator
 
         private void RefreshCurrentStage()
         {
+            if (_confirmationOpen) return;
+            
             var stage = _stages[_currentStageIndex];
             _stageTitle.text = string.Format(stage.Title, _username);
             _stageNumber.text = $"{_currentStageIndex + 1}.";

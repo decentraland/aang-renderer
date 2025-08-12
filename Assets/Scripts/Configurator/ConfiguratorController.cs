@@ -6,6 +6,7 @@ using Loading;
 using Services;
 using UnityEngine;
 using UnityEngine.Serialization;
+using UnityEngine.VFX;
 using Random = UnityEngine.Random;
 
 namespace Configurator
@@ -19,7 +20,7 @@ namespace Configurator
         [SerializeField] private DragRotator dragRotator;
 
         [SerializeField] private GameObject platform;
-        [SerializeField] private GameObject confirmationVFX;
+        [SerializeField] private VisualEffect confirmationVFX;
 
         [SerializeField] private List<CategoryDefinition> faceCategories;
         [SerializeField] private List<CategoryDefinition> bodyCategories;
@@ -35,6 +36,7 @@ namespace Configurator
         private Color _hairColor;
         private Color _eyeColor;
         private EntityDefinition _emoteToLoad;
+        private bool _loopEmote;
 
         private void Start()
         {
@@ -68,7 +70,24 @@ namespace Configurator
 
         private void OnConfirmed(bool open)
         {
-            confirmationVFX.SetActive(open);
+            if (open)
+            {
+                _emoteToLoad = EntityDefinition.FromEmbeddedEmote("character/Particles_Anim");
+                _loopEmote = true;
+                StartCoroutine(ReloadPreview());
+                
+                confirmationVFX.Play();
+                dragRotator.LookAtCamera(true);
+            }
+            else
+            {
+                _loopEmote = false;
+                _emoteToLoad = null;
+                StartCoroutine(ReloadPreview());
+
+                confirmationVFX.Stop();
+            }
+            
             platform.SetActive(!open);
         }
 
@@ -182,7 +201,7 @@ namespace Configurator
         private async Awaitable ReloadPreview()
         {
             Debug.Log("Reloading preview...");
-            await avatarLoader.LoadAvatar(_bodyShape, _selectedItems.Values, _emoteToLoad, Array.Empty<string>(),
+            await avatarLoader.LoadAvatar(_bodyShape, _selectedItems.Values, _emoteToLoad, _loopEmote, Array.Empty<string>(),
                 new AvatarColors(_eyeColor, _hairColor, _skinColor));
         }
 
@@ -232,6 +251,11 @@ namespace Configurator
             // Load initial preset
             SetPreset(avatarPresets[randomPresetIndex]);
             await ReloadPreview();
+            
+            // Preload VFX hack
+            confirmationVFX.Play();
+            await Awaitable.NextFrameAsync();
+            confirmationVFX.Stop();
 
             JSBridge.NativeCalls.OnLoadComplete();
 
@@ -267,7 +291,8 @@ namespace Configurator
                         Application.streamingAssetsPath + "/character/Outfit_Hand_v01.glb",
                         Application.streamingAssetsPath + "/character/Outfit_Hand_v02.glb",
                         Application.streamingAssetsPath + "/character/Wave_Female.glb",
-                        Application.streamingAssetsPath + "/character/Wave_Male.glb"));
+                        Application.streamingAssetsPath + "/character/Wave_Male.glb",
+                        Application.streamingAssetsPath + "/character/Particles_Anim.glb"));
             }
         }
     }

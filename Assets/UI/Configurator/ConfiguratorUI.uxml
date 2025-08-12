@@ -89,7 +89,7 @@
             <ui:Label text="&lt;font-weight=600&gt;UserName is Ready to Jump In!" name="Title" class="confirmation-container__title" />
             <ui:VisualElement name="CharacterArea" picking-mode="Ignore" class="confirmation-container__character-area" />
             <ui:VisualElement name="ButtonsContainer" class="confirmation-container__buttons">
-                <UI.Elements.DCLButtonElement text="BACK" button-type="Secondary" name="BackButton" class="confirmation-container__back-button" />
+                <UI.Elements.DCLButtonElement text="BACK TO CUSTOMIZATION" button-type="Secondary" name="ConfirmationBackButton" class="confirmation-container__back-button" />
                 <UI.Elements.DCLButtonElement text="JUMP IN" button-type="Primary" name="JumpInButton" button-icon="Forward" class="confirmation-container__jump-in-button" />
             </ui:VisualElement>
         </ui:VisualElement>
