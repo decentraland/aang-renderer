@@ -1370,10 +1370,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   baseMat: {fileID: 2100000, guid: 406504d4e46794b17941d2039cfd49c4, type: 2}
   facialFeaturesMat: {fileID: 2100000, guid: 640484c930a9c425791b434dd2094bff, type: 2}
-  idleAnimation: {fileID: -8739580579227139561, guid: 77a74a14408e74041baaa38e7122d9f2, type: 3}
   configuratorController: {fileID: 3845507387249961957}
   previewController: {fileID: 1667190199235124708}
-  debugUrl: ?mode=configurator&username=Miha
+  debugUrl: ?mode=marketplace&profile=0xd545B9E0A5F3638a5026d1914CC9b47ed16B5ae9&contract=0xa35e309d93904b355e4b31ac6edeb822d6eb86d5&item=1&env=dev
 --- !u!4 &983774208
 Transform:
   m_ObjectHideFlags: 0

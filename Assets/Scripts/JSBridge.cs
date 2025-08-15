@@ -5,6 +5,7 @@ using Preview;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
+using Utils;
 
 /// <summary>
 /// Used for interacting with the unity renderer from JavaScript.
@@ -40,7 +41,7 @@ public class JSBridge : MonoBehaviour
 
     [UsedImplicitly]
     public void SetUrns(string value) =>
-        AangConfiguration.Instance.Urns = value.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+        AangConfiguration.Instance.Urns = value.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(URNUtils.SanitizeURN).ToList();
 
     [UsedImplicitly]
     public void SetBackground(string value) => AangConfiguration.Instance.SetBackground(value);

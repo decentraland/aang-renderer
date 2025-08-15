@@ -7,7 +7,6 @@ public class Bootstrap : MonoBehaviour
 {
     [SerializeField] private Material baseMat;
     [SerializeField] private Material facialFeaturesMat;
-    [SerializeField] private AnimationClip idleAnimation;
 
     [SerializeField] private ConfiguratorController configuratorController;
     [SerializeField] private PreviewController previewController;
@@ -19,7 +18,6 @@ public class Bootstrap : MonoBehaviour
         // Common assets
         CommonAssets.AvatarMaterial = baseMat;
         CommonAssets.FacialFeaturesMaterial = facialFeaturesMat;
-        CommonAssets.IdleAnimation = idleAnimation;
 
         var url = Application.isEditor ? debugUrl : Application.absoluteURL;
         AangConfiguration.RecreateFrom(url);

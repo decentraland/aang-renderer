@@ -2,6 +2,7 @@ using System;
 using Data;
 using UnityEngine;
 using UnityEngine.Networking;
+using Utils;
 
 namespace Services
 {
@@ -34,11 +35,18 @@ namespace Services
             // Convert dcl://base-avatars/ format to proper URN format
             for (var i = 0; i < avatar.wearables.Length; i++)
             {
-                if (avatar.wearables[i].StartsWith("dcl://base-avatars/"))
+                var urn = avatar.wearables[i];
+                if (urn.StartsWith("dcl://base-avatars/"))
                 {
-                    avatar.wearables[i] = "urn:decentraland:off-chain:base-avatars:" +
-                                          avatar.wearables[i].Substring("dcl://base-avatars/".Length);
+                    urn = "urn:decentraland:off-chain:base-avatars:" +
+                          avatar.wearables[i].Substring("dcl://base-avatars/".Length);
                 }
+                else
+                {
+                    urn = URNUtils.SanitizeURN(urn);
+                }
+
+                avatar.wearables[i] = urn;
             }
 
             return avatar;

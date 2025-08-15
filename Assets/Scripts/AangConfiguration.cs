@@ -4,6 +4,7 @@ using System.Text;
 using System.Web;
 using Services;
 using UnityEngine;
+using Utils;
 
 public class AangConfiguration
 {
@@ -71,6 +72,14 @@ public class AangConfiguration
     /// A URN of a wearable or an emote to load. If it is a wearable, it will override anything loaded from a profile.
     /// </summary>
     public List<string> Urns { get; set; } = new();
+
+    /// <summary>
+    /// Sanitizes an URN and adds it to the list.
+    /// </summary>
+    public void AddURN(string urn)
+    {
+        Urns.Add(URNUtils.SanitizeURN(urn));
+    }
 
     /// <summary>
     /// The color of the background in HEX.
@@ -251,7 +260,7 @@ public class AangConfiguration
                     Instance.Emote = value;
                     break;
                 case "urn":
-                    Instance.Urns.Add(value);
+                    Instance.AddURN(value);
                     break;
                 case "background":
                     Instance.SetBackground(value);

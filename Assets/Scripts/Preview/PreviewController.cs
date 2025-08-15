@@ -120,8 +120,8 @@ namespace Preview
                 var hasEmoteAudio = false;
                 var showingAvatar = false;
 
-                try
-                {
+                // try
+                // {
                     await EntityService.PreloadBodyEntities();
 
                     switch (config.Mode)
@@ -165,12 +165,12 @@ namespace Preview
                         default:
                             throw new ArgumentOutOfRangeException();
                     }
-                }
-                catch (Exception e)
-                {
-                    JSBridge.NativeCalls.OnError(e.Message);
-                    throw;
-                }
+                // }
+                // catch (Exception e)
+                // {
+                //     JSBridge.NativeCalls.OnError(e.Message);
+                //     throw;
+                // }
 
                 // Wait for 1 frame for animation to kick in before re-centering the object on screen
                 await Awaitable.NextFrameAsync();
