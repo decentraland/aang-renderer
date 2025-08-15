@@ -13,12 +13,15 @@ namespace Preview
     public class PreviewController : MonoBehaviour
     {
         [SerializeField] private Camera mainCamera;
+        [SerializeField] private PreviewCameraController previewCameraController;
 
-        [SerializeField] private DragRotator dragRotator;
+        [SerializeField] private DragRotator avatarRotator;
+        [SerializeField] private DragRotator wearableRotator;
         [SerializeField] private PreviewUIPresenter previewUIPresenter;
 
         [SerializeField] private AvatarLoader avatarLoader;
         [SerializeField] private WearableLoader wearableLoader;
+        [SerializeField] private Vector3 wearableOffset = new(-5, 0, 0);
 
         [SerializeField] private EmoteAnimationController emoteAnimationController;
 
@@ -36,8 +39,12 @@ namespace Preview
             previewUIPresenter.ShowAvatarClicked += OnShowAvatarClicked;
             previewUIPresenter.ShowWearableClicked += OnShowWearableClicked;
             previewUIPresenter.EmoteToggleClicked += OnEmoteToggleClicked;
-            previewUIPresenter.ContainerDrag += dragRotator.OnDrag;
+            previewUIPresenter.ContainerDrag += avatarRotator.OnDrag;
+            previewUIPresenter.ContainerDrag += wearableRotator.OnDrag;
             emoteAnimationController.EmoteAnimationEnded += OnEmoteAnimationEnded;
+
+            avatarRotator.AllowVertical = false;
+            wearableRotator.AllowVertical = true;
 
             StartCoroutine(Reload());
         }
@@ -56,22 +63,16 @@ namespace Preview
         {
             PlayerPrefs.SetInt("PreviewAvatarShown", 0);
 
-            avatarLoader.gameObject.SetActive(false);
-            wearableLoader.gameObject.SetActive(true);
-
-            dragRotator.ResetRotation();
-            dragRotator.AllowVertical = true;
+            previewCameraController.ShowMarketplaceWearable(true);
+            wearableRotator.ResetRotation();
         }
 
         private void OnShowAvatarClicked()
         {
             PlayerPrefs.SetInt("PreviewAvatarShown", 1);
 
-            avatarLoader.gameObject.SetActive(true);
-            wearableLoader.gameObject.SetActive(false);
-
-            dragRotator.ResetRotation();
-            dragRotator.AllowVertical = false;
+            previewCameraController.ShowMarketplaceWearable(false);
+            avatarRotator.ResetRotation();
         }
 
         public void InvokeReload()
@@ -102,26 +103,25 @@ namespace Preview
                 // We store the instance in case it gets recreated by a call to AangConfiguration.RecreateFrom
                 var config = AangConfiguration.Instance;
 
-                dragRotator.enabled = false;
-                dragRotator.ResetRotation();
-
-                avatarLoader.gameObject.SetActive(true);
-                wearableLoader.gameObject.SetActive(true);
+                avatarRotator.enabled = false;
+                wearableRotator.enabled = false;
+                avatarRotator.ResetRotation();
+                wearableRotator.ResetRotation();
 
                 animationReference.SetActive(config.ShowAnimationReference);
                 platform.SetActive(config.Mode is PreviewMode.Authentication);
                 mainCamera.backgroundColor = config.Background;
                 mainCamera.orthographic = config.Projection == "orthographic";
                 previewUIPresenter.EnableLoader(!config.DisableLoader);
-                mainCamera.GetComponent<PreviewCameraController>().SetMode(config.Mode);
+                previewCameraController.SetMode(config.Mode);
 
                 var hasEmoteOverride = false;
                 var hasWearableOverride = false;
                 var hasEmoteAudio = false;
                 var showingAvatar = false;
 
-                // try
-                // {
+                try
+                {
                     await EntityService.PreloadBodyEntities();
 
                     switch (config.Mode)
@@ -165,12 +165,12 @@ namespace Preview
                         default:
                             throw new ArgumentOutOfRangeException();
                     }
-                // }
-                // catch (Exception e)
-                // {
-                //     JSBridge.NativeCalls.OnError(e.Message);
-                //     throw;
-                // }
+                }
+                catch (Exception e)
+                {
+                    JSBridge.NativeCalls.OnError(e.Message);
+                    throw;
+                }
 
                 // Wait for 1 frame for animation to kick in before re-centering the object on screen
                 await Awaitable.NextFrameAsync();
@@ -178,19 +178,21 @@ namespace Preview
                 if (hasWearableOverride)
                 {
                     GameObjectUtils.CenterAndFit(wearableLoader.transform, mainCamera, wearablePadding);
+                    wearableLoader.transform.position += wearableOffset;
                 }
                 else if (hasEmoteOverride)
                 {
                     GameObjectUtils.CenterAndFit(avatarLoader.transform, mainCamera, wearablePadding);
                 }
 
-                avatarLoader.gameObject.SetActive(showingAvatar);
-                wearableLoader.gameObject.SetActive(!showingAvatar);
+                if (config.Mode is PreviewMode.Marketplace)
+                {
+                    previewCameraController.ShowMarketplaceWearable(!showingAvatar);
+                }
 
-                dragRotator.enabled = true;
-                dragRotator.AllowVertical =
-                    config.Mode is PreviewMode.Marketplace or PreviewMode.Builder && !showingAvatar;
-                dragRotator.EnableAutoRotate = config.Mode is PreviewMode.Marketplace && !hasEmoteOverride;
+                avatarRotator.enabled = true;
+                wearableRotator.enabled = true;
+                avatarRotator.EnableAutoRotate = config.Mode is PreviewMode.Marketplace && !hasEmoteOverride;
 
                 previewUIPresenter.EnableEmoteControls(hasEmoteOverride);
                 previewUIPresenter.EnableZoom(config.Mode is PreviewMode.Marketplace or PreviewMode.Builder);

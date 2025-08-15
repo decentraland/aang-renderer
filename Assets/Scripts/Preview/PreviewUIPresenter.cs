@@ -20,9 +20,7 @@ namespace Preview
         private const string DEBUG_PASSPHRASE = "debugmesilly";
 
         [SerializeField] private AudioSource audioSource;
-
-        [FormerlySerializedAs("cameraController")] [SerializeField]
-        private PreviewCameraController previewCameraController;
+        [SerializeField] private PreviewCameraController previewCameraController;
 
         public event Action ShowAvatarClicked;
         public event Action ShowWearableClicked;

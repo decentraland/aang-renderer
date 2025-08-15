@@ -12,7 +12,8 @@ namespace Preview
         [SerializeField] private float lerpSpeed = 1f;
 
         [SerializeField] private CinemachineCamera authProfileCamera;
-        [SerializeField] private CinemachineCamera marketplaceCamera;
+        [SerializeField] private CinemachineCamera marketplaceWearableCamera;
+        [SerializeField] private CinemachineCamera marketplaceAvatarCamera;
         [SerializeField] private CinemachineCamera builderCamera;
 
         private float _targetFOV;
@@ -20,19 +21,22 @@ namespace Preview
 
         private void Awake()
         {
-            _targetFOV = _initialFOV = marketplaceCamera.Lens.FieldOfView;
+            _targetFOV = _initialFOV = marketplaceAvatarCamera.Lens.FieldOfView;
+            
+            // We prioritize this one because we want to have a cut to any other camera after this for the first time
+            authProfileCamera.Prioritize();
         }
 
         public void SetMode(PreviewMode mode)
         {
             // Reset FOV when switching modes
-            marketplaceCamera.Lens.FieldOfView = _targetFOV = _initialFOV;
-            
+            marketplaceAvatarCamera.Lens.FieldOfView =
+                marketplaceWearableCamera.Lens.FieldOfView = _targetFOV = _initialFOV;
+
             switch (mode)
             {
+                // Marketplace goes to authProfile too since we want the first blend to be a cut
                 case PreviewMode.Marketplace:
-                    marketplaceCamera.Prioritize();
-                    break;
                 case PreviewMode.Authentication:
                 case PreviewMode.Profile:
                     authProfileCamera.Prioritize();
@@ -47,7 +51,20 @@ namespace Preview
 
         private void Update()
         {
-            marketplaceCamera.Lens.FieldOfView = Mathf.Lerp(marketplaceCamera.Lens.FieldOfView, _targetFOV, Time.deltaTime * lerpSpeed);
+            marketplaceAvatarCamera.Lens.FieldOfView = marketplaceWearableCamera.Lens.FieldOfView =
+                Mathf.Lerp(marketplaceAvatarCamera.Lens.FieldOfView, _targetFOV, Time.deltaTime * lerpSpeed);
+        }
+
+        public void ShowMarketplaceWearable(bool showWearable)
+        {
+            if (showWearable)
+            {
+                marketplaceWearableCamera.Prioritize();
+            }
+            else
+            {
+                marketplaceAvatarCamera.Prioritize();
+            }
         }
 
         public void ZoomIn()

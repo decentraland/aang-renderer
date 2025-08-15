@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.UIElements;
 
 /// <summary>
 /// Handles autorotation and inertia-based user rotation.
@@ -7,7 +6,6 @@ using UnityEngine.UIElements;
 public class DragRotator : MonoBehaviour
 {
     [SerializeField] private Camera mainCamera;
-    [SerializeField] private UIDocument uiDocument;
 
     [Header("Drag Settings")] [SerializeField]
     private float dragSpeed = 1f;
