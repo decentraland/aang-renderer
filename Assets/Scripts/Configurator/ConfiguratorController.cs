@@ -7,6 +7,7 @@ using Services;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.VFX;
+using Utils;
 using Random = UnityEngine.Random;
 
 namespace Configurator
@@ -211,6 +212,7 @@ namespace Configurator
 
             var allUrns = faceCategories.Union(bodyCategories)
                 .SelectMany(c => c.urns).Where(urn => !string.IsNullOrEmpty(urn))
+                .Select(URNUtils.SanitizeURN)
                 .Append(WearablesConstants.BODY_SHAPE_MALE.ToLowerInvariant())
                 .Append(WearablesConstants.BODY_SHAPE_FEMALE.ToLowerInvariant())
                 .ToArray();

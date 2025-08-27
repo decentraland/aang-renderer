@@ -1,5 +1,5 @@
 <engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <Style src="project://database/Assets/UI/PreviewStyle.uss?fileID=7433441132597879392&amp;guid=f68a6a2e06d354fd9a80fadbd46871a5&amp;type=3#PreviewStyle" />
+    <Style src="project://database/Assets/UI/Preview/PreviewStyle.uss?fileID=7433441132597879392&amp;guid=f68a6a2e06d354fd9a80fadbd46871a5&amp;type=3#PreviewStyle" />
     <engine:VisualElement name="Controls" class="container">
         <engine:VisualElement name="Switcher" class="switcher">
             <engine:VisualElement name="WearableButton" tooltip="Wearable" class="switcher__button switcher__button--selected" style="background-image: url(&quot;project://database/Assets/UI/Sprites/UpperBodyIcon.png?fileID=2800000&amp;guid=485539051aef5498a9871192a27ad7ca&amp;type=3#UpperBodyIcon&quot;);" />
@@ -25,6 +25,7 @@
         <engine:Label text="v0.0.0" name="VersionLabel" style="align-self: flex-end;" />
         <engine:Button text="Hide" name="HideButton" style="width: 93px; align-self: flex-end;" />
         <engine:Button text="Print Config" name="PrintConfigButton" style="align-self: flex-end;" />
+        <engine:Button text="Random Profile" name="RandomProfileButton" style="align-self: flex-end;" />
         <engine:VisualElement style="flex-direction: row; height: 50px;">
             <engine:DropdownField name="MethodNameDropdown" choices="Method" index="0" style="flex-grow: 1; flex-basis: 1px; margin-left: 0;" />
             <engine:TextField placeholder-text="MethodName" name="MethodName" style="flex-grow: 1; flex-basis: 1px; display: none;" />

@@ -11,7 +11,7 @@ public class Bootstrap : MonoBehaviour
     [SerializeField] private ConfiguratorController configuratorController;
     [SerializeField] private PreviewController previewController;
 
-    [SerializeField] private string debugUrl;
+    [SerializeField, TextArea] private string debugUrl;
 
     private void Start()
     {

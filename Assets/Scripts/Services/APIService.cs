@@ -39,7 +39,7 @@ namespace Services
                 if (urn.StartsWith("dcl://base-avatars/"))
                 {
                     urn = "urn:decentraland:off-chain:base-avatars:" +
-                          avatar.wearables[i].Substring("dcl://base-avatars/".Length);
+                          avatar.wearables[i].Substring("dcl://base-avatars/".Length).ToLowerInvariant();
                 }
                 else
                 {

@@ -9,6 +9,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.Serialization;
 using UnityEngine.UIElements;
 using Utils;
+using Random = UnityEngine.Random;
 
 namespace Preview
 {
@@ -280,6 +281,12 @@ namespace Preview
             debugPanel.Q<Button>("HideButton").clicked += () => debugPanel.style.display = DisplayStyle.None;
             debugPanel.Q<Label>("VersionLabel").text = Application.version;
             debugPanel.Q<Button>("PrintConfigButton").clicked += () => Debug.Log(AangConfiguration.Instance.ToString());
+            
+            debugPanel.Q<Button>("RandomProfileButton").clicked += () =>
+            {
+                GameObject.Find("JSBridge").SendMessage("SetProfile", $"default{Random.Range(1, 160)}");
+                GameObject.Find("JSBridge").SendMessage("Reload");
+            };
 
             _debugLoaded = true;
         }

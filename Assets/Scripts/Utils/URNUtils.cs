@@ -6,9 +6,9 @@ namespace Utils
     {
         public static string SanitizeURN(string urn)
         {
-            return urn.Count(c => c == ':') == 6
+            return (urn.Count(c => c == ':') == 6
                 ? urn.Remove(urn.LastIndexOf(':'))
-                : urn;
+                : urn).ToLowerInvariant();
         }
     }
 }
