@@ -37,7 +37,7 @@ public class JSBridge : MonoBehaviour
     public void AddBase64(string value) => AangConfiguration.Instance.AddBase64(value);
 
     [UsedImplicitly]
-    public void ClearBase64(string value) => AangConfiguration.Instance.Base64.Clear();
+    public void ClearBase64() => AangConfiguration.Instance.Base64.Clear();
 
     [UsedImplicitly]
     public void SetUrns(string value) =>
