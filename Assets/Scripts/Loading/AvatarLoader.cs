@@ -16,8 +16,6 @@ namespace Loading
 {
     public class AvatarLoader : MonoBehaviour
     {
-        private const string IDLE_CLIP_NAME = "Idle";
-
         [SerializeField] private Camera mainCamera;
 
         [FormerlySerializedAs("emoteEventReceiver")] [SerializeField]
@@ -42,7 +40,7 @@ namespace Loading
         private readonly HashSet<string> _hiddenCategories = new();
 
         public async Awaitable LoadAvatar(BodyShape bodyShape, IEnumerable<EntityDefinition> wearableDefinitions,
-            [CanBeNull] EntityDefinition emoteDefinition, bool loopEmote, string[] forceRenderCategories, AvatarColors colors)
+            [CanBeNull] EntityDefinition emoteDefinition, string[] forceRenderCategories, AvatarColors colors)
         {
             var bodyEntity = EntityService.GetBodyEntity(bodyShape);
             var definitions = wearableDefinitions.Prepend(bodyEntity).ToList();
@@ -80,8 +78,10 @@ namespace Loading
             var modelLoadResults = await Task.WhenAll(modelLoadTasks);
             var facialFeaturesLoadResults = await Task.WhenAll(facialFeaturesLoadTasks);
             var emoteLoadResult = emoteDefinition != null && emoteDefinition.URN != _loadedEmote?.Entity.URN
-                ? await GLTFLoader.LoadEmote(bodyShape, emoteDefinition, transform, loopEmote)
+                ? await GLTFLoader.LoadEmote(bodyShape, emoteDefinition, transform)
                 : (LoadedEmote?)null;
+
+            Debug.Log("EMOTE LOADED");
 
             var emoteChanged = _loadedEmote?.Entity.URN != emoteDefinition?.URN;
 
@@ -90,9 +90,6 @@ namespace Loading
             {
                 _loadedEmote.Value.Disposable.Dispose();
                 Destroy(_loadedEmote.Value.Prop);
-
-                emoteAnimationController.EmotePropAnimation = null;
-                emoteAnimationController.EmoteAudioClip = null;
             }
 
             if (emoteChanged)
@@ -169,67 +166,22 @@ namespace Loading
             }
 
             // If there is a new emote to be played
-            if (emoteChanged && _loadedEmote != null)
+            if (emoteChanged)
             {
-                avatarAnimation.AddClip(_loadedEmote.Value.Clip, _loadedEmote.Value.Entity.URN);
-
-                // Add prop / audio trigger
-                _loadedEmote.Value.Clip.events = Array.Empty<AnimationEvent>();
-
-                var clip = avatarAnimation.GetClip(_loadedEmote.Value.Entity.URN);
-                clip.AddEvent(new AnimationEvent
+                if (_loadedEmote != null)
                 {
-                    time = 0,
-                    functionName = "EmoteStarted"
-                });
-                clip.AddEvent(new AnimationEvent
-                {
-                    time = clip.length - 0.1f,
-                    functionName = "EmoteEnded"
-                });
-
-                emoteAnimationController.EmotePropAnimation = _loadedEmote.Value.PropAnim;
-                emoteAnimationController.EmoteAudioClip = _loadedEmote.Value.Audio;
-
-                // Prop
-                if (_loadedEmote.Value.Prop != null)
-                {
-                    _loadedEmote.Value.Prop.SetActive(true);
+                    emoteAnimationController.PlayEmote(_loadedEmote.Value);
                 }
-            }
-
-            // Crossfade
-            if (_loadedEmote != null)
-            {
-                avatarAnimation.CrossFade(_loadedEmote.Value.Entity.URN, 0.3f);
-                if (!loopEmote)
+                else
                 {
-                    avatarAnimation.CrossFadeQueued(IDLE_CLIP_NAME, 0.3f);
+                    emoteAnimationController.StopEmote(true);
                 }
-            }
-            else
-            {
-                avatarAnimation.CrossFade(IDLE_CLIP_NAME, 0.3f);
             }
 
             _loadedBodyShape = bodyShape;
 
             // Update character bounds for background highlight
             UpdateHighlight();
-        }
-
-        public void StopEmote(bool stop, bool withCrossFade)
-        {
-            emoteAnimationController.Reset();
-
-            if (withCrossFade)
-            {
-                avatarAnimation.CrossFade(stop ? IDLE_CLIP_NAME : _loadedEmote!.Value.Entity.URN, 0.3f, PlayMode.StopAll);
-            }
-            else
-            {
-                avatarAnimation.Play(stop ? IDLE_CLIP_NAME : _loadedEmote!.Value.Entity.URN, PlayMode.StopAll);
-            }
         }
 
         public void TryHideCategory(string category, bool hidden)

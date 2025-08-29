@@ -37,7 +37,6 @@ namespace Configurator
         private Color _hairColor;
         private Color _eyeColor;
         private EntityDefinition _emoteToLoad;
-        private bool _loopEmote;
 
         private void Start()
         {
@@ -73,8 +72,7 @@ namespace Configurator
         {
             if (open)
             {
-                _emoteToLoad = EntityDefinition.FromEmbeddedEmote("character/Particles_Anim");
-                _loopEmote = true;
+                _emoteToLoad = EntityDefinition.FromEmbeddedEmote("character/Particles_Anim", true);
                 StartCoroutine(ReloadPreview());
                 
                 confirmationVFX.Play();
@@ -82,7 +80,6 @@ namespace Configurator
             }
             else
             {
-                _loopEmote = false;
                 _emoteToLoad = null;
                 StartCoroutine(ReloadPreview());
 
@@ -147,7 +144,7 @@ namespace Configurator
                 "feet" => $"character/Outfit_Shoes_v0{Random.Range(1, 3)}",
                 "hands_wear" => $"character/Outfit_Hand_v0{Random.Range(1, 3)}",
                 _ => throw new ArgumentOutOfRangeException(nameof(category), category, null)
-            });
+            }, false);
         }
 
         private static EntityDefinition GetEmote(BodyShape bodyShape)
@@ -157,7 +154,7 @@ namespace Configurator
                 BodyShape.Male => "character/Wave_Male",
                 BodyShape.Female => "character/Wave_Female",
                 _ => throw new ArgumentOutOfRangeException(nameof(bodyShape), bodyShape, null)
-            });
+            }, false);
         }
 
         private void OnBodyShapeSelected(BodyShape bodyShape)
@@ -202,7 +199,7 @@ namespace Configurator
         private async Awaitable ReloadPreview()
         {
             Debug.Log("Reloading preview...");
-            await avatarLoader.LoadAvatar(_bodyShape, _selectedItems.Values, _emoteToLoad, _loopEmote, Array.Empty<string>(),
+            await avatarLoader.LoadAvatar(_bodyShape, _selectedItems.Values, _emoteToLoad, Array.Empty<string>(),
                 new AvatarColors(_eyeColor, _hairColor, _skinColor));
         }
 

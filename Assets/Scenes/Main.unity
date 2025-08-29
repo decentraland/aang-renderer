@@ -1586,6 +1586,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   audioSource: {fileID: 2371466889025276573}
+  avatarAnimation: {fileID: 1373223116}
 --- !u!1 &1415525476
 GameObject:
   m_ObjectHideFlags: 0
@@ -1886,6 +1887,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   audioSource: {fileID: 8911191390660122406}
+  avatarAnimation: {fileID: 1943252655}
 --- !u!1 &1946048951
 GameObject:
   m_ObjectHideFlags: 0

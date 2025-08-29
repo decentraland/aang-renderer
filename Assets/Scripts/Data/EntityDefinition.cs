@@ -15,6 +15,7 @@ namespace Data
         public readonly string Category;
         public readonly string Thumbnail;
         public readonly EntityType Type;
+        public readonly EntityFlags Flags;
 
         [ItemCanBeNull] private readonly Dictionary<BodyShape, Representation> _representations;
 
@@ -45,14 +46,14 @@ namespace Data
         public Representation this[BodyShape shape] => _representations[shape] ?? throw new InvalidOperationException(
             $"Missing {shape} representation for {URN}");
 
-        private EntityDefinition(string urn, string category, string thumbnail, EntityType type,
-            Dictionary<BodyShape, Representation> representations)
+        private EntityDefinition(string urn, string category, string thumbnail, EntityType type, EntityFlags flags, Dictionary<BodyShape, Representation> representations)
         {
             URN = urn;
             Category = category;
             Thumbnail = thumbnail;
             Type = type;
             _representations = representations;
+            Flags = flags;
         }
 
         public class Representation
@@ -129,6 +130,7 @@ namespace Data
                 urn.Equals(WearablesConstants.BODY_SHAPE_FEMALE, StringComparison.OrdinalIgnoreCase) || urn.Equals(
                     WearablesConstants.BODY_SHAPE_MALE, StringComparison.OrdinalIgnoreCase)  ? EntityType.Body :
                 WearablesConstants.FACIAL_FEATURES.Contains(category) ? EntityType.FacialFeature : EntityType.Wearable;
+            var flags = entity.IsEmote && entity.metadata.emoteDataADR74.loop ? EntityFlags.Looping : EntityFlags.None;
 
             var representations = new Dictionary<BodyShape, Representation>
             {
@@ -136,7 +138,7 @@ namespace Data
                 [BodyShape.Female] = Representation.ForBodyShape(WearablesConstants.BODY_SHAPE_FEMALE, entity)
             };
 
-            return new EntityDefinition(urn, category, thumbnail, type, representations);
+            return new EntityDefinition(urn, category, thumbnail, type, flags, representations);
         }
 
         public static EntityDefinition FromBase64(byte[] b64)
@@ -161,6 +163,7 @@ namespace Data
                     : WearablesConstants.FACIAL_FEATURES.Contains(data.category)
                         ? EntityType.FacialFeature
                         : EntityType.Wearable;
+            var flags = isEmote && metadata.emoteDataADR74.loop ? EntityFlags.Looping : EntityFlags.None;
 
             var representations = new Dictionary<BodyShape, Representation>
             {
@@ -173,17 +176,19 @@ namespace Data
                 isEmote ? "emote" : metadata.data.category,
                 metadata.thumbnail,
                 type,
+                flags,
                 representations
             );
         }
 
-        public static EntityDefinition FromEmbeddedEmote(string emote)
+        public static EntityDefinition FromEmbeddedEmote(string emote, bool loop)
         {
             return new EntityDefinition(
                 $"embedded:{emote}",
                 "emote",
                 null,
                 EntityType.Emote,
+                loop ? EntityFlags.Looping : EntityFlags.None,
                 new Dictionary<BodyShape, Representation>
                 {
                     [BodyShape.Male] = Representation.ForEmbeddedEmote(emote),
@@ -191,6 +196,13 @@ namespace Data
                 }
             );
         }
+    }
+
+    [Flags]
+    public enum EntityFlags : byte
+    {
+        None = 0,
+        Looping = 1 << 0,
     }
 
     public enum EntityType

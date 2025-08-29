@@ -56,7 +56,14 @@ namespace Preview
 
         private void OnEmoteToggleClicked(bool playing)
         {
-            avatarLoader.StopEmote(!playing, true);
+            if (playing)
+            {
+                emoteAnimationController.ReplayEmote();
+            }
+            else
+            {
+                emoteAnimationController.StopEmote();
+            }
         }
 
         private void OnShowWearableClicked()
@@ -214,9 +221,8 @@ namespace Preview
             JSBridge.NativeCalls.OnLoadComplete();
         }
 
-        private async Awaitable<(bool emoteOverride, bool emoteOverrideAudio, bool validRepresentation, BodyShape
-                avatarBodyShape)>
-            LoadForMarketplace(string profileID, string urn, string defaultEmote)
+        private async Awaitable<(bool emoteOverride, bool emoteOverrideAudio, bool validRepresentation, BodyShape avatarBodyShape)> LoadForMarketplace(string profileID, string urn,
+            string defaultEmote)
         {
             Assert.IsNotNull(profileID);
             Assert.IsNotNull(urn);
@@ -240,7 +246,7 @@ namespace Preview
                     hasValidRepresentation = true;
                     break;
                 case EntityType.Wearable or EntityType.FacialFeature:
-                    emoteDefinition = defaultEmote == "idle" ? null : EntityDefinition.FromEmbeddedEmote(defaultEmote);
+                    emoteDefinition = defaultEmote == "idle" ? null : EntityDefinition.FromEmbeddedEmote(defaultEmote, false);
                     wearables = allEntities.Where(ed =>
                         ed.Category != overrideDefinition.Category || ed.URN == overrideDefinition.URN);
                     hasValidRepresentation = overrideDefinition.HasRepresentation(avatarBodyShape);
@@ -252,7 +258,7 @@ namespace Preview
             // Load the avatar
             if (hasValidRepresentation)
             {
-                await avatarLoader.LoadAvatar(avatarBodyShape, wearables, emoteDefinition, false,
+                await avatarLoader.LoadAvatar(avatarBodyShape, wearables, emoteDefinition,
                     avatar.forceRender.Append(overrideDefinition.Category).ToArray(),
                     avatarColors);
             }
@@ -267,8 +273,7 @@ namespace Preview
             }
 
             // TODO: This check for audio clip is ugly
-            return (overrideDefinition.Type == EntityType.Emote, emoteAnimationController.EmoteAudioClip != null,
-                hasValidRepresentation, avatarBodyShape);
+            return (overrideDefinition.Type == EntityType.Emote, emoteAnimationController.HasAudio, hasValidRepresentation, avatarBodyShape);
         }
 
         private async Awaitable LoadForProfile(string profileID, string defaultEmote)
@@ -279,7 +284,7 @@ namespace Preview
             var entities = await EntityService.GetEntities(avatar.wearables);
 
             await avatarLoader.LoadAvatar(avatar.GetBodyShape(), entities,
-                EntityDefinition.FromEmbeddedEmote(defaultEmote), false, avatar.forceRender, avatar.GetAvatarColors());
+                EntityDefinition.FromEmbeddedEmote(defaultEmote, false), avatar.forceRender, avatar.GetAvatarColors());
         }
 
         private async Awaitable<List<string>> LoadUrns(AangConfiguration config)
@@ -311,7 +316,7 @@ namespace Preview
 
             _shouldCleanup = false;
 
-            avatarLoader.StopEmote(true, false);
+            emoteAnimationController.ClearEmote();
         }
     }
 }

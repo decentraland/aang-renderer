@@ -1,44 +1,128 @@
 using System;
 using JetBrains.Annotations;
+using Loading;
 using UnityEngine;
 
 public class EmoteAnimationController : MonoBehaviour
 {
-    [SerializeField] private AudioSource audioSource;
+    private const string IDLE_CLIP_NAME = "Idle";
 
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private Animation avatarAnimation;
+
+    public bool HasAudio => _emoteAudioClip != null;
     public event Action EmoteAnimationEnded;
 
-    [CanBeNull] public Animation EmotePropAnimation { get; set; }
-    public AudioClip EmoteAudioClip { get; set; }
+    private LoadedEmote? _loadedEmote;
+    private Animation _propAnimation;
+    private AudioClip _emoteAudioClip;
 
-    [UsedImplicitly]
-    public void EmoteStarted()
+    public void PlayEmote(LoadedEmote loadedEmote)
     {
-        if (EmoteAudioClip != null)
+        _loadedEmote = loadedEmote;
+
+        avatarAnimation.AddClip(_loadedEmote.Value.Clip, _loadedEmote.Value.Entity.URN);
+
+        // Add prop / audio trigger
+        _loadedEmote.Value.Clip.events = Array.Empty<AnimationEvent>();
+
+        var clip = avatarAnimation.GetClip(_loadedEmote.Value.Entity.URN);
+        clip.AddEvent(new AnimationEvent
         {
-            audioSource.PlayOneShot(EmoteAudioClip);
+            time = 0,
+            functionName = "EmoteStarted"
+        });
+        clip.AddEvent(new AnimationEvent
+        {
+            time = clip.length - 0.1f,
+            functionName = "EmoteEnded"
+        });
+
+        _propAnimation = _loadedEmote.Value.PropAnim;
+        _emoteAudioClip = _loadedEmote.Value.Audio;
+
+        ReplayEmote();
+    }
+
+    public void ReplayEmote()
+    {
+        if (!_loadedEmote.HasValue) return;
+
+        // Prop
+        if (_propAnimation != null)
+        {
+            _propAnimation.Rewind();
+            _propAnimation.Sample();
+            _propAnimation.Play();
         }
 
-        if (EmotePropAnimation != null)
+        _loadedEmote.Value.Prop?.SetActive(true);
+
+        // Crossfade
+        avatarAnimation.Rewind(_loadedEmote.Value.Entity.URN);
+        avatarAnimation.Play(_loadedEmote.Value.Entity.URN);
+
+        if (_loadedEmote.Value.Clip.wrapMode != WrapMode.Loop)
         {
-            EmotePropAnimation.Play();
+            avatarAnimation.CrossFadeQueued(IDLE_CLIP_NAME, 0.3f);
         }
     }
 
-    [UsedImplicitly]
-    public void EmoteEnded()
+    public void StopEmote(bool withCrossFade = true)
     {
-        EmoteAnimationEnded?.Invoke();
-    }
+        if (!_loadedEmote.HasValue) return;
 
-    public void Reset()
-    {
         audioSource.Stop();
-        if (EmotePropAnimation != null)
+        if (_propAnimation != null)
         {
-            EmotePropAnimation.Rewind();
-            EmotePropAnimation.Sample();
-            EmotePropAnimation.Stop();
+            _loadedEmote.Value.Prop?.SetActive(false);
+        }
+
+        if (withCrossFade)
+        {
+            avatarAnimation.CrossFade(IDLE_CLIP_NAME, 0.3f, PlayMode.StopAll);
+        }
+        else
+        {
+            avatarAnimation.Play(IDLE_CLIP_NAME, PlayMode.StopAll);
+        }
+    }
+
+    public void ClearEmote()
+    {
+        if (!_loadedEmote.HasValue) return;
+
+        StopEmote(false);
+        avatarAnimation.RemoveClip(_loadedEmote.Value.Clip);
+        _loadedEmote = null;
+        _emoteAudioClip = null;
+        _propAnimation = null;
+        audioSource.clip = null;
+    }
+
+    [UsedImplicitly]
+    private void EmoteStarted()
+    {
+        if (_emoteAudioClip != null)
+        {
+            audioSource.PlayOneShot(_emoteAudioClip);
+        }
+
+        if (_propAnimation != null)
+        {
+            _propAnimation.Rewind();
+            _propAnimation.Sample();
+            _propAnimation.Play();
+        }
+    }
+
+    [UsedImplicitly]
+    private void EmoteEnded()
+    {
+        if (_loadedEmote.HasValue && _loadedEmote.Value.Clip.wrapMode != WrapMode.Loop)
+        {
+            EmoteAnimationEnded?.Invoke();
+            _loadedEmote.Value.Prop?.SetActive(false);
         }
     }
 }

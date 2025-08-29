@@ -84,8 +84,7 @@ namespace Loading
             }
         }
 
-        public static async Awaitable<LoadedEmote> LoadEmote(BodyShape bodyShape, EntityDefinition entityDefinition,
-            Transform propParent, bool loop = false)
+        public static async Awaitable<LoadedEmote> LoadEmote(BodyShape bodyShape, EntityDefinition entityDefinition, Transform propParent)
         {
             var rep = entityDefinition[bodyShape];
 
@@ -148,6 +147,7 @@ namespace Loading
             if (success)
             {
                 var clips = importer.GetAnimationClips();
+                var looping = (entityDefinition.Flags & EntityFlags.Looping) != 0;
                 Debug.Log($"Loaded emote: {rep.MainFile} with clips: {clips.Length}");
 
                 // Note, some GLB's just don't have an animation that ends with _Avatar, because of course they bloody don't.
@@ -156,17 +156,17 @@ namespace Loading
                 var avatarClip = clips.Length == 1 ? clips[0] : clips.First(c => c.name.EndsWith("_Avatar"));
                 var propClip = clips.Length == 1
                     ? null
-                    : clips.FirstOrDefault(c =>
-                          c.name.EndsWith("_Prop", StringComparison.InvariantCultureIgnoreCase)) ??
+                    : clips.FirstOrDefault(c => c.name.EndsWith("_Prop", StringComparison.InvariantCultureIgnoreCase)) ??
                       clips.FirstOrDefault(c => !c.name.EndsWith("_Avatar"));
                 GameObject prop = null;
                 Animation propAnim = null;
                 
-                avatarClip.wrapMode = loop ? WrapMode.Loop : WrapMode.Clamp;
+                avatarClip.wrapMode = looping ? WrapMode.Loop : WrapMode.Clamp;
 
                 if (propClip != null)
                 {
-                    propClip.wrapMode = loop ? WrapMode.Loop : WrapMode.Clamp;
+                    // Avatar animation controls prop clip so we don't auto loop it
+                    propClip.wrapMode = WrapMode.Clamp;
 
                     // We have a prop we need to deal with
                     Debug.Log("Lading emote prop");
@@ -174,7 +174,10 @@ namespace Loading
                     prop.SetActive(false);
                     prop.transform.SetParent(propParent, false);
                     propAnim = prop.AddComponent<Animation>();
+                    propClip.name = entityDefinition.URN;
+                    propAnim.AddClip(propClip, entityDefinition.URN);
                     propAnim.clip = propClip;
+
                     await importer.InstantiateMainSceneAsync(prop.transform);
 
                     Sanitize(prop.transform);
