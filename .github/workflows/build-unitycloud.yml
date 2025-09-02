@@ -64,7 +64,11 @@ jobs:
       - name: Get commit SHA
         id: get_commit_sha
         run: |
-          echo "commit_sha=$GITHUB_SHA" >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "commit_sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "commit_sha=$GITHUB_SHA" >> $GITHUB_OUTPUT
+          fi
 
       - name: Debug Commit SHA
         run: |
