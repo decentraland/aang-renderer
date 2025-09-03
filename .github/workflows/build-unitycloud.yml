@@ -1,5 +1,9 @@
 name: Unity Cloud Build
 
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -300,23 +304,63 @@ jobs:
       - name: Download built artifact
         uses: actions/download-artifact@v4
         with:
-          name: aang-renderer
-          path: build
+          name: aang-renderer         # must match the upload name
+          path: build                 # re-create ./build for vercel
 
       - name: Install Vercel CLI
-        run: npm i -g vercel@latest
+        run: npm install --global vercel@latest
 
-      - name: Vercel deploy (Preview)
-        id: vercel_deploy
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_SCOPE: ${{ secrets.VERCEL_SCOPE }}   # e.g., decentraland
+      - name: Pull Vercel environment (preview)
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Create Vercel Build Output from Unity WebGL
         run: |
-          url=$(vercel deploy build \
-            --yes \
-            --confirm \
-            --token "$VERCEL_TOKEN" \
-            --scope "$VERCEL_SCOPE")
+          rm -rf .vercel/output
+          mkdir -p .vercel/output/static
+          # Copy Unity WebGL output into /static
+          cp -R build/* .vercel/output/static/
+          # Minimal Build Output API config + headers for Unity assets
+          cat > .vercel/output/config.json << 'JSON'
+          {
+            "version": 3,
+            "routes": [
+              { "handle": "filesystem" }
+            ],
+            "headers": [
+              {
+                "source": "/(.*)\\.wasm",
+                "headers": [{ "key": "Content-Type", "value": "application/wasm" }]
+              },
+              {
+                "source": "/(.*)\\.wasm\\.gz",
+                "headers": [
+                  { "key": "Content-Type", "value": "application/wasm" },
+                  { "key": "Content-Encoding", "value": "gzip" }
+                ]
+              },
+              {
+                "source": "/(.*)\\.data\\.gz",
+                "headers": [
+                  { "key": "Content-Type", "value": "application/octet-stream" },
+                  { "key": "Content-Encoding", "value": "gzip" }
+                ]
+              },
+              {
+                "source": "/(.*)\\.br",
+                "headers": [{ "key": "Content-Encoding", "value": "br" }]
+              },
+              {
+                "source": "/(.*)\\.(js|json|data|symbols|wasm)",
+                "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+              }
+            ]
+          }
+          JSON
+
+      - name: Deploy Project Artifacts to Vercel (Preview)
+        id: vercel_deploy
+        run: |
+          url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Preview URL: $url"
 
