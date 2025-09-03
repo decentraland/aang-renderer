@@ -299,13 +299,17 @@ jobs:
     if: ${{ github.event_name == 'pull_request' }}
     needs: build
     runs-on: ubuntu-latest
-
     steps:
       - name: Download built artifact
         uses: actions/download-artifact@v4
         with:
           name: aang-renderer
           path: build
+
+      - name: Checkout repo (to read vercel.json)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
@@ -318,7 +322,6 @@ jobs:
           rm -rf .vercel/output
           mkdir -p .vercel/output/static
           cp -R build/* .vercel/output/static/
-          # Copy the repo config into Build Output API config.json
           cp vercel.json .vercel/output/config.json
 
       - name: Deploy Project Artifacts to Vercel (Preview)
