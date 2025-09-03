@@ -299,13 +299,16 @@ jobs:
     if: ${{ github.event_name == 'pull_request' }}
     needs: build
     runs-on: ubuntu-latest
+
     steps:
+      # Put the built site directly where Vercel --prebuilt expects it
       - name: Download built artifact
         uses: actions/download-artifact@v4
         with:
-          name: aang-renderer
-          path: build
+          name: aang-renderer            # must match the upload name from build job
+          path: .vercel/output/static    # no extra copy step needed
 
+      # Get vercel.json from the repo
       - name: Checkout repo (to read vercel.json)
         uses: actions/checkout@v4
         with:
@@ -317,12 +320,13 @@ jobs:
       - name: Pull Vercel environment (preview)
         run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Prepare Vercel Output (use vercel.json)
+      # Copy repo vercel.json into Build Output API config.json
+      - name: Prepare Build Output config
         run: |
-          rm -rf .vercel/output
-          mkdir -p .vercel/output/static
-          cp -R build/* .vercel/output/static/
+          mkdir -p .vercel/output
           cp vercel.json .vercel/output/config.json
+          echo "Prepared Build Output API tree:"
+          find .vercel/output -maxdepth 3 -type f | sort
 
       - name: Deploy Project Artifacts to Vercel (Preview)
         id: vercel_deploy
@@ -339,3 +343,4 @@ jobs:
             echo "### Vercel Preview"
             echo "${{ steps.vercel_deploy.outputs.url }}"
           } >> "$GITHUB_STEP_SUMMARY"
+
