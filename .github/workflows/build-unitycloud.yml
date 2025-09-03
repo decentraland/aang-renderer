@@ -210,6 +210,23 @@ jobs:
             build
           if-no-files-found: error
 
+      # -------------------- ADDED: Vercel Preview for PRs (minimal) --------------------
+      - name: Install Vercel CLI
+        if: ${{ github.event_name == 'pull_request' }}
+        run: npm i -g vercel@latest
+
+      - name: Vercel deploy (Preview)
+        if: ${{ github.event_name == 'pull_request' }}
+        id: vercel_deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}   # add these secrets
+          VERCEL_SCOPE: ${{ secrets.VERCEL_SCOPE }}   # e.g. "decentraland"
+        run: |
+          url=$(vercel deploy build --yes --token "$VERCEL_TOKEN" --scope "$VERCEL_SCOPE")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Preview URL: $url"
+      # -------------------------------------------------------------------------------
+
       - name: Zip Build Output
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         run: |
@@ -291,5 +308,10 @@ jobs:
             echo "- Build artifact: see the **Artifacts** section of this run."
             if [[ "${{ startsWith(github.ref, 'refs/tags/') }}" == "true" ]]; then
               echo "- GitHub Release: see the **Releases** tab for \`${{ github.ref_name }}\`."
+            fi
+            if [ -n "${{ steps.vercel_deploy.outputs.url }}" ]; then
+              echo ""
+              echo "### Vercel Preview"
+              echo "${{ steps.vercel_deploy.outputs.url }}"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
