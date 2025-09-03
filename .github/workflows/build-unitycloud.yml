@@ -301,25 +301,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Put the built site directly where Vercel --prebuilt expects it
+      # 1) Checkout FIRST, and don't wipe later work
+      - name: Checkout repo (to read config file)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: false   # important: do not delete workspace contents later
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
+
+      - name: Pull Vercel environment (preview)
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      # 2) Put Unity build where --prebuilt expects it
       - name: Download built artifact
         uses: actions/download-artifact@v4
         with:
-          name: aang-renderer            # must match the upload name from build job
-          path: .vercel/output/static    # no extra copy step needed
+          name: aang-renderer
+          path: .vercel/output/static
 
+      # 3) Flatten wrapper folder (aang-renderer/ or build/ -> static/)
       - name: Flatten artifact to static root (handles /aang-renderer, /build, /Build)
         run: |
           set -euo pipefail
           ROOT=".vercel/output/static"
           echo "Tree after download:"
           find "$ROOT" -maxdepth 3 -print | sed 's/^/OUT: /'
-
           shopt -s dotglob nullglob
-
-          # If everything is wrapped under a single folder (e.g. aang-renderer/), flatten it
-          WRAPPERS=( "aang-renderer" "build" "Build" )
-          for d in "${WRAPPERS[@]}"; do
+          for d in "aang-renderer" "build" "Build"; do
             if [ -d "$ROOT/$d" ] && [ -f "$ROOT/$d/index.html" ]; then
               echo "Flattening $ROOT/$d -> $ROOT"
               mv "$ROOT/$d"/* "$ROOT"/
@@ -327,30 +337,20 @@ jobs:
               break
             fi
           done
-
-          # Final sanity check
           ls -la "$ROOT" | sed 's/^/static: /'
           test -f "$ROOT/index.html" || { echo "::error::index.html not found at $ROOT"; exit 1; }
 
-      # Get vercel.json from the repo
-      - name: Checkout repo (to read vercel.json)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-
-      - name: Pull Vercel environment (preview)
-        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
-
+      # 4) Copy your Build Output API (v3) config into place
       - name: Prepare Build Output config
         run: |
           mkdir -p .vercel/output
+          # Use the filename you keep in the repo:
           cp vercel.build-output.json .vercel/output/config.json
+          # If you insist on using vercel.json (v3), use: cp vercel.json .vercel/output/config.json
           echo "Prepared Build Output API tree:"
           find .vercel/output -maxdepth 3 -type f | sort
 
+      # 5) Deploy prebuilt (no rebuild on Vercel)
       - name: Deploy Project Artifacts to Vercel (Preview)
         id: vercel_deploy
         run: |
@@ -358,23 +358,17 @@ jobs:
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Preview URL: $url"
 
-      - name: Check response headers (debug)
-        if: ${{ steps.vercel_deploy.outputs.url }}
-        run: |
-          PREVIEW='${{ steps.vercel_deploy.outputs.url }}'
-          # wait briefly until the preview is live
-          for i in {1..10}; do
-            code=$(curl -s -o /dev/null -w '%{http_code}' "$PREVIEW/index.html" || true)
-            [ "$code" = "200" ] && break
-            echo "Preview not ready (HTTP $code). Retry $i/10..."
-            sleep 3
-          done
-          echo "HEAD .data.br"
-          curl -sI "$PREVIEW/Build/aang-renderer.data.br" | sed 's/^/data.br: /'
-          echo "HEAD .framework.js.br"
-          curl -sI "$PREVIEW/Build/aang-renderer.framework.js.br" | sed 's/^/js.br: /'
-          echo "HEAD .wasm.br"
-          curl -sI "$PREVIEW/Build/aang-renderer.wasm.br" | sed 's/^/wasm.br: /'
+      # (Optional) If your project protects preview deployments, these HEAD checks will 401 without a bypass token
+      # - name: Check response headers (debug)
+      #   if: ${{ steps.vercel_deploy.outputs.url }}
+      #   env:
+      #     BYPASS: ${{ secrets.VERCEL_BYPASS }}   # create a Protection Bypass token in Vercel settings
+      #   run: |
+      #     PREVIEW='${{ steps.vercel_deploy.outputs.url }}'
+      #     HDR=""
+      #     [ -n "$BYPASS" ] && HDR="-H x-vercel-protection-bypass:$BYPASS"
+      #     curl -sI $HDR "$PREVIEW/index.html" | sed 's/^/index: /'
+      #     curl -sI $HDR "$PREVIEW/Build/aang-renderer.data.br" | sed 's/^/data.br: /'
 
       - name: Add Vercel URL to summary
         if: ${{ steps.vercel_deploy.outputs.url }}
@@ -384,4 +378,3 @@ jobs:
             echo "### Vercel Preview"
             echo "${{ steps.vercel_deploy.outputs.url }}"
           } >> "$GITHUB_STEP_SUMMARY"
-
