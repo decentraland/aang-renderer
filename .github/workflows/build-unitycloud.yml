@@ -308,6 +308,16 @@ jobs:
           name: aang-renderer            # must match the upload name from build job
           path: .vercel/output/static    # no extra copy step needed
 
+      - name: Flatten artifact to static root (if nested under /build)
+        run: |
+          if [ -d ".vercel/output/static/build" ]; then
+            echo "Found /static/build — moving its contents to /static ..."
+            cp -R .vercel/output/static/build/. .vercel/output/static/
+            rm -rf .vercel/output/static/build
+          fi
+          ls -la .vercel/output/static | sed 's/^/static: /'
+          test -f .vercel/output/static/index.html || { echo "::error::index.html not found at static root"; exit 1; }
+
       # Get vercel.json from the repo
       - name: Checkout repo (to read vercel.json)
         uses: actions/checkout@v4
@@ -333,6 +343,24 @@ jobs:
           url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Preview URL: $url"
+
+      - name: Check response headers (debug)
+        if: ${{ steps.vercel_deploy.outputs.url }}
+        run: |
+          PREVIEW='${{ steps.vercel_deploy.outputs.url }}'
+          # wait briefly until the preview is live
+          for i in {1..10}; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$PREVIEW/index.html" || true)
+            [ "$code" = "200" ] && break
+            echo "Preview not ready (HTTP $code). Retry $i/10..."
+            sleep 3
+          done
+          echo "HEAD .data.br"
+          curl -sI "$PREVIEW/Build/aang-renderer.data.br" | sed 's/^/data.br: /'
+          echo "HEAD .framework.js.br"
+          curl -sI "$PREVIEW/Build/aang-renderer.framework.js.br" | sed 's/^/js.br: /'
+          echo "HEAD .wasm.br"
+          curl -sI "$PREVIEW/Build/aang-renderer.wasm.br" | sed 's/^/wasm.br: /'
 
       - name: Add Vercel URL to summary
         if: ${{ steps.vercel_deploy.outputs.url }}
