@@ -3,7 +3,7 @@
   "routes": [{ "handle": "filesystem" }],
   "headers": [
     {
-      "source": "/Build/(.*)\\.js\\.br",
+      "source": "/Build/(.*)\\.framework\\.js\\.br",
       "headers": [
         { "key": "Content-Type", "value": "application/javascript" },
         { "key": "Content-Encoding", "value": "br" },
@@ -36,7 +36,7 @@
     },
 
     {
-      "source": "/Build/(.*)\\.js\\.gz",
+      "source": "/Build/(.*)\\.framework\\.js\\.gz",
       "headers": [
         { "key": "Content-Type", "value": "application/javascript" },
         { "key": "Content-Encoding", "value": "gzip" },
@@ -73,13 +73,6 @@
       "headers": [
         { "key": "Content-Type", "value": "application/wasm" },
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable, no-transform" }
-      ]
-    },
-
-    {
-      "source": "/(.*)\\.(js|json|data|symbols|wasm)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     }
   ]
