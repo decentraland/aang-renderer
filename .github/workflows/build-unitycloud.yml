@@ -320,11 +320,10 @@ jobs:
       - name: Pull Vercel environment (preview)
         run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
 
-      # Copy repo vercel.json into Build Output API config.json
       - name: Prepare Build Output config
         run: |
           mkdir -p .vercel/output
-          cp vercel.json .vercel/output/config.json
+          cp vercel.build-output.json .vercel/output/config.json
           echo "Prepared Build Output API tree:"
           find .vercel/output -maxdepth 3 -type f | sort
 
