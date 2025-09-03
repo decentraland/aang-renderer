@@ -308,15 +308,23 @@ jobs:
           name: aang-renderer            # must match the upload name from build job
           path: .vercel/output/static    # no extra copy step needed
 
-      - name: Flatten artifact to static root (if nested under /build)
+      - name: Flatten artifact to static root (handles /aang-renderer or /build)
         run: |
-          if [ -d ".vercel/output/static/build" ]; then
-            echo "Found /static/build — moving its contents to /static ..."
-            cp -R .vercel/output/static/build/. .vercel/output/static/
-            rm -rf .vercel/output/static/build
+          ROOT=".vercel/output/static"
+          shopt -s dotglob nullglob
+          if [ -d "$ROOT/aang-renderer" ]; then
+            echo "Moving $ROOT/aang-renderer/* to $ROOT ..."
+            mv "$ROOT/aang-renderer"/* "$ROOT"/
+            rmdir "$ROOT/aang-renderer"
+          elif [ -d "$ROOT/build" ] || [ -d "$ROOT/Build" ]; then
+            SRC="$ROOT/build"; [ -d "$ROOT/Build" ] && SRC="$ROOT/Build"
+            echo "Moving $SRC/* to $ROOT ..."
+            mv "$SRC"/* "$ROOT"/
+            rmdir "$SRC"
           fi
-          ls -la .vercel/output/static | sed 's/^/static: /'
-          test -f .vercel/output/static/index.html || { echo "::error::index.html not found at static root"; exit 1; }
+          ls -la "$ROOT" | sed 's/^/static: /'
+          test -f "$ROOT/index.html" || { echo "::error::index.html not found at static root"; exit 1; }
+
 
       # Get vercel.json from the repo
       - name: Checkout repo (to read vercel.json)
