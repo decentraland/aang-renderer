@@ -206,26 +206,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.artifact_name }}
-          path: |
-            build
+          path: build
           if-no-files-found: error
-
-      # -------------------- ADDED: Vercel Preview for PRs (minimal) --------------------
-      - name: Install Vercel CLI
-        if: ${{ github.event_name == 'pull_request' }}
-        run: npm i -g vercel@latest
-
-      - name: Vercel deploy (Preview)
-        if: ${{ github.event_name == 'pull_request' }}
-        id: vercel_deploy
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}   # add these secrets
-          VERCEL_SCOPE: ${{ secrets.VERCEL_SCOPE }}   # e.g. "decentraland"
-        run: |
-          url=$(vercel deploy build --yes --token "$VERCEL_TOKEN" --scope "$VERCEL_SCOPE")
-          echo "url=$url" >> "$GITHUB_OUTPUT"
-          echo "Preview URL: $url"
-      # -------------------------------------------------------------------------------
 
       - name: Zip Build Output
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
@@ -238,7 +220,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          name: Release ${{ github.ref_name }}      # equivalent to release_name
+          name: Release ${{ github.ref_name }}
           body: Release for ${{ github.ref_name }}
           draft: false
           prerelease: false
@@ -263,7 +245,6 @@ jobs:
             *) echo "BUILD_PREFIX=gn" >> $GITHUB_ENV ;;
           esac
 
-      # Will run always (even if failing)
       - name: Upload cloud logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -272,7 +253,6 @@ jobs:
           path: unity_cloud_log.log
           if-no-files-found: error
 
-      # Will run always (even if failing)
       - name: Print cloud logs
         if: always()
         run: cat unity_cloud_log.log
@@ -291,7 +271,6 @@ jobs:
           PROJECT_ID: ${{ secrets.UNITY_CLOUD_PROJECT_ID }}
         run: python -u .github/scripts/build.py --cancel
 
-      # added: job summary
       - name: Job summary
         if: always()
         run: |
@@ -309,9 +288,44 @@ jobs:
             if [[ "${{ startsWith(github.ref, 'refs/tags/') }}" == "true" ]]; then
               echo "- GitHub Release: see the **Releases** tab for \`${{ github.ref_name }}\`."
             fi
-            if [ -n "${{ steps.vercel_deploy.outputs.url }}" ]; then
-              echo ""
-              echo "### Vercel Preview"
-              echo "${{ steps.vercel_deploy.outputs.url }}"
-            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy_preview:
+    name: Vercel Preview (PR only)
+    if: ${{ github.event_name == 'pull_request' }}
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download built artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: aang-renderer         # must match the upload name
+          path: build                 # re-create ./build for vercel
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
+
+      - name: Vercel deploy (Preview)
+        id: vercel_deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_SCOPE: ${{ secrets.VERCEL_SCOPE }}       # e.g., decentraland
+          VERCEL_PROJECT: ${{ secrets.VERCEL_PROJECT }}   # e.g., aang-project
+        run: |
+          url=$(vercel deploy build \
+            --yes \
+            --token "$VERCEL_TOKEN" \
+            --scope "$VERCEL_SCOPE" \
+            --project "$VERCEL_PROJECT")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Preview URL: $url"
+
+      - name: Add Vercel URL to summary
+        if: ${{ steps.vercel_deploy.outputs.url }}
+        run: |
+          {
+            echo ""
+            echo "### Vercel Preview"
+            echo "${{ steps.vercel_deploy.outputs.url }}"
           } >> "$GITHUB_STEP_SUMMARY"
