@@ -1,46 +1,76 @@
 {
   "version": 3,
-  "routes": [{ "handle": "filesystem" }],
+  "routes": [
+    { "handle": "filesystem" }
+  ],
   "headers": [
-    { "source": "/(.*)\\.js\\.br", "headers": [
-      { "key": "Content-Type", "value": "application/javascript" },
-      { "key": "Content-Encoding", "value": "br" }
-    ]},
-    { "source": "/(.*)\\.wasm\\.br", "headers": [
-      { "key": "Content-Type", "value": "application/wasm" },
-      { "key": "Content-Encoding", "value": "br" }
-    ]},
-    { "source": "/(.*)\\.data\\.br", "headers": [
-      { "key": "Content-Type", "value": "application/octet-stream" },
-      { "key": "Content-Encoding", "value": "br" }
-    ]},
-    { "source": "/(.*)\\.symbols\\.json\\.br", "headers": [
-      { "key": "Content-Type", "value": "application/json" },
-      { "key": "Content-Encoding", "value": "br" }
-    ]},
-
-    { "source": "/(.*)\\.js\\.gz", "headers": [
-      { "key": "Content-Type", "value": "application/javascript" },
-      { "key": "Content-Encoding", "value": "gzip" }
-    ]},
-    { "source": "/(.*)\\.wasm\\.gz", "headers": [
-      { "key": "Content-Type", "value": "application/wasm" },
-      { "key": "Content-Encoding", "value": "gzip" }
-    ]},
-    { "source": "/(.*)\\.data\\.gz", "headers": [
-      { "key": "Content-Type", "value": "application/octet-stream" },
-      { "key": "Content-Encoding", "value": "gzip" }
-    ]},
-    { "source": "/(.*)\\.symbols\\.json\\.gz", "headers": [
-      { "key": "Content-Type", "value": "application/json" },
-      { "key": "Content-Encoding", "value": "gzip" }
-    ]},
-
-    { "source": "/(.*)\\.wasm", "headers": [
-      { "key": "Content-Type", "value": "application/wasm" }
-    ]},
-    { "source": "/(.*)\\.(js|json|data|symbols|wasm)", "headers": [
-      { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-    ]}
+    {
+      "source": "/(.*)\\.js\\.br",
+      "headers": [
+        { "key": "Content-Type", "value": "application/javascript" },
+        { "key": "Content-Encoding", "value": "br" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.wasm\\.br",
+      "headers": [
+        { "key": "Content-Type", "value": "application/wasm" },
+        { "key": "Content-Encoding", "value": "br" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.data\\.br",
+      "headers": [
+        { "key": "Content-Type", "value": "application/octet-stream" },
+        { "key": "Content-Encoding", "value": "br" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.symbols\\.json\\.br",
+      "headers": [
+        { "key": "Content-Type", "value": "application/json" },
+        { "key": "Content-Encoding", "value": "br" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.js\\.gz",
+      "headers": [
+        { "key": "Content-Type", "value": "application/javascript" },
+        { "key": "Content-Encoding", "value": "gzip" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.wasm\\.gz",
+      "headers": [
+        { "key": "Content-Type", "value": "application/wasm" },
+        { "key": "Content-Encoding", "value": "gzip" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.data\\.gz",
+      "headers": [
+        { "key": "Content-Type", "value": "application/octet-stream" },
+        { "key": "Content-Encoding", "value": "gzip" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.symbols\\.json\\.gz",
+      "headers": [
+        { "key": "Content-Type", "value": "application/json" },
+        { "key": "Content-Encoding", "value": "gzip" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.wasm",
+      "headers": [
+        { "key": "Content-Type", "value": "application/wasm" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.(js|json|data|symbols|wasm)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
   ]
 }
