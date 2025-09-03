@@ -300,8 +300,8 @@ jobs:
       - name: Download built artifact
         uses: actions/download-artifact@v4
         with:
-          name: aang-renderer         # must match the upload name
-          path: build                 # re-create ./build for vercel
+          name: aang-renderer
+          path: build
 
       - name: Install Vercel CLI
         run: npm i -g vercel@latest
@@ -310,14 +310,13 @@ jobs:
         id: vercel_deploy
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_SCOPE: ${{ secrets.VERCEL_SCOPE }}       # e.g., decentraland
-          VERCEL_PROJECT: ${{ secrets.VERCEL_PROJECT }}   # e.g., aang-project
+          VERCEL_SCOPE: ${{ secrets.VERCEL_SCOPE }}   # e.g., decentraland
         run: |
           url=$(vercel deploy build \
             --yes \
+            --confirm \
             --token "$VERCEL_TOKEN" \
-            --scope "$VERCEL_SCOPE" \
-            --project "$VERCEL_PROJECT")
+            --scope "$VERCEL_SCOPE")
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Preview URL: $url"
 
