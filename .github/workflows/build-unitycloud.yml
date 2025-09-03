@@ -308,23 +308,29 @@ jobs:
           name: aang-renderer            # must match the upload name from build job
           path: .vercel/output/static    # no extra copy step needed
 
-      - name: Flatten artifact to static root (handles /aang-renderer or /build)
+      - name: Flatten artifact to static root (handles /aang-renderer, /build, /Build)
         run: |
+          set -euo pipefail
           ROOT=".vercel/output/static"
-          shopt -s dotglob nullglob
-          if [ -d "$ROOT/aang-renderer" ]; then
-            echo "Moving $ROOT/aang-renderer/* to $ROOT ..."
-            mv "$ROOT/aang-renderer"/* "$ROOT"/
-            rmdir "$ROOT/aang-renderer"
-          elif [ -d "$ROOT/build" ] || [ -d "$ROOT/Build" ]; then
-            SRC="$ROOT/build"; [ -d "$ROOT/Build" ] && SRC="$ROOT/Build"
-            echo "Moving $SRC/* to $ROOT ..."
-            mv "$SRC"/* "$ROOT"/
-            rmdir "$SRC"
-          fi
-          ls -la "$ROOT" | sed 's/^/static: /'
-          test -f "$ROOT/index.html" || { echo "::error::index.html not found at static root"; exit 1; }
+          echo "Tree after download:"
+          find "$ROOT" -maxdepth 3 -print | sed 's/^/OUT: /'
 
+          shopt -s dotglob nullglob
+
+          # If everything is wrapped under a single folder (e.g. aang-renderer/), flatten it
+          WRAPPERS=( "aang-renderer" "build" "Build" )
+          for d in "${WRAPPERS[@]}"; do
+            if [ -d "$ROOT/$d" ] && [ -f "$ROOT/$d/index.html" ]; then
+              echo "Flattening $ROOT/$d -> $ROOT"
+              mv "$ROOT/$d"/* "$ROOT"/
+              rmdir "$ROOT/$d" || true
+              break
+            fi
+          done
+
+          # Final sanity check
+          ls -la "$ROOT" | sed 's/^/static: /'
+          test -f "$ROOT/index.html" || { echo "::error::index.html not found at $ROOT"; exit 1; }
 
       # Get vercel.json from the repo
       - name: Checkout repo (to read vercel.json)
