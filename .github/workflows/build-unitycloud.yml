@@ -294,6 +294,7 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
+# New: PR-only deploy to Vercel using a v2 vercel.json inside the static folder (source deploy).
   deploy_preview:
     name: Vercel Preview (PR only)
     if: ${{ github.event_name == 'pull_request' }}
@@ -301,28 +302,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Checkout FIRST, and don't wipe later work
-      - name: Checkout repo (to read config file)
+      # Checkout first and don't wipe the workspace later
+      - name: Checkout repo (for project link/config)
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-          clean: false   # important: do not delete workspace contents later
+          clean: false
 
       - name: Install Vercel CLI
         run: npm i -g vercel@latest
 
+      # Ensure the project link exists so CLI doesn't prompt
       - name: Pull Vercel environment (preview)
         run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
 
-      # 2) Put Unity build where --prebuilt expects it
+      # Put the Unity build where we'll deploy from
       - name: Download built artifact
         uses: actions/download-artifact@v4
         with:
-          name: aang-renderer
-          path: .vercel/output/static
+          name: aang-renderer           # must match the upload name
+          path: .vercel/output/static  # deploy this folder
 
-      # 3) Flatten wrapper folder (aang-renderer/ or build/ -> static/)
-      - name: Flatten artifact to static root (handles /aang-renderer, /build, /Build)
+      # Flatten common wrapper dirs so index.html sits at static root
+      - name: Flatten artifact to static root
         run: |
           set -euo pipefail
           ROOT=".vercel/output/static"
@@ -340,35 +342,64 @@ jobs:
           ls -la "$ROOT" | sed 's/^/static: /'
           test -f "$ROOT/index.html" || { echo "::error::index.html not found at $ROOT"; exit 1; }
 
-      # 4) Copy your Build Output API (v3) config into place
-      - name: Prepare Build Output config
+      # Write a v2 vercel.json with Unity headers directly inside the static dir and deploy that dir
+      - name: Write v2 vercel.json with Unity headers (in static dir)
         run: |
-          mkdir -p .vercel/output
-          # Use the filename you keep in the repo:
-          cp vercel.build-output.json .vercel/output/config.json
-          # If you insist on using vercel.json (v3), use: cp vercel.json .vercel/output/config.json
-          echo "Prepared Build Output API tree:"
-          find .vercel/output -maxdepth 3 -type f | sort
+          cat > .vercel/output/static/vercel.json << 'JSON'
+          {
+            "version": 2,
+            "headers": [
+              {
+                "source": "/Build/(.*)\\.framework\\.js\\.br",
+                "headers": [
+                  { "key": "Content-Type", "value": "application/javascript" },
+                  { "key": "Content-Encoding", "value": "br" },
+                  { "key": "Cache-Control", "value": "public, max-age=31536000, immutable, no-transform" }
+                ]
+              },
+              {
+                "source": "/Build/(.*)\\.wasm\\.br",
+                "headers": [
+                  { "key": "Content-Type", "value": "application/wasm" },
+                  { "key": "Content-Encoding", "value": "br" },
+                  { "key": "Cache-Control", "value": "public, max-age=31536000, immutable, no-transform" }
+                ]
+              },
+              {
+                "source": "/Build/(.*)\\.data\\.br",
+                "headers": [
+                  { "key": "Content-Type", "value": "application/octet-stream" },
+                  { "key": "Content-Encoding", "value": "br" },
+                  { "key": "Cache-Control", "value": "public, max-age=31536000, immutable, no-transform" }
+                ]
+              },
+              {
+                "source": "/Build/(.*)\\.symbols\\.json\\.br",
+                "headers": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Content-Encoding", "value": "br" },
+                  { "key": "Cache-Control", "value": "public, max-age=31536000, immutable, no-transform" }
+                ]
+              },
+              {
+                "source": "/Build/(.*)\\.wasm",
+                "headers": [
+                  { "key": "Content-Type", "value": "application/wasm" },
+                  { "key": "Cache-Control", "value": "public, max-age=31536000, immutable, no-transform" }
+                ]
+              }
+            ]
+          }
+          JSON
+          echo "Static folder ready:"
+          find .vercel/output/static -maxdepth 2 -type f | sed 's/^/OUT: /'
 
-      # 5) Deploy prebuilt (no rebuild on Vercel)
-      - name: Deploy Project Artifacts to Vercel (Preview)
+      - name: Deploy static folder to Vercel (Preview)
         id: vercel_deploy
         run: |
-          url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          url=$(vercel deploy .vercel/output/static --yes --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Preview URL: $url"
-
-      # (Optional) If your project protects preview deployments, these HEAD checks will 401 without a bypass token
-      # - name: Check response headers (debug)
-      #   if: ${{ steps.vercel_deploy.outputs.url }}
-      #   env:
-      #     BYPASS: ${{ secrets.VERCEL_BYPASS }}   # create a Protection Bypass token in Vercel settings
-      #   run: |
-      #     PREVIEW='${{ steps.vercel_deploy.outputs.url }}'
-      #     HDR=""
-      #     [ -n "$BYPASS" ] && HDR="-H x-vercel-protection-bypass:$BYPASS"
-      #     curl -sI $HDR "$PREVIEW/index.html" | sed 's/^/index: /'
-      #     curl -sI $HDR "$PREVIEW/Build/aang-renderer.data.br" | sed 's/^/data.br: /'
 
       - name: Add Vercel URL to summary
         if: ${{ steps.vercel_deploy.outputs.url }}
