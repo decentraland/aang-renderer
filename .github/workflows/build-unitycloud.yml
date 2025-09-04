@@ -337,7 +337,7 @@ jobs:
           echo "Preview URL: $url"
 
   comment-preview-success:
-    name: Comment (preview link)
+    name: Comment (Vercel preview link)
     needs: deploy_preview
     if: ${{ github.event_name == 'pull_request' && needs.deploy_preview.result == 'success' && needs.deploy_preview.outputs.preview_url != '' }}
     runs-on: ubuntu-latest
@@ -350,7 +350,7 @@ jobs:
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: 'github-actions[bot]'
-          body-includes: 'Vercel Preview:'
+          body-includes: 'Vercel Preview'
 
       - name: Create or update comment
         uses: peter-evans/create-or-update-comment@v3
@@ -358,11 +358,21 @@ jobs:
           issue-number: ${{ github.event.pull_request.number }}
           comment-id: ${{ steps.find.outputs.comment-id }}
           edit-mode: replace
-          body: |
-            Vercel Preview: ${{ needs.deploy_preview.outputs.preview_url }}
+          body: |-
+            ![badge]  <img src="https://ui.decentraland.org/decentraland_256x256.png" width="30">
+
+            ## Vercel Preview is ready!
+
+            | Field   | Value |
+            | ------- | ----- |
+            | Preview | ${{ needs.deploy_preview.outputs.preview_url }} |
+            | Commit  | `${{ github.sha }}` |
+            | Logs    | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |
+
+            [badge]: https://img.shields.io/badge/Preview-Ready!-3fb950?logo=vercel&style=for-the-badge
 
   comment-preview-failed:
-    name: Comment (preview failed)
+    name: Comment (Vercel preview failed)
     needs: deploy_preview
     if: ${{ github.event_name == 'pull_request' && (needs.deploy_preview.result == 'failure' || needs.deploy_preview.result == 'cancelled') }}
     runs-on: ubuntu-latest
@@ -375,7 +385,7 @@ jobs:
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: 'github-actions[bot]'
-          body-includes: 'Vercel Preview:'
+          body-includes: 'Vercel Preview'
 
       - name: Create or update comment
         uses: peter-evans/create-or-update-comment@v3
@@ -383,6 +393,12 @@ jobs:
           issue-number: ${{ github.event.pull_request.number }}
           comment-id: ${{ steps.find.outputs.comment-id }}
           edit-mode: replace
-          body: |
-            Vercel Preview: (deploy failed)
-            Check the “Vercel Preview (PR only)” job in the workflow run logs.
+          body: |-
+            ![badge]  <img src="https://ui.decentraland.org/decentraland_256x256.png" width="30">
+
+            ## Vercel Preview failed
+
+            Please check the logs of **Vercel Preview (PR only)**:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            [badge]: https://img.shields.io/badge/Preview-Failed!-ff0000?logo=vercel&style=for-the-badge
