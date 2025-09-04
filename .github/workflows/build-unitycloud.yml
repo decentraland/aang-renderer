@@ -275,30 +275,16 @@ jobs:
           PROJECT_ID: ${{ secrets.UNITY_CLOUD_PROJECT_ID }}
         run: python -u .github/scripts/build.py --cancel
 
-      - name: Job summary
-        if: always()
-        run: |
-          {
-            echo "## Unity Cloud Build Summary"
-            echo ""
-            echo "- **Version**: \`${{ needs.prebuild.outputs.version }}\`"
-            echo "- **Ref**: \`${{ github.ref_name }}\`"
-            echo "- **Event**: \`${{ github.event_name }}\`"
-            echo "- **Release**: $([[ ${{ startsWith(github.ref, 'refs/tags/') }} == true ]] && echo Yes || echo No)"
-            echo "- **Artifact**: \`${{ env.artifact_name }}\`"
-            echo ""
-            echo "### Downloads"
-            echo "- Build artifact: see the **Artifacts** section of this run."
-            if [[ "${{ startsWith(github.ref, 'refs/tags/') }}" == "true" ]]; then
-              echo "- GitHub Release: see the **Releases** tab for \`${{ github.ref_name }}\`."
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
-
   deploy_preview:
     name: Vercel Preview (PR only)
     if: ${{ github.event_name == 'pull_request' }}
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    outputs:
+      preview_url: ${{ steps.vercel_deploy.outputs.url }}
 
     steps:
       - name: Checkout repo (for project link/config)
@@ -337,14 +323,12 @@ jobs:
           ls -la "$ROOT" | sed 's/^/static: /'
           test -f "$ROOT/index.html" || { echo "::error::index.html not found at $ROOT"; exit 1; }
 
-      # ⬇️ Copy the repo root vercel.json (v2) into the deploy folder
       - name: Copy vercel.json into static folder
         run: |
           cp vercel.json .vercel/output/static/vercel.json
           echo "Using vercel.json:"
           cat .vercel/output/static/vercel.json
 
-      # Source deploy the static folder (no --prebuilt)
       - name: Deploy static folder to Vercel (Preview)
         id: vercel_deploy
         run: |
@@ -352,11 +336,53 @@ jobs:
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Preview URL: $url"
 
-      - name: Add Vercel URL to summary
-        if: ${{ steps.vercel_deploy.outputs.url }}
-        run: |
-          {
-            echo ""
-            echo "### Vercel Preview"
-            echo "${{ steps.vercel_deploy.outputs.url }}"
-          } >> "$GITHUB_STEP_SUMMARY"
+  comment-preview-success:
+    name: Comment (preview link)
+    needs: deploy_preview
+    if: ${{ github.event_name == 'pull_request' && needs.deploy_preview.result == 'success' && needs.deploy_preview.outputs.preview_url != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Find existing comment
+        uses: peter-evans/find-comment@v2
+        id: find
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: 'Vercel Preview:'
+
+      - name: Create or update comment
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-id: ${{ steps.find.outputs.comment-id }}
+          edit-mode: replace
+          body: |
+            Vercel Preview: ${{ needs.deploy_preview.outputs.preview_url }}
+
+  comment-preview-failed:
+    name: Comment (preview failed)
+    needs: deploy_preview
+    if: ${{ github.event_name == 'pull_request' && (needs.deploy_preview.result == 'failure' || needs.deploy_preview.result == 'cancelled') }}
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Find existing comment
+        uses: peter-evans/find-comment@v2
+        id: find
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: 'Vercel Preview:'
+
+      - name: Create or update comment
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-id: ${{ steps.find.outputs.comment-id }}
+          edit-mode: replace
+          body: |
+            Vercel Preview: (deploy failed)
+            Check the “Vercel Preview (PR only)” job in the workflow run logs.
