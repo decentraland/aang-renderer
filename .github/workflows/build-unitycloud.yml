@@ -294,7 +294,6 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-# New: PR-only deploy to Vercel using a v2 vercel.json inside the static folder (source deploy).
   deploy_preview:
     name: Vercel Preview (PR only)
     if: ${{ github.event_name == 'pull_request' }}
@@ -302,7 +301,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout first and don't wipe the workspace later
       - name: Checkout repo (for project link/config)
         uses: actions/checkout@v4
         with:
@@ -312,19 +310,16 @@ jobs:
       - name: Install Vercel CLI
         run: npm i -g vercel@latest
 
-      # Ensure the project link exists so CLI doesn't prompt
       - name: Pull Vercel environment (preview)
         run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
 
-      # Put the Unity build where we'll deploy from
       - name: Download built artifact
         uses: actions/download-artifact@v4
         with:
-          name: aang-renderer           # must match the upload name
-          path: .vercel/output/static  # deploy this folder
+          name: aang-renderer
+          path: .vercel/output/static
 
-      # Flatten common wrapper dirs so index.html sits at static root
-      - name: Flatten artifact to static root
+      - name: Flatten artifact to static root (handles /aang-renderer, /build, /Build)
         run: |
           set -euo pipefail
           ROOT=".vercel/output/static"
@@ -342,58 +337,14 @@ jobs:
           ls -la "$ROOT" | sed 's/^/static: /'
           test -f "$ROOT/index.html" || { echo "::error::index.html not found at $ROOT"; exit 1; }
 
-      # Write a v2 vercel.json with Unity headers directly inside the static dir and deploy that dir
-      - name: Write v2 vercel.json with Unity headers (in static dir)
+      # ⬇️ Copy the repo root vercel.json (v2) into the deploy folder
+      - name: Copy vercel.json into static folder
         run: |
-          cat > .vercel/output/static/vercel.json << 'JSON'
-          {
-            "version": 2,
-            "headers": [
-              {
-                "source": "/Build/(.*)\\.framework\\.js\\.br",
-                "headers": [
-                  { "key": "Content-Type", "value": "application/javascript" },
-                  { "key": "Content-Encoding", "value": "br" },
-                  { "key": "Cache-Control", "value": "public, max-age=31536000, immutable, no-transform" }
-                ]
-              },
-              {
-                "source": "/Build/(.*)\\.wasm\\.br",
-                "headers": [
-                  { "key": "Content-Type", "value": "application/wasm" },
-                  { "key": "Content-Encoding", "value": "br" },
-                  { "key": "Cache-Control", "value": "public, max-age=31536000, immutable, no-transform" }
-                ]
-              },
-              {
-                "source": "/Build/(.*)\\.data\\.br",
-                "headers": [
-                  { "key": "Content-Type", "value": "application/octet-stream" },
-                  { "key": "Content-Encoding", "value": "br" },
-                  { "key": "Cache-Control", "value": "public, max-age=31536000, immutable, no-transform" }
-                ]
-              },
-              {
-                "source": "/Build/(.*)\\.symbols\\.json\\.br",
-                "headers": [
-                  { "key": "Content-Type", "value": "application/json" },
-                  { "key": "Content-Encoding", "value": "br" },
-                  { "key": "Cache-Control", "value": "public, max-age=31536000, immutable, no-transform" }
-                ]
-              },
-              {
-                "source": "/Build/(.*)\\.wasm",
-                "headers": [
-                  { "key": "Content-Type", "value": "application/wasm" },
-                  { "key": "Cache-Control", "value": "public, max-age=31536000, immutable, no-transform" }
-                ]
-              }
-            ]
-          }
-          JSON
-          echo "Static folder ready:"
-          find .vercel/output/static -maxdepth 2 -type f | sed 's/^/OUT: /'
+          cp vercel.json .vercel/output/static/vercel.json
+          echo "Using vercel.json:"
+          cat .vercel/output/static/vercel.json
 
+      # Source deploy the static folder (no --prebuilt)
       - name: Deploy static folder to Vercel (Preview)
         id: vercel_deploy
         run: |
