@@ -27,40 +27,28 @@ namespace Services
 
             if (missingEntities.Length > 0)
             {
-                List<EntityDefinition> results;
-
-                try
-                {
-                    results = (await APIService.GetActiveEntities(missingEntities))
-                        .Select(EntityDefinition.FromActiveEntity)
-                        .ToList();
-                }
-                catch (Exception ex)
-                {
-                    JSBridge.NativeCalls.OnError($"Failed to load entities for URNs: {string.Join(", ", missingEntities)}. {ex.Message}");
-                    return urns.Where(urn => CACHED_ENTITIES.ContainsKey(urn))
-                        .Select(urn => CACHED_ENTITIES[urn]).ToArray();
-                }
+                var results =
+                    (await APIService.GetActiveEntities(missingEntities))
+                    .Select(EntityDefinition.FromActiveEntity).ToList();
 
                 Assert.AreEqual(missingEntities.Length, results.Count, "API did not return all requested entities.");
-
-                if (missingEntities.Length != results.Count)
-                {
-                    var returnedUrns = results.Select(r => r.URN).ToHashSet();
-                    var notReturnedUrns = missingEntities.Where(urn => !returnedUrns.Contains(urn)).ToArray();
-                    JSBridge.NativeCalls.OnError($"API did not return entities for URNs: {string.Join(", ", notReturnedUrns)}");
-                }
-
+                
                 foreach (var ed in results)
-                {
                     CACHED_ENTITIES[ed.URN] = ed;
+
+                if (results.Count < missingEntities.Length)
+                {
+                    var stillMissing = missingEntities.Where(u => !CACHED_ENTITIES.ContainsKey(u));
+                    Debug.LogWarning($"[EntityService] Missing entities for URNs: {string.Join(", ", stillMissing)}");
                 }
             }
 
-            return urns.Where(urn => CACHED_ENTITIES.ContainsKey(urn))
-                .Select(urn => CACHED_ENTITIES[urn]).ToArray();
+            return urns
+                .Where(urn => CACHED_ENTITIES.ContainsKey(urn))
+                .Select(urn => CACHED_ENTITIES[urn])
+                .ToArray();
         }
-        
+
         public static EntityDefinition GetCachedEntity(string urn) => CACHED_ENTITIES[urn];
 
         public static EntityDefinition GetBodyEntity(BodyShape bodyShape)
