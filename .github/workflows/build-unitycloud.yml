@@ -277,7 +277,7 @@ jobs:
 
   deploy_preview:
     name: Vercel Preview (PR only)
-    if: ${{ github.event_name == 'pull_request' }}
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -335,6 +335,22 @@ jobs:
           url=$(vercel deploy .vercel/output/static --yes --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Preview URL: $url"
+
+      - name: Write job summary
+        run: |
+          {
+            echo '![badge]  <img src="https://ui.decentraland.org/decentraland_256x256.png" width="30">'
+            echo
+            echo '## Vercel Preview is ready!'
+            echo
+            echo '| Field   | Value |'
+            echo '| ------- | ----- |'
+            echo '| Preview | ${{ steps.vercel_deploy.outputs.url }} |'
+            echo '| Commit  | `${{ github.sha }}` |'
+            echo '| Logs    | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |'
+            echo
+            echo '[badge]: https://img.shields.io/badge/Preview-Ready!-3fb950?logo=vercel&style=for-the-badge'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   comment-preview-success:
     name: Comment (Vercel preview link)
