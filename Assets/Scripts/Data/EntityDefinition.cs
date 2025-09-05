@@ -80,26 +80,51 @@ namespace Data
                 var entityRepresentation =
                     data.representations.FirstOrDefault(r => r.bodyShapes.Contains(bodyShape));
 
-                if (entityRepresentation != null)
-                {
-                    return new Representation(
-                        entity.content.Where(c => entityRepresentation.contents.Contains(c.file))
-                            .ToDictionary(c => c.file, c => c.url ?? string.Format(APIService.APICatalyst, c.hash)),
-                        entityRepresentation.mainFile,
+                if (entityRepresentation == null)
+                    return null;
 
-                        // We merge hides and replaces fields because it's the same
-                        entityRepresentation.overrideHides is { Length: > 0 }
-                            ? entityRepresentation.overrideHides
-                            : data.hides.Union(entityRepresentation.overrideReplaces is { Length: > 0 }
-                                ? entityRepresentation.overrideReplaces
-                                : data.replaces).Distinct().ToArray()
-                        ,
-                        data.removesDefaultHiding ?? Array.Empty<string>()
-                    );
+                var repContents = entityRepresentation.contents ?? Array.Empty<string>();
+                var repContentsSet = new HashSet<string>(repContents, StringComparer.OrdinalIgnoreCase);
+
+                var entityFilesSet = new HashSet<string>(
+                    entity.content.Select(c => c.file),
+                    StringComparer.OrdinalIgnoreCase
+                );
+
+                var main = entityRepresentation.mainFile;
+                var hasMain = !string.IsNullOrWhiteSpace(main);
+                var mainInRepContents = hasMain && repContentsSet.Contains(main);
+                var mainInEntityContent = hasMain && entityFilesSet.Contains(main);
+
+                if (!(hasMain && mainInRepContents && mainInEntityContent))
+                {
+                    Debug.Log($"[BodyShapeSanitizer] Dropping rep for bodyShape={bodyShape}, mainFile='{main}' (not valid)");
+                    return null;
                 }
 
-                return null;
+                var filesDict = entity.content
+                    .Where(c => repContentsSet.Contains(c.file))
+                    .ToDictionary(
+                        c => c.file,
+                        c => c.url ?? string.Format(APIService.APICatalyst, c.hash),
+                        StringComparer.OrdinalIgnoreCase
+                    );
+
+                var representation = new Representation(
+                    filesDict,
+                    entityRepresentation.mainFile,
+                    entityRepresentation.overrideHides is { Length: > 0 }
+                        ? entityRepresentation.overrideHides
+                        : data.hides.Union(entityRepresentation.overrideReplaces is { Length: > 0 }
+                            ? entityRepresentation.overrideReplaces
+                            : data.replaces).Distinct().ToArray(),
+                    data.removesDefaultHiding ?? Array.Empty<string>()
+                );
+
+                return representation;
             }
+
+
 
             [CanBeNull]
             public static Representation ForBodyShapeRaw(string bodyShape, ActiveEntity.Metadata.Data data)
