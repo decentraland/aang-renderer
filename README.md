@@ -1,6 +1,6 @@
-# Aange Renderer
+# Aang Renderer
 
-This project is responsible for rendering previews of the user profile and wearables used on the Decentraland Marketplace, Authentication screen, Profile page, and the builder.
+This project is responsible for rendering previews of the user profile and wearables used on the Decentraland Marketplace, Authentication screen, Profile page, Builder, and Configurator.
 
 It builds as a Web target, uses WebGPU as it's rendering backend, and shares the Toon and Scene shaders with the Explorer client so we get the same visual representation as the users will see in the game
 
@@ -8,7 +8,7 @@ It builds as a Web target, uses WebGPU as it's rendering backend, and shares the
 
 Primarily the renderer will fetch it's configuration from URL parameters passed to it, but can also be configured dynamically after initial load via a SendMessage call.
 
-The renderer can run in three different modes, depending on it's usage: Marketplace, Authentication, Profile, Builder
+The renderer can run in five different modes, depending on its usage: Marketplace, Authentication, Profile, Builder, Configurator.
 
 ## Parameters
 
@@ -17,7 +17,9 @@ The renderer can run in three different modes, depending on it's usage: Marketpl
   * `authentication`
   * `profile`
   * `builder`
+  * `configurator`
 * `profile`: The id (wallet address) of the profile to use or one of the default profiles (`default1` - `default15`)
+* `username`: Used only in `configurator` mode. Sets the username to be displayed.
 * `emote`: The default emote that the avatar will play. Only used if no emote override is present. Possible values:
   * `idle` (default)
   * `clap`
@@ -55,7 +57,7 @@ The renderer can run in three different modes, depending on it's usage: Marketpl
 
 Depending on the mode, not all parameters are used. These are the valid parameters in each mode:
 
-### Marketplate
+### Marketplace
 * `background`
 * `profile`
 * `urn` or `contract` & `item` or `contract` & `token`
@@ -82,6 +84,26 @@ Depending on the mode, not all parameters are used. These are the valid paramete
 * `emote`
 * `base64`
 
+### Configurator
+* `username`
+* `background` (optional)
+
+
+## Example URLs
+
+These examples show how to construct URLs with the correct parameters (replace the domain with your own deployment):
+
+- **Configurator**:  
+  `?mode=configurator&username=Miha`
+
+- **Marketplace**:  
+  `?mode=marketplace&profile=default1&urn=urn:decentraland:off-chain:base-avatars:rasta`
+
+- **Profile**:  
+  `?mode=profile&profile=default1`
+
+- **Authentication**:  
+  `?mode=authentication&profile=default1`
 ## Dynamic configuration
 
 Most properties can be set dynamically after the renderer is already running by calling `SendMessage('JSBridge', 'MethodName', 'value')` on the `unityInstance` object returned after initialization.
