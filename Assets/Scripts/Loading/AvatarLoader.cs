@@ -159,7 +159,7 @@ namespace Loading
                 // Colors
                 AvatarUtils.SetupColors(go, colors, outlineRenderers, avatarRootBone, avatarBones);
 
-                if (_hiddenCategories.Contains(ed.Category))
+                if (hiddenCategories.Contains(ed.Category))
                 {
                     go.SetActive(false);
                 }

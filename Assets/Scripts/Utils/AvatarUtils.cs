@@ -19,43 +19,33 @@ namespace Utils
         /// <param name="forceRender">Which parts we shouldn't hide</param>
         /// <returns>A set of all the categories that were hidden.</returns>
         public static HashSet<string> HideWearables(
-            BodyShape bodyShape, 
+            BodyShape bodyShape,
             List<EntityDefinition> wearables,
             [CanBeNull] string[] forceRender)
         {
             var combinedHidingList = new HashSet<string>();
-            var hiddenCategoriesByCategory = new Dictionary<string, HashSet<string>>();
-            
+            var hiddenCategoriesByCategory = DictionaryPool<string, HashSet<string>>.Get();
+
             for (var i = 0; i < wearables.Count; i++)
             {
+                var hidingList = HashSetPool<string>.Get();
                 var wearable = wearables[i];
                 var hideList = wearable[bodyShape].Hides;
-    
+
                 // Force immediate materialization to avoid shared references
                 var materializedList = hideList.ToArray();
-    
-                // Get or create the HashSet for this category
-                if (!hiddenCategoriesByCategory.TryGetValue(wearable.Category, out var hidingList))
-                {
-                    hidingList = new HashSet<string>();
-                    hiddenCategoriesByCategory[wearable.Category] = hidingList;
-                }
-        
-                // Merge the hiding list instead of overwriting
+
+                // Populate the pooled HashSet
                 foreach (var hide in materializedList)
                 {
                     // Prevent a category from hiding itself (this causes circular reference issues)
                     if (hide != wearable.Category)
-                    {
                         hidingList.Add(hide);
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"[HideWearables] Skipping self-hide: {wearable.Category} trying to hide itself");
-                    }
                 }
-            }
 
+                hiddenCategoriesByCategory[wearable.Category] = hidingList;
+            }
+            
             WearableUtils.ResolveHidingConflicts(
                 hiddenCategoriesByCategory,
                 forceRender,
@@ -66,7 +56,7 @@ namespace Utils
             {
                 var rep = wearable[bodyShape];
                 var category = wearable.Category;
-
+            
                 // Deal with hands - upper body wearables hide hands by default
                 if (ShouldHideHands(category, rep))
                 {
@@ -76,7 +66,7 @@ namespace Utils
                         combinedHidingList.Add(WearableCategories.Categories.HANDS);
                     }
                 }
-
+            
                 // Skin has implicit hides
                 if (category == WearableCategories.Categories.SKIN)
                 {
@@ -84,60 +74,22 @@ namespace Utils
                     {
                         // If wearable is forced to be rendered, never remove it
                         if (forceRender != null && forceRender.Contains(skinCategory)) continue;
-
+            
                         combinedHidingList.Add(skinCategory);
                     }
                 }
             }
 
+            // Release all HashSet objects back to the pool
+            foreach (var hidingList in hiddenCategoriesByCategory.Values)
+                HashSetPool<string>.Release(hidingList);
+
+            // Release the Dictionary back to the pool
+            DictionaryPool<string, HashSet<string>>.Release(hiddenCategoriesByCategory);
+
             return combinedHidingList;
-
-            // foreach (var category in WearableCategories.CATEGORIES_PRIORITY)
-            // {
-            //     var rep = wearables.FirstOrDefault(w => w.Category == category)?[bodyShape];
-            //
-            //     if (rep != null)
-            //     {
-            //         // Apparently there's no difference between hides and replaces
-            //         foreach (var categoryToHide in rep.Hides)
-            //         {
-            //             if (categoryToHide == category) continue; // Safeguard so wearables don't hide themselves
-            //
-            //             // If wearable is forced to be rendered, never remove it
-            //             if (forceRender != null && forceRender.Contains(categoryToHide)) continue;
-            //
-            //             wearables.RemoveAll(ed => ed.Category == categoryToHide);
-            //             combinedHidingList.Add(categoryToHide);
-            //         }
-            //
-            //         // Deal with hands
-            //         if (ShouldHideHands(category, rep))
-            //         {
-            //             wearables.RemoveAll(ed => ed.Category == WearableCategories.Categories.HANDS);
-            //             combinedHidingList.Add(WearableCategories.Categories.HANDS);
-            //         }
-            //
-            //         // Skin has implicit hides
-            //         if (category == WearableCategories.Categories.SKIN)
-            //         {
-            //             if (overrideCategory is null or WearableCategories.Categories.SKIN)
-            //             {
-            //                 foreach (var skinCategory in WearableCategories.SKIN_IMPLICIT_CATEGORIES)
-            //                 {
-            //                     // If wearable is forced to be rendered, never remove it
-            //                     if (forceRender != null && forceRender.Contains(skinCategory)) continue;
-            //
-            //                     wearables.RemoveAll(ed => ed.Category == skinCategory);
-            //                     combinedHidingList.Add(skinCategory);
-            //                 }
-            //             }
-            //         }
-            //     }
-            // }
-
-            // return combinedHidingList;
         }
-        
+
         private static bool ShouldHideHands(string category, EntityDefinition.Representation rep)
         {
             // We apply this rule to hide the hands by default if the wearable is an upper body or hides the upper body
