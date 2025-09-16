@@ -6,6 +6,7 @@ using System.Text;
 using JetBrains.Annotations;
 using Services;
 using UnityEngine;
+using Utils;
 
 namespace Data
 {
@@ -154,7 +155,7 @@ namespace Data
             var type = entity.IsEmote ? EntityType.Emote :
                 urn.Equals(WearablesConstants.BODY_SHAPE_FEMALE, StringComparison.OrdinalIgnoreCase) || urn.Equals(
                     WearablesConstants.BODY_SHAPE_MALE, StringComparison.OrdinalIgnoreCase)  ? EntityType.Body :
-                WearablesConstants.FACIAL_FEATURES.Contains(category) ? EntityType.FacialFeature : EntityType.Wearable;
+                WearableCategories.FACIAL_FEATURES.Contains(category) ? EntityType.FacialFeature : EntityType.Wearable;
             var flags = entity.IsEmote && entity.metadata.emoteDataADR74.loop ? EntityFlags.Looping : EntityFlags.None;
 
             var representations = new Dictionary<BodyShape, Representation>
@@ -185,7 +186,7 @@ namespace Data
                 ? EntityType.Emote
                 : metadata.id is WearablesConstants.BODY_SHAPE_FEMALE or WearablesConstants.BODY_SHAPE_MALE
                     ? EntityType.Body
-                    : WearablesConstants.FACIAL_FEATURES.Contains(data.category)
+                    : WearableCategories.FACIAL_FEATURES.Contains(data.category)
                         ? EntityType.FacialFeature
                         : EntityType.Wearable;
             var flags = isEmote && metadata.emoteDataADR74.loop ? EntityFlags.Looping : EntityFlags.None;

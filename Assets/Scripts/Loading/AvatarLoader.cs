@@ -45,7 +45,7 @@ namespace Loading
             var bodyEntity = EntityService.GetBodyEntity(bodyShape);
             var definitions = wearableDefinitions.Prepend(bodyEntity).ToList();
 
-            var hiddenCategories = AvatarUtils.HideWearables(bodyShape, definitions, null, forceRenderCategories);
+            var hiddenCategories = AvatarUtils.HideWearables(bodyShape, definitions, forceRenderCategories);
 
             var hasBodyShapeChanged = bodyShape != _loadedBodyShape;
             var definitionsToLoad = hasBodyShapeChanged

@@ -147,7 +147,7 @@ namespace Configurator.Views
             var category = _selectedCategoryElement.Category;
 
             // Ugly but ok
-            if (category == WearablesConstants.Categories.EYES)
+            if (category == WearableCategories.Categories.EYES)
             {
                 _colorDropdown.SetDisplay(true);
                 _colorPopupView.SetColors(_eyeColorPresets);
@@ -155,7 +155,7 @@ namespace Configurator.Views
                 _colorPopupView.SetTitle("EYE COLOR");
                 _colorDropdown.Text = UsingMobile ? null : "EYE COLOR";
             }
-            else if (category == WearablesConstants.Categories.HAIR)
+            else if (category == WearableCategories.Categories.HAIR)
             {
                 _colorDropdown.SetDisplay(true);
                 _colorPopupView.SetColors(_hairColorPresets);
@@ -239,11 +239,11 @@ namespace Configurator.Views
             _currentEyeColor = eyeColor;
 
             var category = _selectedCategoryElement?.Category;
-            if (category == WearablesConstants.Categories.HAIR)
+            if (category == WearableCategories.Categories.HAIR)
             {
                 _colorPopupView.SetSelectedColor(hairColor);
             }
-            else if (category == WearablesConstants.Categories.EYES)
+            else if (category == WearableCategories.Categories.EYES)
             {
                 _colorPopupView.SetSelectedColor(eyeColor);
             }
@@ -252,11 +252,11 @@ namespace Configurator.Views
         private void OnColorSelected(Color color)
         {
             var category = _selectedCategoryElement.Category;
-            if (category == WearablesConstants.Categories.HAIR)
+            if (category == WearableCategories.Categories.HAIR)
             {
                 _currentHairColor = color;
             }
-            else if (category == WearablesConstants.Categories.EYES)
+            else if (category == WearableCategories.Categories.EYES)
             {
                 _currentEyeColor = color;
             }

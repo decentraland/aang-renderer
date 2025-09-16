@@ -129,8 +129,8 @@ namespace Configurator
 
         private void OnCategoryChanged(string category)
         {
-            avatarLoader.TryHideCategory(WearablesConstants.Categories.EYEWEAR,
-                category is WearablesConstants.Categories.EYES or WearablesConstants.Categories.EYEBROWS);
+            avatarLoader.TryHideCategory(WearableCategories.Categories.EYEWEAR,
+                category is WearableCategories.Categories.EYES or WearableCategories.Categories.EYEBROWS);
         }
 
         private static EntityDefinition GetEmote(string category)
