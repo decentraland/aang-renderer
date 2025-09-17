@@ -25,19 +25,42 @@ namespace Utils
         {
             var combinedHidingList = new HashSet<string>();
             var hiddenCategoriesByCategory = DictionaryPool<string, HashSet<string>>.Get();
-
+        
             // Compose hidden categories lookup
             foreach (var wearable in wearables)
             {
                 var hidingList = HashSetPool<string>.Get();
-
-                foreach (var hide in wearable[bodyShape].Hides)
+                var rep = wearable[bodyShape];
+        
+                foreach (var hide in rep.Hides)
                 {
                     // Prevent a category from hiding itself (this causes circular reference issues)
                     if (hide != wearable.Category)
                         hidingList.Add(hide);
                 }
-
+                
+                // Deal with hands - upper body wearables hide hands by default
+                if (ShouldHideHands(wearable.Category, rep))
+                {
+                    // If wearable is forced to be rendered, never remove it
+                    if (forceRender == null || !forceRender.Contains(WearableCategories.Categories.HANDS))
+                    {
+                        hidingList.Add(WearableCategories.Categories.HANDS);
+                    }
+                }
+                
+                // Skin has implicit hides
+                if (wearable.Category == WearableCategories.Categories.SKIN)
+                {
+                    foreach (var skinCategory in WearableCategories.SKIN_IMPLICIT_CATEGORIES)
+                    {
+                        // If wearable is forced to be rendered, never remove it
+                        if (forceRender != null && forceRender.Contains(skinCategory)) continue;
+            
+                        hidingList.Add(skinCategory);
+                    }
+                }
+                
                 hiddenCategoriesByCategory[wearable.Category] = hidingList;
             }
             
@@ -45,46 +68,17 @@ namespace Utils
                 hiddenCategoriesByCategory,
                 forceRender,
                 combinedHidingList);
-
-            // Apply special cases after conflict resolution
-            foreach (var wearable in wearables)
-            {
-                var rep = wearable[bodyShape];
-                var category = wearable.Category;
-            
-                // Deal with hands - upper body wearables hide hands by default
-                if (ShouldHideHands(category, rep))
-                {
-                    // If wearable is forced to be rendered, never remove it
-                    if (forceRender == null || !forceRender.Contains(WearableCategories.Categories.HANDS))
-                    {
-                        combinedHidingList.Add(WearableCategories.Categories.HANDS);
-                    }
-                }
-            
-                // Skin has implicit hides
-                if (category == WearableCategories.Categories.SKIN)
-                {
-                    foreach (var skinCategory in WearableCategories.SKIN_IMPLICIT_CATEGORIES)
-                    {
-                        // If wearable is forced to be rendered, never remove it
-                        if (forceRender != null && forceRender.Contains(skinCategory)) continue;
-            
-                        combinedHidingList.Add(skinCategory);
-                    }
-                }
-            }
-
+        
             // Release all HashSet objects back to the pool
             foreach (var hidingList in hiddenCategoriesByCategory.Values)
                 HashSetPool<string>.Release(hidingList);
-
+        
             // Release the Dictionary back to the pool
             DictionaryPool<string, HashSet<string>>.Release(hiddenCategoriesByCategory);
-
+        
             return combinedHidingList;
         }
-
+        
         private static bool ShouldHideHands(string category, EntityDefinition.Representation rep)
         {
             // We apply this rule to hide the hands by default if the wearable is an upper body or hides the upper body
