@@ -26,17 +26,12 @@ namespace Utils
             var combinedHidingList = new HashSet<string>();
             var hiddenCategoriesByCategory = DictionaryPool<string, HashSet<string>>.Get();
 
-            for (var i = 0; i < wearables.Count; i++)
+            // Compose hidden categories lookup
+            foreach (var wearable in wearables)
             {
                 var hidingList = HashSetPool<string>.Get();
-                var wearable = wearables[i];
-                var hideList = wearable[bodyShape].Hides;
 
-                // Force immediate materialization to avoid shared references
-                var materializedList = hideList.ToArray();
-
-                // Populate the pooled HashSet
-                foreach (var hide in materializedList)
+                foreach (var hide in wearable[bodyShape].Hides)
                 {
                     // Prevent a category from hiding itself (this causes circular reference issues)
                     if (hide != wearable.Category)
