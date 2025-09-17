@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Data;
+using Runtime.Wearables;
 using UI.Elements;
 using UnityEngine;
 using UnityEngine.UIElements;

@@ -4,6 +4,7 @@ using System.Linq;
 using Data;
 using JetBrains.Annotations;
 using Loading;
+using Runtime.Wearables;
 using UnityEngine;
 using UnityEngine.Pool;
 

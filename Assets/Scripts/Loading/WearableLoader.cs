@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Data;
 using DCL.Rendering.RenderGraphs.RenderFeatures.AvatarOutline;
+using Runtime.Wearables;
 using Services;
 using UnityEngine;
 using Utils;

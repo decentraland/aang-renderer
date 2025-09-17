@@ -13,11 +13,11 @@
       "hash": "e4587451389b6cf93b084ae434d0cc3d32a45076"
     },
     "com.decentraland.unity-shared-dependencies": {
-      "version": "git@github.com:decentraland/unity-shared-dependencies.git#chore/bring-avatar-shaders",
+      "version": "git@github.com:decentraland/unity-shared-dependencies.git#fix/wearable-utils-meta-files",
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "3d08a27b8f28d4fa1657337f424a9945095dba9e"
+      "hash": "034c68c57dc051813391b576140fca990b59f8f7"
     },
     "com.unity.burst": {
       "version": "1.8.23",

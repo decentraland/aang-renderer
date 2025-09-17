@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Configurator.Views;
 using Data;
 using JetBrains.Annotations;
+using Runtime.Wearables;
 using UI.Elements;
 using UI.Manipulators;
 using UnityEngine;

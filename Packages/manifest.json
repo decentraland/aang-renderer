@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "com.atteneder.gltfast": "https://github.com/decentraland/unity-gltf.git",
-    "com.decentraland.unity-shared-dependencies": "git@github.com:decentraland/unity-shared-dependencies.git#chore/bring-avatar-shaders",
+    "com.decentraland.unity-shared-dependencies": "git@github.com:decentraland/unity-shared-dependencies.git#fix/wearable-utils-meta-files",
     "com.unity.cinemachine": "3.1.4",
     "com.unity.ide.rider": "3.0.36",
     "com.unity.ide.visualstudio": "2.0.23",

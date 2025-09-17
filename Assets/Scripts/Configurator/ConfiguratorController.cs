@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Data;
 using Loading;
+using Runtime.Wearables;
 using Services;
 using UnityEngine;
 using UnityEngine.Serialization;
