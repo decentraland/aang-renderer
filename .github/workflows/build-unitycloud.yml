@@ -131,10 +131,8 @@ jobs:
           #options=("DetailedBuildReport")
           options=()
 
-          # development build
-          development="${{ github.event.inputs.development_build }}"
-
-          if [[ "$development" == "true" ]]; then
+          # development build - enabled for PRs or when explicitly requested
+          if [ "${{ github.event_name }}" == "pull_request" ] || [ "${{ github.event.inputs.development_build }}" == "true" ]; then
             options+=("Development")
           fi
 
