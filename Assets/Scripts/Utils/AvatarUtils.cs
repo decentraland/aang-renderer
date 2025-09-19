@@ -4,7 +4,9 @@ using System.Linq;
 using Data;
 using JetBrains.Annotations;
 using Loading;
+using Runtime.Wearables;
 using UnityEngine;
+using UnityEngine.Pool;
 
 namespace Utils
 {
@@ -15,69 +17,77 @@ namespace Utils
         /// </summary>
         /// <param name="bodyShape"></param>
         /// <param name="wearables">Currently equipped wearables</param>
-        /// <param name="overrideCategory">The category that has been overridden and should never be hidden</param>
         /// <param name="forceRender">Which parts we shouldn't hide</param>
         /// <returns>A set of all the categories that were hidden.</returns>
-        public static HashSet<string> HideWearables(BodyShape bodyShape, List<EntityDefinition> wearables,
-            string overrideCategory, [CanBeNull] string[] forceRender)
+        public static HashSet<string> HideWearables(
+            BodyShape bodyShape,
+            List<EntityDefinition> wearables,
+            [CanBeNull] string[] forceRender)
         {
-            var hiddenCategories = new HashSet<string>();
-
-            foreach (var category in WearablesConstants.CATEGORIES_PRIORITY)
+            var combinedHidingList = new HashSet<string>();
+            var hiddenCategoriesByCategory = DictionaryPool<string, HashSet<string>>.Get();
+        
+            // Compose hidden categories lookup
+            foreach (var wearable in wearables)
             {
-                var rep = wearables.FirstOrDefault(w => w.Category == category)?[bodyShape];
-
-                if (rep != null)
+                var hidingList = HashSetPool<string>.Get();
+                var rep = wearable[bodyShape];
+        
+                foreach (var hide in rep.Hides)
                 {
-                    // Apparently there's no difference between hides and replaces
-                    foreach (var categoryToHide in rep.Hides)
+                    // Prevent a category from hiding itself (this causes circular reference issues)
+                    if (hide != wearable.Category)
+                        hidingList.Add(hide);
+                }
+                
+                // Deal with hands - upper body wearables hide hands by default
+                if (ShouldHideHands(wearable.Category, rep))
+                {
+                    // If wearable is forced to be rendered, never remove it
+                    if (forceRender == null || !forceRender.Contains(WearableCategories.Categories.HANDS))
                     {
-                        if (categoryToHide == category) continue; // Safeguard so wearables don't hide themselves
-
-                        // If wearable is forced to be rendered, never remove it
-                        if (forceRender != null && forceRender.Contains(categoryToHide)) continue;
-
-                        wearables.RemoveAll(ed => ed.Category == categoryToHide);
-                        hiddenCategories.Add(categoryToHide);
-                    }
-
-                    // Deal with hands
-                    if (ShouldHideHands(category, rep))
-                    {
-                        wearables.RemoveAll(ed => ed.Category == WearablesConstants.Categories.HANDS);
-                        hiddenCategories.Add(WearablesConstants.Categories.HANDS);
-                    }
-
-                    // Skin has implicit hides
-                    if (category == WearablesConstants.Categories.SKIN)
-                    {
-                        if (overrideCategory is null or WearablesConstants.Categories.SKIN)
-                        {
-                            foreach (var skinCategory in WearablesConstants.SKIN_IMPLICIT_CATEGORIES)
-                            {
-                                // If wearable is forced to be rendered, never remove it
-                                if (forceRender != null && forceRender.Contains(skinCategory)) continue;
-
-                                wearables.RemoveAll(ed => ed.Category == skinCategory);
-                                hiddenCategories.Add(skinCategory);
-                            }
-                        }
+                        hidingList.Add(WearableCategories.Categories.HANDS);
                     }
                 }
+                
+                // Skin has implicit hides
+                if (wearable.Category == WearableCategories.Categories.SKIN)
+                {
+                    foreach (var skinCategory in WearableCategories.SKIN_IMPLICIT_CATEGORIES)
+                    {
+                        // If wearable is forced to be rendered, never remove it
+                        if (forceRender != null && forceRender.Contains(skinCategory)) continue;
+            
+                        hidingList.Add(skinCategory);
+                    }
+                }
+                
+                hiddenCategoriesByCategory[wearable.Category] = hidingList;
             }
-
-            return hiddenCategories;
+            
+            WearableUtils.ResolveHidingConflicts(
+                hiddenCategoriesByCategory,
+                forceRender,
+                combinedHidingList);
+        
+            // Release all HashSet objects back to the pool
+            foreach (var hidingList in hiddenCategoriesByCategory.Values)
+                HashSetPool<string>.Release(hidingList);
+        
+            // Release the Dictionary back to the pool
+            DictionaryPool<string, HashSet<string>>.Release(hiddenCategoriesByCategory);
+        
+            return combinedHidingList;
         }
-
-
+        
         private static bool ShouldHideHands(string category, EntityDefinition.Representation rep)
         {
             // We apply this rule to hide the hands by default if the wearable is an upper body or hides the upper body
-            var isOrHidesUpperBody = category == WearablesConstants.Categories.UPPER_BODY ||
-                                     rep.Hides.Contains(WearablesConstants.Categories.UPPER_BODY);
+            var isOrHidesUpperBody = category == WearableCategories.Categories.UPPER_BODY ||
+                                     rep.Hides.Contains(WearableCategories.Categories.UPPER_BODY);
 
             // The rule is ignored if the wearable contains the removal of this default rule (newer upper bodies since the release of hands)
-            var removesHandDefault = rep.RemovesDefaultHiding.Contains(WearablesConstants.Categories.HANDS);
+            var removesHandDefault = rep.RemovesDefaultHiding.Contains(WearableCategories.Categories.HANDS);
 
             // Why do we do this? Because old upper bodies contain the base hand mesh, and they might clip with the new handwear items
             return isOrHidesUpperBody && !removesHandDefault;
@@ -186,7 +196,7 @@ namespace Utils
             Dictionary<string, (Texture2D main, Texture2D mask)> defaultBodyFacialFeatures)
         {
             // Setup facial features
-            foreach (var cat in WearablesConstants.FACIAL_FEATURES)
+            foreach (var cat in WearableCategories.FACIAL_FEATURES)
             {
                 var ffRenderer = GetFacialFeatureRenderer(cat, go);
 
@@ -207,7 +217,7 @@ namespace Utils
                 var mask = loadedFeature.Entity != null ? loadedFeature.Mask : defaultBodyFacialFeatures[cat].mask;
 
                 // The default mask for eyes is all white
-                if (cat == WearablesConstants.Categories.EYES && mask == null)
+                if (cat == WearableCategories.Categories.EYES && mask == null)
                 {
                     mask = Texture2D.whiteTexture;
                 }
@@ -221,9 +231,9 @@ namespace Utils
         {
             var suffix = category switch
             {
-                WearablesConstants.Categories.EYEBROWS => "Mask_Eyebrows",
-                WearablesConstants.Categories.EYES => "Mask_Eyes",
-                WearablesConstants.Categories.MOUTH => "Mask_Mouth",
+                WearableCategories.Categories.EYEBROWS => "Mask_Eyebrows",
+                WearableCategories.Categories.EYES => "Mask_Eyes",
+                WearableCategories.Categories.MOUTH => "Mask_Mouth",
                 _ => throw new ArgumentOutOfRangeException(nameof(category), category, null)
             };
 
@@ -236,9 +246,9 @@ namespace Utils
         {
             return category switch
             {
-                WearablesConstants.Categories.EYEBROWS => colors.Hair,
-                WearablesConstants.Categories.EYES => colors.Eyes,
-                WearablesConstants.Categories.MOUTH => colors.Skin,
+                WearableCategories.Categories.EYEBROWS => colors.Hair,
+                WearableCategories.Categories.EYES => colors.Eyes,
+                WearableCategories.Categories.MOUTH => colors.Skin,
                 _ => throw new ArgumentOutOfRangeException(nameof(category), category, null)
             };
         }

@@ -13,11 +13,11 @@
       "hash": "e4587451389b6cf93b084ae434d0cc3d32a45076"
     },
     "com.decentraland.unity-shared-dependencies": {
-      "version": "git@github.com:decentraland/unity-shared-dependencies.git#chore/bring-avatar-shaders",
+      "version": "git@github.com:decentraland/unity-shared-dependencies.git#main",
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "3d08a27b8f28d4fa1657337f424a9945095dba9e"
+      "hash": "da34743b0e4c01191c72f58af715bf2c0dfc2d67"
     },
     "com.unity.burst": {
       "version": "1.8.23",

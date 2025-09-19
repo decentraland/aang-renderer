@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Configurator.Views;
 using Data;
 using JetBrains.Annotations;
+using Runtime.Wearables;
 using UI.Elements;
 using UI.Manipulators;
 using UnityEngine;
@@ -155,10 +156,10 @@ namespace Configurator
             {
                 switch (_headWearablesView.SelectedCategory)
                 {
-                    case WearablesConstants.Categories.EYES:
+                    case WearableCategories.Categories.EYES:
                         EyeColorSelected!(c);
                         break;
-                    case WearablesConstants.Categories.HAIR:
+                    case WearableCategories.Categories.HAIR:
                         HairColorSelected!(c);
                         break;
                 }

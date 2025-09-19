@@ -45,7 +45,7 @@ namespace Loading
             var bodyEntity = EntityService.GetBodyEntity(bodyShape);
             var definitions = wearableDefinitions.Prepend(bodyEntity).ToList();
 
-            var hiddenCategories = AvatarUtils.HideWearables(bodyShape, definitions, null, forceRenderCategories);
+            var hiddenCategories = AvatarUtils.HideWearables(bodyShape, definitions, forceRenderCategories);
 
             var hasBodyShapeChanged = bodyShape != _loadedBodyShape;
             var definitionsToLoad = hasBodyShapeChanged
@@ -159,7 +159,7 @@ namespace Loading
                 // Colors
                 AvatarUtils.SetupColors(go, colors, outlineRenderers, avatarRootBone, avatarBones);
 
-                if (_hiddenCategories.Contains(ed.Category))
+                if (hiddenCategories.Contains(ed.Category))
                 {
                     go.SetActive(false);
                 }

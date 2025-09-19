@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Data;
 using DCL.Rendering.RenderGraphs.RenderFeatures.AvatarOutline;
+using Runtime.Wearables;
 using Services;
 using UnityEngine;
 using Utils;
@@ -53,16 +54,16 @@ namespace Loading
                     // Hide everything except the head
                     AvatarUtils.HideBodyShape(bodyLoadResult.Root, new HashSet<string>
                     {
-                        WearablesConstants.Categories.UPPER_BODY,
-                        WearablesConstants.Categories.LOWER_BODY,
-                        WearablesConstants.Categories.HANDS,
-                        WearablesConstants.Categories.FEET
+                        WearableCategories.Categories.UPPER_BODY,
+                        WearableCategories.Categories.LOWER_BODY,
+                        WearableCategories.Categories.HANDS,
+                        WearableCategories.Categories.FEET
                     }, new HashSet<string>());
 
                     AvatarUtils.HideBodyShapeFacialFeatures(bodyLoadResult.Root,
-                        entityDefinition.Category != WearablesConstants.Categories.EYES,
-                        entityDefinition.Category != WearablesConstants.Categories.EYEBROWS,
-                        entityDefinition.Category != WearablesConstants.Categories.MOUTH
+                        entityDefinition.Category != WearableCategories.Categories.EYES,
+                        entityDefinition.Category != WearableCategories.Categories.EYEBROWS,
+                        entityDefinition.Category != WearableCategories.Categories.MOUTH
                     );
 
                     AvatarUtils.SetupFacialFeatures(bodyLoadResult.Root, colors,
