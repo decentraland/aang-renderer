@@ -162,7 +162,7 @@ namespace UI.Elements
 
         private Rect GetUnscaledWorldBounds()
         {
-            var currentScale = transform.scale;
+            var currentScale = resolvedStyle.scale.value;
             var bounds = worldBound;
 
             if (Mathf.Approximately(currentScale.x, 1f) == false || Mathf.Approximately(currentScale.y, 1f) == false)

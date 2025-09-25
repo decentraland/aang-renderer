@@ -39,4 +39,18 @@ public class Bootstrap : MonoBehaviour
             previewController.gameObject.SetActive(true);
         }
     }
+
+    [ContextMenu("Reload")]
+    private void Reload()
+    {
+        var bridge = FindAnyObjectByType<JSBridge>();
+        bridge.Reload();
+    }
+
+    [ContextMenu("Set Name")]
+    private void SetName()
+    {
+        var bridge = FindAnyObjectByType<JSBridge>();
+        bridge.SetUsername("Miha");
+    }
 }

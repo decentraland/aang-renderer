@@ -311,7 +311,7 @@ public class AangConfiguration
                 case "showFPS":
                     Instance.ShowFPS = bool.Parse(value);
                     break;
-                case "sequentialLoad":
+                case "concurrentLoad":
                     Instance.ConcurrentLoad = bool.Parse(value);
                     break;
                 case "uninterruptedDeferAgent":
