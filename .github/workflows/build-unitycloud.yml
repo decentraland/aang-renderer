@@ -352,7 +352,7 @@ jobs:
 
   comment-preview-success:
     name: Comment (Vercel preview link)
-    needs: deploy_preview
+    needs: [prebuild, deploy_preview]
     if: ${{ github.event_name == 'pull_request' && needs.deploy_preview.result == 'success' && needs.deploy_preview.outputs.preview_url != '' }}
     runs-on: ubuntu-latest
     permissions:
@@ -380,7 +380,7 @@ jobs:
             | Field   | Value |
             | ------- | ----- |
             | Preview | ${{ needs.deploy_preview.outputs.preview_url }} |
-            | Commit  | `${{ github.sha }}` |
+            | Commit  | `${{ needs.prebuild.outputs.commit_sha }}` |
             | Logs    | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |
 
             [badge]: https://img.shields.io/badge/Preview-Ready!-3fb950?logo=vercel&style=for-the-badge
