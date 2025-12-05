@@ -149,15 +149,8 @@ namespace Loading
                 var clips = importer.GetAnimationClips();
                 var looping = (entityDefinition.Flags & EntityFlags.Looping) != 0;
                 Debug.Log($"Loaded emote: {rep.MainFile} with clips: {clips.Length}");
-
-                // Note, some GLB's just don't have an animation that ends with _Avatar, because of course they bloody don't.
-                // Even though conventions say they should: https://docs.decentraland.org/creator/emotes/props-and-sounds/#naming-conventions
-                // Like this one: urn:decentraland:matic:collections-v2:0xb5e24ada4096b86ce3cf7af5119f19ed6089a80b:0
-                var avatarClip = clips.Length == 1 ? clips[0] : clips.First(c => c.name.EndsWith("_Avatar"));
-                var propClip = clips.Length == 1
-                    ? null
-                    : clips.FirstOrDefault(c => c.name.EndsWith("_Prop", StringComparison.InvariantCultureIgnoreCase)) ??
-                      clips.FirstOrDefault(c => !c.name.EndsWith("_Avatar"));
+                
+                var (avatarClip, propClip) = ExtractClips(clips);
                 GameObject prop = null;
                 Animation propAnim = null;
                 
@@ -189,6 +182,38 @@ namespace Loading
             throw new NotSupportedException($"Failed to load emote: {rep.MainFile}");
         }
 
+        private static (AnimationClip avatarCliP, AnimationClip propClip) ExtractClips(AnimationClip[] clips)
+        {
+            // Note, some GLB's just don't have an animation that ends with _Avatar, because of course they bloody don't.
+            // Even though conventions say they should: https://docs.decentraland.org/creator/emotes/props-and-sounds/#naming-conventions
+            // Like this one: urn:decentraland:matic:collections-v2:0xb5e24ada4096b86ce3cf7af5119f19ed6089a80b:0
+            // Conventions are often not followed, so we try to figure out which clip is which
+            
+            // Conventions (if it's just one clip, it's the avatar clip)
+            var avatarClip = clips.Length == 1 ? clips[0] : clips.FirstOrDefault(c => c.name.EndsWith("_Avatar", StringComparison.OrdinalIgnoreCase));
+            var propClip = clips.Length == 1 ?
+                null :
+                clips.FirstOrDefault(c => c.name.EndsWith("_Prop", StringComparison.OrdinalIgnoreCase));
+
+            // If the prop clip was found but the avatar clip was not, we can infer that the avatar clip is
+            // the one that isn't the prop clip
+            if (avatarClip == null && propClip != null)
+            {
+                avatarClip = clips.FirstOrDefault(c => c != propClip);
+            }
+            
+            // If the avatar clip was found, but the prop clip wasn't, we can infer that the prop clip is
+            // the one that isn't the avatar clip
+            if (avatarClip != null && propClip == null && clips.Length == 2)
+            {
+                propClip = clips.FirstOrDefault(c => c != avatarClip);
+            }
+            
+            if (avatarClip == null) throw new InvalidOperationException("Failed to determine animation clip assignment from names: " + clips.Select(c => c.name).Aggregate((a, b) => a + ", " + b));
+            
+            return (avatarClip, propClip);
+        } 
+        
         /// <summary>
         /// Examples of urns that need this:
         ///
