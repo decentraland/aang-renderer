@@ -44,7 +44,7 @@ namespace Preview
             emoteAnimationController.EmoteAnimationEnded += OnEmoteAnimationEnded;
 
             avatarRotator.AllowVertical = false;
-            wearableRotator.AllowVertical = true;
+            wearableRotator.AllowVertical = false;
 
             StartCoroutine(Reload());
         }
