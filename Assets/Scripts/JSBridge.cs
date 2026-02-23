@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Configurator;
 using JetBrains.Annotations;
 using Preview;
 using UnityEngine;
@@ -17,6 +18,7 @@ using Utils;
 public class JSBridge : MonoBehaviour
 {
     [SerializeField] private PreviewController previewController;
+    [SerializeField] private ConfiguratorUIPresenter configuratorUIPresenter;
 
     [UsedImplicitly]
     public void ParseFromURL() => AangConfiguration.RecreateFrom(Application.absoluteURL);
@@ -78,6 +80,9 @@ public class JSBridge : MonoBehaviour
     
     [UsedImplicitly]
     public void SetUsername(string value) => AangConfiguration.Instance.Username = value;
+
+    [UsedImplicitly]
+    public void GetElementBounds(string elementName) => configuratorUIPresenter.GetElementBounds(elementName);
 
     [UsedImplicitly]
     public void Reload() => previewController.InvokeReload();
@@ -147,7 +152,9 @@ public class JSBridge : MonoBehaviour
         public static void OnError(string message) => Debug.LogError($"NativeCall OnError({message})");
         
         public static void OnCustomizationDone(string message) => Debug.Log($"NativeCall OnCustomizationDone({message})");
-        
+
+        public static void OnElementBounds(string json) => Debug.Log($"NativeCall OnElementBounds({json})");
+
         // ReSharper disable once InconsistentNaming
         public static void PreloadURLs(string urlsCSV) => Debug.Log($"NativeCall PreloadURLs({urlsCSV})");
 #else
@@ -162,7 +169,10 @@ public class JSBridge : MonoBehaviour
 
         [System.Runtime.InteropServices.DllImport("__Internal")]
         public static extern void OnCustomizationDone(string message);
-        
+
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        public static extern void OnElementBounds(string json);
+
         [System.Runtime.InteropServices.DllImport("__Internal")]
         public static extern void PreloadURLs(string urlsCSV);
 #endif

@@ -78,6 +78,26 @@ mergeInto(LibraryManager.library, {
         '*'
       )
     },
+  OnElementBounds: function (strPtr) {
+    const json = UTF8ToString(strPtr)
+    const targetWindow = (() => {
+      try {
+        return window.self !== window.top ? window : window.parent
+      } catch (e) {
+        return window.parent
+      }
+    })()
+    targetWindow.postMessage(
+      {
+        type: 'unity-renderer',
+        payload: {
+          type: 'element-bounds',
+          payload: json,
+        },
+      },
+      '*'
+    )
+  },
   PreloadURLs: function(strPtr) {
     const csv = UTF8ToString(strPtr);
     const urls = csv.split(',');

@@ -397,5 +397,38 @@ namespace Configurator
         {
             _presetsView.ClearSelection();
         }
+
+        public void GetElementBounds(string elementName)
+        {
+            var root = uiDocument.rootVisualElement;
+            var element = root.Q(elementName);
+
+            if (element == null || element.resolvedStyle.display == DisplayStyle.None || element.worldBound.width <= 0)
+            {
+                JSBridge.NativeCalls.OnElementBounds(JsonUtility.ToJson(new ElementBoundsData { name = elementName }));
+                return;
+            }
+
+            var bounds = element.worldBound;
+            var panelLayout = root.panel.visualTree.layout;
+
+            JSBridge.NativeCalls.OnElementBounds(JsonUtility.ToJson(new ElementBoundsData
+            {
+                name = elementName,
+                found = true,
+                x = bounds.x / panelLayout.width,
+                y = bounds.y / panelLayout.height,
+                width = bounds.width / panelLayout.width,
+                height = bounds.height / panelLayout.height,
+            }));
+        }
+
+        [Serializable]
+        private struct ElementBoundsData
+        {
+            public string name;
+            public bool found;
+            public float x, y, width, height;
+        }
     }
 }
