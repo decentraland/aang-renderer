@@ -156,8 +156,8 @@ namespace Loading
                 go.SetActive(true);
                 outlineRenderers.Clear();
 
-                // Colors
-                AvatarUtils.SetupColors(go, colors, outlineRenderers, avatarRootBone, avatarBones);
+                AvatarUtils.SetupColors(go, colors, outlineRenderers);
+                AvatarUtils.RebindBones(go, avatarRootBone, avatarBones);
 
                 if (hiddenCategories.Contains(ed.Category))
                 {
