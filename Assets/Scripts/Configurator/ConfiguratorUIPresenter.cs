@@ -65,7 +65,8 @@ namespace Configurator
         public event Action<string, EntityDefinition> WearableSelected;
         public event Action<PresetDefinition> PresetSelected;
         public event Action<bool> Confirmed;
-        public event Action JumpIn;
+        public event Action<bool> JumpIn;
+        public event Action<int> AvatarCustomizationStepChanged;
 
         private bool _confirmationOpen;
         private bool _usingMobile;
@@ -188,7 +189,7 @@ namespace Configurator
             _confirmContainer = root.Q("ConfirmationContainer");
             _confirmTitle = _confirmContainer.Q<Label>("Title");
             _confirmContainer.Q<DCLButtonElement>("ConfirmationBackButton").Clicked += () => OpenConfirm(false);
-            _confirmContainer.Q<DCLButtonElement>("JumpInButton").Clicked += () => JumpIn!();
+            _confirmContainer.Q<DCLButtonElement>("JumpInButton").Clicked += () => JumpIn!(false);
 
             // Debug FPS Counter
             _fpsCounter = root.Q<Label>("FPSCounter");
@@ -267,6 +268,7 @@ namespace Configurator
             _stages[--_currentStageIndex].Show();
 
             RefreshCurrentStage();
+            AvatarCustomizationStepChanged?.Invoke(_currentStageIndex);
         }
 
         private void OnNextClicked()
@@ -274,13 +276,13 @@ namespace Configurator
             // The next button on the first stage (presets) functions as "skip"
             if (_currentStageIndex == 0)
             {
-                JumpIn!();
+                JumpIn!(true);
                 return;
             }
-            
+
             if (_currentStageIndex == _stages.Length - 1)
             {
-                JumpIn!();
+                JumpIn!(false);
                 return;
             }
 
@@ -296,7 +298,7 @@ namespace Configurator
                 return;
             }
 
-            JumpIn!();
+            JumpIn!(true);
         }
 
         private void AdvanceStage()
@@ -305,6 +307,7 @@ namespace Configurator
             _stages[++_currentStageIndex].Show();
 
             RefreshCurrentStage();
+            AvatarCustomizationStepChanged?.Invoke(_currentStageIndex);
         }
 
         private void OpenConfirm(bool open)
@@ -367,6 +370,7 @@ namespace Configurator
             RefreshCurrentStage();
             _customizeContainer.SetVisibility(true);
             _loader.SetDisplay(false);
+            AvatarCustomizationStepChanged?.Invoke(_currentStageIndex);
         }
 
         public void SetUsingMobileMode(bool usingMobile)

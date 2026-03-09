@@ -155,6 +155,8 @@ public class JSBridge : MonoBehaviour
 
         public static void OnElementBounds(string json) => Debug.Log($"NativeCall OnElementBounds({json})");
 
+        public static void OnAvatarCustomizationStep(int step) => Debug.Log($"NativeCall OnAvatarCustomizationStep({step})");
+
         // ReSharper disable once InconsistentNaming
         public static void PreloadURLs(string urlsCSV) => Debug.Log($"NativeCall PreloadURLs({urlsCSV})");
 #else
@@ -172,6 +174,9 @@ public class JSBridge : MonoBehaviour
 
         [System.Runtime.InteropServices.DllImport("__Internal")]
         public static extern void OnElementBounds(string json);
+
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        public static extern void OnAvatarCustomizationStep(int step);
 
         [System.Runtime.InteropServices.DllImport("__Internal")]
         public static extern void PreloadURLs(string urlsCSV);
