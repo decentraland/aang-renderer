@@ -33,8 +33,8 @@ namespace Configurator.Views
         }
 
         public PresetsView(VisualElement root, string title, string confirmButtonText, int confirmButtonWidth,
-            string confirmButtonTextMobile, bool canSkip) : base(root, title, confirmButtonText, confirmButtonWidth,
-            confirmButtonTextMobile, canSkip)
+            string confirmButtonTextMobile, bool canSkip, string skipButtonText, string skipButtonTextMobile) : base(root, title, confirmButtonText,
+            confirmButtonWidth, confirmButtonTextMobile, canSkip, skipButtonText, skipButtonTextMobile)
         {
             _presetsContainer = root.Q<ScrollView>("Body");
             _previewButtons = _presetsContainer.Query<PreviewButtonElement>().ToList();

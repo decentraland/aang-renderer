@@ -9,14 +9,18 @@ namespace Configurator.Views
         public readonly string Title;
         public readonly string ConfirmButtonText;
         public readonly string ConfirmButtonTextMobile;
+        public readonly string SkipButtonText;
+        public readonly string SkipButtonTextMobile;
         public readonly int ConfirmButtonWidth; // This is ugly but the only way to get it to animate nicely
+        public readonly int SkipButtonWidth; // This is ugly but the only way to get it to animate nicely
         public readonly bool CanSkip;
 
         public abstract string SelectedCategory { get; }
 
         protected bool UsingMobile;
         
-        protected StageView(VisualElement root, string title, string confirmButtonText, int confirmButtonWidth, string confirmButtonTextMobile, bool canSkip)
+        protected StageView(VisualElement root, string title, string confirmButtonText, int confirmButtonWidth, string confirmButtonTextMobile,
+                            bool canSkip, string skipButtonText = "SKIP CUSTOMIZATION", string skipButtonTextMobile = "SKIP")
         {
             _root = root;
             Title = title;
@@ -24,6 +28,8 @@ namespace Configurator.Views
             ConfirmButtonTextMobile = confirmButtonTextMobile;
             CanSkip = canSkip;
             ConfirmButtonWidth = confirmButtonWidth;
+            SkipButtonText = skipButtonText;
+            SkipButtonTextMobile = skipButtonTextMobile;
         }
 
         public void HideLeft()

@@ -118,7 +118,7 @@ namespace Configurator
 
             _backButton.Clicked += OnBackClicked;
             _confirmButton.Clicked += OnNextClicked;
-            _skipButton.Clicked += () => OpenConfirm(true);
+            _skipButton.Clicked += OnSkipClicked;
 
             _loader = root.Q("Loader");
             _loaderIcon = _loader.Q("Icon");
@@ -126,10 +126,12 @@ namespace Configurator
             var presetsContainer = root.Q("Presets");
             _presetsView = new PresetsView(presetsContainer,
                 "Choose {0}'s starting look",
-                "START CUSTOMIZING",
+                "CUSTOMIZE LATER",
                 221,
-                "START",
-                true);
+                "LATER",
+                true,
+                "START CUSTOMIZATION",
+                "START");
             _presetsView.PresetSelected += preset => PresetSelected!(preset);
 
             // Dropdowns
@@ -269,12 +271,36 @@ namespace Configurator
 
         private void OnNextClicked()
         {
+            // The next button on the first stage (presets) functions as "skip"
+            if (_currentStageIndex == 0)
+            {
+                JumpIn!();
+                return;
+            }
+            
             if (_currentStageIndex == _stages.Length - 1)
             {
-                OpenConfirm(true);
+                JumpIn!();
                 return;
             }
 
+            AdvanceStage();
+        }
+
+        private void OnSkipClicked()
+        {
+            // The skip button on the first stage (presets) functions as "next"
+            if (_currentStageIndex == 0)
+            {
+                AdvanceStage();
+                return;
+            }
+
+            JumpIn!();
+        }
+
+        private void AdvanceStage()
+        {
             _stages[_currentStageIndex].HideLeft();
             _stages[++_currentStageIndex].Show();
 
@@ -317,7 +343,7 @@ namespace Configurator
 
             _skipButton.EnableInClassList("dcl-button--hidden-down",
                 !stage.CanSkip || _usingMobile && _currentStageIndex != 0);
-            _skipButton.Text = _usingMobile ? "SKIP" : "SKIP CUSTOMIZATION";
+            _skipButton.Text = _usingMobile ? stage.SkipButtonTextMobile : stage.SkipButtonText;
             _backButton.EnableInClassList("dcl-button--hidden-down", _currentStageIndex == 0);
 
             // TODO: Change?
