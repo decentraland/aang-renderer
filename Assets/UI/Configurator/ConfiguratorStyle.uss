@@ -511,12 +511,8 @@
 .portrait #ConfirmButton {
     justify-content: center;
     flex-grow: 1;
-    flex-basis: 1px;
+    flex-basis: 130px;
     margin-left: 10px;
-}
-
-.portrait #ConfirmButton > .dcl-button__label {
-    font-size: 18px;
 }
 
 .portrait .container__character-area {

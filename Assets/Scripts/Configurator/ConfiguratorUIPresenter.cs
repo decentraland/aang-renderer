@@ -128,7 +128,7 @@ namespace Configurator
                 "Choose {0}'s starting look",
                 "CUSTOMIZE LATER",
                 221,
-                "LATER",
+                "CUSTOMIZE LATER",
                 true,
                 "START CUSTOMIZATION",
                 "START");
@@ -151,7 +151,7 @@ namespace Configurator
                 "CUSTOMIZE OUTFIT",
                 209,
                 "OUTFIT",
-                true);
+                false);
             _headWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
             _headWearablesView.CategoryChanged += c => CategoryChanged!(c);
             _headWearablesView.ColorSelected += c =>
