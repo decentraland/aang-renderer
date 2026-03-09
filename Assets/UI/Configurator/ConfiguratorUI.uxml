@@ -75,16 +75,6 @@
                 </UI.Elements.DCLDropdownElement>
             </ui:VisualElement>
         </ui:VisualElement>
-        <ui:VisualElement name="EnterNameContainer" class="enter-name-container" style="display: none;">
-            <ui:VisualElement name="EnterNameWindow" class="enter-name-container__content">
-                <ui:VisualElement name="Logo" class="enter-name-container__logo" />
-                <ui:Label text="&lt;font-weight=600&gt;Welcome to Decentraland!" name="Welcome" class="enter-name-container__welcome" />
-                <ui:TextField label="Enter your username" placeholder-text="Any name you want" name="UsernameField" max-length="15" hide-placeholder-on-focus="true" class="dcl-text-field enter-name-container__text-field" />
-                <ui:TextField label="Email (optional)" placeholder-text="We won&apos;t send you spam" name="EmailField" hide-placeholder-on-focus="true" keyboard-type="EmailAddress" class="dcl-text-field enter-name-container__text-field" />
-                <ui:Toggle label="I agree with Decentraland’s &lt;u&gt;&lt;link=&quot;tos&quot;&gt;Terms of Use&lt;/link&gt;&lt;/u&gt; and &lt;u&gt;&lt;link=&quot;pp&quot;&gt;Privacy Policy&lt;/link&gt;&lt;/u&gt;." name="TOSToggle" class="dcl-toggle enter-name-container__tos-toggle" />
-                <UI.Elements.DCLButtonElement text="CUSTOMIZE MY AVATAR" name="CustomizeButton" button-type="Primary" enabled="false" />
-            </ui:VisualElement>
-        </ui:VisualElement>
         <ui:VisualElement name="ConfirmationContainer" picking-mode="Ignore" class="confirmation-container confirmation-container--hidden">
             <ui:Label text="&lt;font-weight=600&gt;UserName is Ready to Jump In!" name="Title" class="confirmation-container__title"/>
             <ui:VisualElement name="CharacterArea" picking-mode="Ignore" class="confirmation-container__character-area"/>

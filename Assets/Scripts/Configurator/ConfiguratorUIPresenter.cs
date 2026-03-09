@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Configurator.Views;
 using Data;
-using JetBrains.Annotations;
 using Runtime.Wearables;
 using UI.Elements;
 using UI.Manipulators;
@@ -15,7 +14,6 @@ namespace Configurator
     public class ConfiguratorUIPresenter : MonoBehaviour
     {
         private const string USS_CUSTOMIZE_CONTAINER_HIDDEN = "customize-container--hidden";
-        private const string USS_ENTER_NAME_HIDDEN = "enter-name-container--hidden";
         private const string USS_CONFIRMATION_CONTAINER_HIDDEN = "confirmation-container--hidden";
         
         [SerializeField] private UIDocument uiDocument;
@@ -23,8 +21,6 @@ namespace Configurator
         private VisualElement _customizeContainer;
         private VisualElement _loader;
         private VisualElement _loaderIcon;
-        
-        private VisualElement _enterNameContainer;
 
         private DCLButtonElement _backButton;
         private DCLButtonElement _secondaryButton;
@@ -41,11 +37,9 @@ namespace Configurator
         private string _username;
 
         // Views
-        private EnterNameView _enterNameView;
         private WearablesView _headWearablesView;
         private WearablesView _bodyWearablesView;
         private PresetsView _presetsView;
-        private ConfirmPopupView _confirmPopupView;
         private BodyShapePopupView _bodyShapePopupView;
         private ColorPopupView _skinColorPopupView;
         private ColorPopupView _hairColorPopupView;
@@ -81,12 +75,6 @@ namespace Configurator
 
             _customizeContainer = root.Q("CustomizeContainer");
             var characterArea = _customizeContainer.Q("CharacterArea");
-
-            // Enter name
-            _enterNameContainer = root.Q("EnterNameContainer");
-            _enterNameView = new EnterNameView(_enterNameContainer);
-            _enterNameView.Confirmed += OnNameConfirmed;
-            ShowEnterName(AangConfiguration.Instance.ShowEnterName);
 
             characterArea.RegisterCallback<GeometryChangedEvent, VisualElement>((_, area) =>
             {
@@ -223,19 +211,6 @@ namespace Configurator
             }
 
             RefreshCurrentStage();
-        }
-
-        private void OnNameConfirmed(string username, [CanBeNull] string email)
-        {
-            _username = username;
-            ShowEnterName(false);
-            RefreshCurrentStage();
-        }
-
-        private void ShowEnterName(bool show)
-        {
-            _customizeContainer.EnableInClassList(USS_CUSTOMIZE_CONTAINER_HIDDEN, show);
-            _enterNameContainer.EnableInClassList(USS_ENTER_NAME_HIDDEN, !show);
         }
 
         private void OnDisable()

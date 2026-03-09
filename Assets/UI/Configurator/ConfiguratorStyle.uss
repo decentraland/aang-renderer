@@ -315,56 +315,6 @@
     margin-right: 21px;
 }
 
-.enter-name-container {
-    flex-direction: row;
-    justify-content: center;
-    position: absolute;
-}
-
-.enter-name-container--hidden {
-    display: none;
-}
-
-.enter-name-container__content {
-    width: 874px;
-    height: 791px;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    margin-right: 538px;
-}
-
-.enter-name-container__content > * {
-    margin-bottom: 32px;
-}
-
-.enter-name-container__logo {
-    background-image: url("project://database/Assets/UI/Sprites/Configurator/logo_dcl.png?fileID=2800000&guid=dea1e3a71c2be40f083b54062cb6fbc3&type=3#logo_dcl");
-    width: 63px;
-    height: 63px;
-}
-
-.enter-name-container__welcome {
-    font-size: 48px;
-    color: rgb(255, 255, 255);
-    margin-top: 0;
-    margin-right: 0;
-    margin-left: 0;
-    padding-top: 0;
-    padding-right: 0;
-    padding-bottom: 0;
-    padding-left: 0;
-    white-space: normal;
-}
-
-.enter-name-container__text-field {
-    width: 500px;
-}
-
-.enter-name-container__tos-toggle {
-    width: 100%;
-}
-
 .wearable-category > .dcl-dropdown {
     background-color: transparent;
     padding-left: 0;
@@ -632,41 +582,6 @@
     height: 60px;
     margin: 6px;
 }
-
-.portrait .enter-name-window {
-    width: 100%;
-    padding-top: 32px;
-    padding-bottom: 32px;
-    padding-left: 24px;
-    padding-right: 24px;
-    align-items: stretch;
-}
-
-.portrait .container--enter-name > .container__character-area {
-    display: none;
-}
-
-.portrait .enter-name-window__welcome {
-    font-size: 40px;
-}
-
-.portrait .enter-name-window .dcl-text-field {
-    width: 100%;
-}
-
-.portrait .enter-name-window .unity-text-field__label {
-    font-size: 20px;
-    margin-bottom: 12px;
-}
-
-.portrait .enter-name-window > * {
-    margin-bottom: 16px;
-}
-
-.portrait .enter-name-window > #CustomizeButton {
-    margin-bottom: 0;
-}
-
 
 .portrait .confirmation-container__buttons {
     flex-direction: column-reverse;
