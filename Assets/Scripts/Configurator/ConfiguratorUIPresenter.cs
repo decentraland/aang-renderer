@@ -27,8 +27,8 @@ namespace Configurator
         private VisualElement _enterNameContainer;
 
         private DCLButtonElement _backButton;
-        private DCLButtonElement _skipButton;
-        private DCLButtonElement _confirmButton;
+        private DCLButtonElement _secondaryButton;
+        private DCLButtonElement _primaryButton;
 
         private Label _stageTitle;
         private Label _stageNumber;
@@ -114,12 +114,12 @@ namespace Configurator
             _stageNumber = root.Q<Label>("StageNumber");
 
             _backButton = root.Q<DCLButtonElement>("BackButton");
-            _skipButton = root.Q<DCLButtonElement>("SkipButton");
-            _confirmButton = root.Q<DCLButtonElement>("ConfirmButton");
+            _secondaryButton = root.Q<DCLButtonElement>("SecondaryButton");
+            _primaryButton = root.Q<DCLButtonElement>("PrimaryButton");
 
             _backButton.Clicked += OnBackClicked;
-            _confirmButton.Clicked += OnNextClicked;
-            _skipButton.Clicked += OnSkipClicked;
+            _primaryButton.Clicked += OnPrimaryClicked;
+            _secondaryButton.Clicked += OnSecondaryClicked;
 
             _loader = root.Q("Loader");
             _loaderIcon = _loader.Q("Icon");
@@ -130,7 +130,6 @@ namespace Configurator
                 "CUSTOMIZE LATER",
                 221,
                 "CUSTOMIZE LATER",
-                true,
                 "START CUSTOMIZATION",
                 "START");
             _presetsView.PresetSelected += preset => PresetSelected!(preset);
@@ -151,8 +150,7 @@ namespace Configurator
                 "Customize {0}'s face",
                 "CUSTOMIZE OUTFIT",
                 209,
-                "OUTFIT",
-                false);
+                "OUTFIT");
             _headWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
             _headWearablesView.CategoryChanged += c => CategoryChanged!(c);
             _headWearablesView.ColorSelected += c =>
@@ -173,8 +171,7 @@ namespace Configurator
                 "Customize {0}'s outfit",
                 "FINISH",
                 123,
-                "FINISH",
-                false);
+                "FINISH");
             _bodyWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
             _bodyWearablesView.CategoryChanged += c => CategoryChanged!(c);
 
@@ -271,7 +268,7 @@ namespace Configurator
             AvatarCustomizationStepChanged?.Invoke(_currentStageIndex);
         }
 
-        private void OnNextClicked()
+        private void OnPrimaryClicked()
         {
             // The next button on the first stage (presets) functions as "skip"
             if (_currentStageIndex == 0)
@@ -289,7 +286,7 @@ namespace Configurator
             AdvanceStage();
         }
 
-        private void OnSkipClicked()
+        private void OnSecondaryClicked()
         {
             // The skip button on the first stage (presets) functions as "next"
             if (_currentStageIndex == 0)
@@ -326,27 +323,30 @@ namespace Configurator
             var stage = _stages[_currentStageIndex];
             _stageTitle.text = string.Format(stage.Title, _username);
             _stageNumber.text = $"{_currentStageIndex + 1}.";
-            _confirmButton.Text = _usingMobile ? stage.ConfirmButtonTextMobile : stage.ConfirmButtonText;
+            _primaryButton.Text = _usingMobile ? stage.PrimaryButtonTextMobile : stage.PrimaryButtonText;
 
             stage.SetUsingMobileMode(_usingMobile);
 
             // No animations on mobile
             if (_usingMobile)
             {
-                _confirmButton.style.width = StyleKeyword.Auto;
+                _primaryButton.style.width = StyleKeyword.Auto;
             }
             else
             {
-                _confirmButton.style.width = stage.ConfirmButtonWidth;
+                _primaryButton.style.width = stage.PrimaryButtonWidth;
             }
 
-            _confirmButton.ButtonIcon = _currentStageIndex == _stages.Length - 1
+            _primaryButton.ButtonIcon = _currentStageIndex == _stages.Length - 1
                 ? DCLButtonElement.Icon.Check
                 : DCLButtonElement.Icon.Forward;
 
-            _skipButton.EnableInClassList("dcl-button--hidden-down",
-                !stage.CanSkip || _usingMobile && _currentStageIndex != 0);
-            _skipButton.Text = _usingMobile ? stage.SkipButtonTextMobile : stage.SkipButtonText;
+            var secondaryText = _usingMobile ? stage.SecondaryButtonTextMobile : stage.SecondaryButtonText;
+            var showSecondary = secondaryText != null;
+            _secondaryButton.EnableInClassList("dcl-button--hidden-down", !showSecondary);
+            if(secondaryText != null) _secondaryButton.Text = secondaryText;
+            _secondaryButton.pickingMode = showSecondary ? PickingMode.Position : PickingMode.Ignore; 
+            
             _backButton.EnableInClassList("dcl-button--hidden-down", _currentStageIndex == 0);
 
             // TODO: Change?

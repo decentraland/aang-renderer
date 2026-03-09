@@ -7,29 +7,25 @@ namespace Configurator.Views
         private readonly VisualElement _root;
 
         public readonly string Title;
-        public readonly string ConfirmButtonText;
-        public readonly string ConfirmButtonTextMobile;
-        public readonly string SkipButtonText;
-        public readonly string SkipButtonTextMobile;
-        public readonly int ConfirmButtonWidth; // This is ugly but the only way to get it to animate nicely
-        public readonly int SkipButtonWidth; // This is ugly but the only way to get it to animate nicely
-        public readonly bool CanSkip;
+        public readonly string PrimaryButtonText;
+        public readonly string PrimaryButtonTextMobile;
+        public readonly string SecondaryButtonText;
+        public readonly string SecondaryButtonTextMobile;
+        public readonly int PrimaryButtonWidth; // This is ugly but the only way to get it to animate nicely
 
         public abstract string SelectedCategory { get; }
 
         protected bool UsingMobile;
         
-        protected StageView(VisualElement root, string title, string confirmButtonText, int confirmButtonWidth, string confirmButtonTextMobile,
-                            bool canSkip, string skipButtonText = "SKIP CUSTOMIZATION", string skipButtonTextMobile = "SKIP")
+        protected StageView(VisualElement root, string title, string primaryButtonText, int primaryButtonWidth, string primaryButtonTextMobile, string secondaryButtonText, string secondaryButtonTextMobile)
         {
             _root = root;
             Title = title;
-            ConfirmButtonText = confirmButtonText;
-            ConfirmButtonTextMobile = confirmButtonTextMobile;
-            CanSkip = canSkip;
-            ConfirmButtonWidth = confirmButtonWidth;
-            SkipButtonText = skipButtonText;
-            SkipButtonTextMobile = skipButtonTextMobile;
+            PrimaryButtonText = primaryButtonText;
+            PrimaryButtonTextMobile = primaryButtonTextMobile;
+            PrimaryButtonWidth = primaryButtonWidth;
+            SecondaryButtonText = secondaryButtonText;
+            SecondaryButtonTextMobile = secondaryButtonTextMobile;
         }
 
         public void HideLeft()

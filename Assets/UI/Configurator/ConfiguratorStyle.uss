@@ -144,7 +144,7 @@
     flex-direction: row;
 }
 
-.customization-window__buttons-container > #ConfirmButton {
+.customization-window__buttons-container > #PrimaryButton {
     transition-property: scale, translate, opacity, width;
     overflow: hidden;
     justify-content: flex-end;
@@ -503,12 +503,12 @@
     width: 146px;
 }
 
-.portrait #SkipButton {
+.portrait #SecondaryButton {
     flex-grow: 1;
     flex-basis: 1px;
 }
 
-.portrait #ConfirmButton {
+.portrait #PrimaryButton {
     justify-content: center;
     flex-grow: 1;
     flex-basis: 130px;

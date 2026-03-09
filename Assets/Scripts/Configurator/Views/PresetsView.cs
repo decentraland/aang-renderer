@@ -32,9 +32,9 @@ namespace Configurator.Views
             SetPresets(cast.presets, cast.selectedIndex);
         }
 
-        public PresetsView(VisualElement root, string title, string confirmButtonText, int confirmButtonWidth,
-            string confirmButtonTextMobile, bool canSkip, string skipButtonText, string skipButtonTextMobile) : base(root, title, confirmButtonText,
-            confirmButtonWidth, confirmButtonTextMobile, canSkip, skipButtonText, skipButtonTextMobile)
+        public PresetsView(VisualElement root, string title, string primaryButtonText, int primaryButtonWidth,
+            string primaryButtonTextMobile, string secondaryButtonText, string secondaryButtonTextMobile) : base(root, title, primaryButtonText,
+            primaryButtonWidth, primaryButtonTextMobile, secondaryButtonText, secondaryButtonTextMobile)
         {
             _presetsContainer = root.Q<ScrollView>("Body");
             _previewButtons = _presetsContainer.Query<PreviewButtonElement>().ToList();
