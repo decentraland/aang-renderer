@@ -165,10 +165,15 @@ namespace Preview
                             showingAvatar = true;
                             await LoadForProfile(config.Profile, config.Emote);
                             break;
-                        // case PreviewMode.Builder:
-                        //     await LoadForBuilder(config.BodyShape, config.EyeColor, config.HairColor, config.SkinColor,
-                        //         await GetUrns(config), config.Emote, config.Base64);
-                        //     break;
+                        case PreviewMode.Builder:
+                            await LoadForBuilder(config.BodyShape,
+                                config.EyeColor,
+                                config.HairColor,
+                                config.SkinColor,
+                                config.Urns.ToArray(),
+                                config.Emote,
+                                config.Base64);
+                            break;
                         default:
                             throw new ArgumentOutOfRangeException();
                     }
@@ -219,6 +224,36 @@ namespace Preview
             }
 
             JSBridge.NativeCalls.OnLoadComplete();
+        }
+
+        private async Awaitable LoadForBuilder(string bodyShapeName,
+            Color? eyeColor,
+            Color? hairColor,
+            Color? skinColor,
+            string[] urns,
+            string emote,
+            List<byte[]> base64)
+        {
+            var bodyShape = bodyShapeName.Equals(WearablesConstants.BODY_SHAPE_FEMALE, StringComparison.OrdinalIgnoreCase)
+                ? BodyShape.Female
+                : BodyShape.Male;
+
+            Debug.Log($"[Builder] Loading with bodyShape={bodyShape}, urns={urns.Length}, base64={base64.Count}");
+            
+            var entities = await EntityService.GetEntities(urns);
+            foreach (var data in base64)
+            {
+                var entity = EntityDefinition.FromBase64(data);
+                entities = entities.Append(entity).ToArray();
+            }
+            
+            var colors = new AvatarColors(eyeColor ?? Color.black, hairColor ?? Color.black, skinColor ?? Color.black);
+
+            await avatarLoader.LoadAvatar(bodyShape,
+                entities,
+                EntityDefinition.FromEmbeddedEmote(emote, false),
+                Array.Empty<string>(),
+                colors);
         }
 
         private async Awaitable<(bool emoteOverride, bool emoteOverrideAudio, bool validRepresentation, BodyShape avatarBodyShape)> LoadForMarketplace(string profileID, string urn,
