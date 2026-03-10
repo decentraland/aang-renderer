@@ -30,8 +30,8 @@ namespace Preview
         public void SetMode(PreviewMode mode)
         {
             // Reset FOV when switching modes
-            marketplaceAvatarCamera.Lens.FieldOfView =
-                marketplaceWearableCamera.Lens.FieldOfView = _targetFOV = _initialFOV;
+            marketplaceAvatarCamera.Lens.FieldOfView = marketplaceWearableCamera.Lens.FieldOfView =
+                builderCamera.Lens.FieldOfView = _targetFOV = _initialFOV;
 
             switch (mode)
             {
@@ -51,8 +51,9 @@ namespace Preview
 
         private void Update()
         {
+            var fov = Mathf.Lerp(marketplaceAvatarCamera.Lens.FieldOfView, _targetFOV, Time.deltaTime * lerpSpeed);
             marketplaceAvatarCamera.Lens.FieldOfView = marketplaceWearableCamera.Lens.FieldOfView =
-                Mathf.Lerp(marketplaceAvatarCamera.Lens.FieldOfView, _targetFOV, Time.deltaTime * lerpSpeed);
+                builderCamera.Lens.FieldOfView = fov;
         }
 
         public void ShowMarketplaceWearable(bool showWearable)
