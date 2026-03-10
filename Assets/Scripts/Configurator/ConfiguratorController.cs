@@ -51,6 +51,7 @@ namespace Configurator
             uiPresenter.CharacterAreaDrag += dragRotator.OnDrag;
             uiPresenter.Confirmed += OnConfirmed;
             uiPresenter.JumpIn += OnJumpIn;
+            uiPresenter.AvatarCustomizationStepChanged += OnAvatarCustomizationStepChanged;
 
             StartCoroutine(InitialLoad());
         }
@@ -90,7 +91,12 @@ namespace Configurator
             platform.SetActive(!open);
         }
 
-        private void OnJumpIn()
+        private static void OnAvatarCustomizationStepChanged(int step)
+        {
+            JSBridge.NativeCalls.OnAvatarCustomizationStep(step);
+        }
+
+        private void OnJumpIn(bool skipped)
         {
             JSBridge.NativeCalls.OnCustomizationDone(JsonUtility.ToJson(new AvatarCustomizationConfig(
                 _bodyShape == BodyShape.Male
@@ -99,7 +105,8 @@ namespace Configurator
                 _eyeColor,
                 _skinColor,
                 _hairColor,
-                _selectedItems.Values.Select(ed => ed.URN).ToList()
+                _selectedItems.Values.Select(ed => ed.URN).ToList(),
+                skipped
             )));
         }
 

@@ -98,6 +98,25 @@ mergeInto(LibraryManager.library, {
       '*'
     )
   },
+  OnAvatarCustomizationStep: function (step) {
+    const targetWindow = (() => {
+      try {
+        return window.self !== window.top ? window : window.parent
+      } catch (e) {
+        return window.parent
+      }
+    })()
+    targetWindow.postMessage(
+      {
+        type: 'unity-renderer',
+        payload: {
+          type: 'avatar-customization-step',
+          payload: step,
+        },
+      },
+      '*'
+    )
+  },
   PreloadURLs: function(strPtr) {
     const csv = UTF8ToString(strPtr);
     const urls = csv.split(',');

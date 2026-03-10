@@ -227,11 +227,6 @@ public class AangConfiguration
     /// </summary>
     public bool UninterruptedDeferAgent { get; set; } = !Application.isMobilePlatform;
 
-    /// <summary>
-    /// Shows the enter name stage at the start of avatar customization.
-    /// </summary>
-    public bool ShowEnterName { get; set; }
-
     public static void RecreateFrom(string url)
     {
         Instance = new AangConfiguration();
@@ -317,9 +312,6 @@ public class AangConfiguration
                 case "uninterruptedDeferAgent":
                     Instance.UninterruptedDeferAgent = bool.Parse(value);
                     break;
-                case "showEnterName":
-                    Instance.ShowEnterName = bool.Parse(value);
-                    break;
                 default:
                     Debug.LogWarning($"Unknown parameter in URL: {key}");
                     break;
@@ -362,7 +354,6 @@ public class AangConfiguration
         sb.AppendFormat("&showFPS={0}", ShowFPS);
         sb.AppendFormat("&sequentialLoad={0}", ConcurrentLoad);
         sb.AppendFormat("&useUninterruptedDeferAgent={0}", UninterruptedDeferAgent);
-        sb.AppendFormat("&showEnterName={0}", ShowEnterName);
 
         return sb.ToString();
     }

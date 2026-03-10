@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Configurator.Views;
 using Data;
-using JetBrains.Annotations;
 using Runtime.Wearables;
 using UI.Elements;
 using UI.Manipulators;
@@ -15,7 +14,6 @@ namespace Configurator
     public class ConfiguratorUIPresenter : MonoBehaviour
     {
         private const string USS_CUSTOMIZE_CONTAINER_HIDDEN = "customize-container--hidden";
-        private const string USS_ENTER_NAME_HIDDEN = "enter-name-container--hidden";
         private const string USS_CONFIRMATION_CONTAINER_HIDDEN = "confirmation-container--hidden";
         
         [SerializeField] private UIDocument uiDocument;
@@ -23,12 +21,10 @@ namespace Configurator
         private VisualElement _customizeContainer;
         private VisualElement _loader;
         private VisualElement _loaderIcon;
-        
-        private VisualElement _enterNameContainer;
 
         private DCLButtonElement _backButton;
-        private DCLButtonElement _skipButton;
-        private DCLButtonElement _confirmButton;
+        private DCLButtonElement _secondaryButton;
+        private DCLButtonElement _primaryButton;
 
         private Label _stageTitle;
         private Label _stageNumber;
@@ -41,11 +37,9 @@ namespace Configurator
         private string _username;
 
         // Views
-        private EnterNameView _enterNameView;
         private WearablesView _headWearablesView;
         private WearablesView _bodyWearablesView;
         private PresetsView _presetsView;
-        private ConfirmPopupView _confirmPopupView;
         private BodyShapePopupView _bodyShapePopupView;
         private ColorPopupView _skinColorPopupView;
         private ColorPopupView _hairColorPopupView;
@@ -65,7 +59,8 @@ namespace Configurator
         public event Action<string, EntityDefinition> WearableSelected;
         public event Action<PresetDefinition> PresetSelected;
         public event Action<bool> Confirmed;
-        public event Action JumpIn;
+        public event Action<bool> JumpIn;
+        public event Action<int> AvatarCustomizationStepChanged;
 
         private bool _confirmationOpen;
         private bool _usingMobile;
@@ -80,12 +75,6 @@ namespace Configurator
 
             _customizeContainer = root.Q("CustomizeContainer");
             var characterArea = _customizeContainer.Q("CharacterArea");
-
-            // Enter name
-            _enterNameContainer = root.Q("EnterNameContainer");
-            _enterNameView = new EnterNameView(_enterNameContainer);
-            _enterNameView.Confirmed += OnNameConfirmed;
-            ShowEnterName(AangConfiguration.Instance.ShowEnterName);
 
             characterArea.RegisterCallback<GeometryChangedEvent, VisualElement>((_, area) =>
             {
@@ -113,12 +102,12 @@ namespace Configurator
             _stageNumber = root.Q<Label>("StageNumber");
 
             _backButton = root.Q<DCLButtonElement>("BackButton");
-            _skipButton = root.Q<DCLButtonElement>("SkipButton");
-            _confirmButton = root.Q<DCLButtonElement>("ConfirmButton");
+            _secondaryButton = root.Q<DCLButtonElement>("SecondaryButton");
+            _primaryButton = root.Q<DCLButtonElement>("PrimaryButton");
 
             _backButton.Clicked += OnBackClicked;
-            _confirmButton.Clicked += OnNextClicked;
-            _skipButton.Clicked += () => OpenConfirm(true);
+            _primaryButton.Clicked += OnPrimaryClicked;
+            _secondaryButton.Clicked += OnSecondaryClicked;
 
             _loader = root.Q("Loader");
             _loaderIcon = _loader.Q("Icon");
@@ -126,10 +115,11 @@ namespace Configurator
             var presetsContainer = root.Q("Presets");
             _presetsView = new PresetsView(presetsContainer,
                 "Choose {0}'s starting look",
-                "START CUSTOMIZING",
+                "CUSTOMIZE LATER",
                 221,
-                "START",
-                true);
+                "CUSTOMIZE LATER",
+                "START CUSTOMIZATION",
+                "START");
             _presetsView.PresetSelected += preset => PresetSelected!(preset);
 
             // Dropdowns
@@ -148,8 +138,7 @@ namespace Configurator
                 "Customize {0}'s face",
                 "CUSTOMIZE OUTFIT",
                 209,
-                "OUTFIT",
-                true);
+                "OUTFIT");
             _headWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
             _headWearablesView.CategoryChanged += c => CategoryChanged!(c);
             _headWearablesView.ColorSelected += c =>
@@ -170,8 +159,7 @@ namespace Configurator
                 "Customize {0}'s outfit",
                 "FINISH",
                 123,
-                "FINISH",
-                false);
+                "FINISH");
             _bodyWearablesView.WearableSelected += (c, ae) => WearableSelected!(c, ae);
             _bodyWearablesView.CategoryChanged += c => CategoryChanged!(c);
 
@@ -186,7 +174,7 @@ namespace Configurator
             _confirmContainer = root.Q("ConfirmationContainer");
             _confirmTitle = _confirmContainer.Q<Label>("Title");
             _confirmContainer.Q<DCLButtonElement>("ConfirmationBackButton").Clicked += () => OpenConfirm(false);
-            _confirmContainer.Q<DCLButtonElement>("JumpInButton").Clicked += () => JumpIn!();
+            _confirmContainer.Q<DCLButtonElement>("JumpInButton").Clicked += () => JumpIn!(false);
 
             // Debug FPS Counter
             _fpsCounter = root.Q<Label>("FPSCounter");
@@ -225,19 +213,6 @@ namespace Configurator
             RefreshCurrentStage();
         }
 
-        private void OnNameConfirmed(string username, [CanBeNull] string email)
-        {
-            _username = username;
-            ShowEnterName(false);
-            RefreshCurrentStage();
-        }
-
-        private void ShowEnterName(bool show)
-        {
-            _customizeContainer.EnableInClassList(USS_CUSTOMIZE_CONTAINER_HIDDEN, show);
-            _enterNameContainer.EnableInClassList(USS_ENTER_NAME_HIDDEN, !show);
-        }
-
         private void OnDisable()
         {
             if (!Application.isEditor) return;
@@ -265,20 +240,46 @@ namespace Configurator
             _stages[--_currentStageIndex].Show();
 
             RefreshCurrentStage();
+            AvatarCustomizationStepChanged?.Invoke(_currentStageIndex);
         }
 
-        private void OnNextClicked()
+        private void OnPrimaryClicked()
         {
-            if (_currentStageIndex == _stages.Length - 1)
+            // The next button on the first stage (presets) functions as "skip"
+            if (_currentStageIndex == 0)
             {
-                OpenConfirm(true);
+                JumpIn!(true);
                 return;
             }
 
+            if (_currentStageIndex == _stages.Length - 1)
+            {
+                JumpIn!(false);
+                return;
+            }
+
+            AdvanceStage();
+        }
+
+        private void OnSecondaryClicked()
+        {
+            // The skip button on the first stage (presets) functions as "next"
+            if (_currentStageIndex == 0)
+            {
+                AdvanceStage();
+                return;
+            }
+
+            JumpIn!(true);
+        }
+
+        private void AdvanceStage()
+        {
             _stages[_currentStageIndex].HideLeft();
             _stages[++_currentStageIndex].Show();
 
             RefreshCurrentStage();
+            AvatarCustomizationStepChanged?.Invoke(_currentStageIndex);
         }
 
         private void OpenConfirm(bool open)
@@ -297,27 +298,30 @@ namespace Configurator
             var stage = _stages[_currentStageIndex];
             _stageTitle.text = string.Format(stage.Title, _username);
             _stageNumber.text = $"{_currentStageIndex + 1}.";
-            _confirmButton.Text = _usingMobile ? stage.ConfirmButtonTextMobile : stage.ConfirmButtonText;
+            _primaryButton.Text = _usingMobile ? stage.PrimaryButtonTextMobile : stage.PrimaryButtonText;
 
             stage.SetUsingMobileMode(_usingMobile);
 
             // No animations on mobile
             if (_usingMobile)
             {
-                _confirmButton.style.width = StyleKeyword.Auto;
+                _primaryButton.style.width = StyleKeyword.Auto;
             }
             else
             {
-                _confirmButton.style.width = stage.ConfirmButtonWidth;
+                _primaryButton.style.width = stage.PrimaryButtonWidth;
             }
 
-            _confirmButton.ButtonIcon = _currentStageIndex == _stages.Length - 1
+            _primaryButton.ButtonIcon = _currentStageIndex == _stages.Length - 1
                 ? DCLButtonElement.Icon.Check
                 : DCLButtonElement.Icon.Forward;
 
-            _skipButton.EnableInClassList("dcl-button--hidden-down",
-                !stage.CanSkip || _usingMobile && _currentStageIndex != 0);
-            _skipButton.Text = _usingMobile ? "SKIP" : "SKIP CUSTOMIZATION";
+            var secondaryText = _usingMobile ? stage.SecondaryButtonTextMobile : stage.SecondaryButtonText;
+            var showSecondary = secondaryText != null;
+            _secondaryButton.EnableInClassList("dcl-button--hidden-down", !showSecondary);
+            if(secondaryText != null) _secondaryButton.Text = secondaryText;
+            _secondaryButton.pickingMode = showSecondary ? PickingMode.Position : PickingMode.Ignore; 
+            
             _backButton.EnableInClassList("dcl-button--hidden-down", _currentStageIndex == 0);
 
             // TODO: Change?
@@ -341,6 +345,7 @@ namespace Configurator
             RefreshCurrentStage();
             _customizeContainer.SetVisibility(true);
             _loader.SetDisplay(false);
+            AvatarCustomizationStepChanged?.Invoke(_currentStageIndex);
         }
 
         public void SetUsingMobileMode(bool usingMobile)
