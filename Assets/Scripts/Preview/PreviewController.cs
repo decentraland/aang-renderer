@@ -240,17 +240,20 @@ namespace Preview
 
             Debug.Log($"[Builder] Loading with bodyShape={bodyShape}, urns={urns.Length}, base64={base64.Count}");
             
-            var entities = await EntityService.GetEntities(urns);
-            foreach (var data in base64)
-            {
-                var entity = EntityDefinition.FromBase64(data);
-                entities = entities.Append(entity).ToArray();
-            }
+            var base64WearableEntities = base64.Select(EntityDefinition.FromBase64).Where(e => e.Type != EntityType.Emote).ToArray();
+            var base64WearableCategories = new HashSet<string>(base64WearableEntities.Select(e => e.Category));
+            
+            var wearableEntities = await EntityService.GetEntities(urns);
+            wearableEntities = wearableEntities
+                .Where(e => e.Type != EntityType.Emote)
+                .Where(e => !base64WearableCategories.Contains(e.Category))
+                .Concat(base64WearableEntities)
+                .ToArray();
             
             var colors = new AvatarColors(eyeColor ?? Color.black, hairColor ?? Color.black, skinColor ?? Color.black);
 
             await avatarLoader.LoadAvatar(bodyShape,
-                entities,
+                wearableEntities,
                 EntityDefinition.FromEmbeddedEmote(emote, false),
                 Array.Empty<string>(),
                 colors);
