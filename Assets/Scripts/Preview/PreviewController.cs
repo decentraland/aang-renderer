@@ -231,7 +231,7 @@ namespace Preview
             Color? hairColor,
             Color? skinColor,
             string[] urns,
-            string emote,
+            string emoteName,
             List<byte[]> base64)
         {
             var bodyShape = bodyShapeName.Equals(WearablesConstants.BODY_SHAPE_FEMALE, StringComparison.OrdinalIgnoreCase)
@@ -252,9 +252,11 @@ namespace Preview
             
             var colors = new AvatarColors(eyeColor ?? Color.black, hairColor ?? Color.black, skinColor ?? Color.black);
 
+            var emoteEntity = EntityDefinition.FromEmbeddedEmote(emoteName, true);
+            
             await avatarLoader.LoadAvatar(bodyShape,
                 wearableEntities,
-                EntityDefinition.FromEmbeddedEmote(emote, false),
+                emoteEntity,
                 Array.Empty<string>(),
                 colors);
         }
