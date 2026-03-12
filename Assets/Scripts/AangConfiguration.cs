@@ -227,6 +227,11 @@ public class AangConfiguration
     /// </summary>
     public bool UninterruptedDeferAgent { get; set; } = !Application.isMobilePlatform;
 
+    /// <summary>
+    /// If true, facial features (eyes, eyebrows, mouth) will be hidden on the avatar.
+    /// </summary>
+    public bool DisableFace { get; set; }
+
     public static void RecreateFrom(string url)
     {
         Instance = new AangConfiguration();
@@ -311,6 +316,9 @@ public class AangConfiguration
                     break;
                 case "uninterruptedDeferAgent":
                     Instance.UninterruptedDeferAgent = bool.Parse(value);
+                    break;
+                case "disableFace":
+                    Instance.DisableFace = bool.Parse(value);
                     break;
                 default:
                     Debug.LogWarning($"Unknown parameter in URL: {key}");

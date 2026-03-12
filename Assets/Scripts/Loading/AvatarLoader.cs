@@ -184,6 +184,15 @@ namespace Loading
             UpdateHighlight();
         }
 
+        public void HideFacialFeatures()
+        {
+            var bodyGO = _loadedModels.Values.FirstOrDefault(er => er.Entity.Type == EntityType.Body).Root;
+            if (bodyGO != null)
+            {
+                AvatarUtils.HideBodyShapeFacialFeatures(bodyGO, true, true, true);
+            }
+        }
+
         public void TryHideCategory(string category, bool hidden)
         {
             var categoryGO = _loadedModels.Values.FirstOrDefault(c => c.Entity.Category == category).Root;

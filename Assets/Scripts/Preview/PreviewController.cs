@@ -259,6 +259,11 @@ namespace Preview
                 emoteEntity,
                 Array.Empty<string>(),
                 colors);
+
+            if (AangConfiguration.Instance.DisableFace)
+            {
+                avatarLoader.HideFacialFeatures();
+            }
         }
 
         private async Awaitable<(bool emoteOverride, bool emoteOverrideAudio, bool validRepresentation, BodyShape avatarBodyShape)> LoadForMarketplace(string profileID, string urn,
