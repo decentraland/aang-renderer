@@ -260,9 +260,10 @@ namespace Configurator
             await ReloadPreview();
             
             // Preload VFX hack
-            confirmationVFX.Play();
-            await Awaitable.NextFrameAsync();
-            confirmationVFX.Stop();
+            // TODO: Uncomment this if we put back the Jump In screen
+            // confirmationVFX.Play();
+            // await Awaitable.NextFrameAsync();
+            // confirmationVFX.Stop();
 
             JSBridge.NativeCalls.OnLoadComplete();
 
