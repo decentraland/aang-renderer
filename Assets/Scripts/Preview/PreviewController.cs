@@ -238,8 +238,6 @@ namespace Preview
                 ? BodyShape.Female
                 : BodyShape.Male;
 
-            Debug.Log($"[Builder] Loading with bodyShape={bodyShape}, urns={urns.Length}, base64={base64.Count}");
-            
             var base64WearableEntities = base64.Select(EntityDefinition.FromBase64).Where(e => e.Type != EntityType.Emote).ToArray();
             var base64WearableCategories = new HashSet<string>(base64WearableEntities.Select(e => e.Category));
             

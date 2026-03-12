@@ -173,8 +173,6 @@ namespace Data
             var raw = JsonUtility.FromJson<RawActiveEntity>(base64String);
             var entity = raw.ToActiveEntity();
 
-            Debug.Log($"[FromBase64] Parsed entity {entity.pointers[0]} as {(entity.IsEmote ? "emote" : entity.metadata.data.category)}");
-
             return FromActiveEntity(entity);
         }
 
