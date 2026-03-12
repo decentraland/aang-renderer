@@ -38,9 +38,8 @@ namespace Configurator.Views
         private Color _currentHairColor;
         private Color _currentEyeColor;
 
-        public WearablesView(VisualElement root, string title, string confirmButtonText, int confirmButtonWidth,
-            string confirmButtonTextMobile, bool canSkip) : base(root, title, confirmButtonText, confirmButtonWidth,
-            confirmButtonTextMobile, canSkip)
+        public WearablesView(VisualElement root, string title, string primaryButtonText, int primaryButtonWidth, string primaryButtonTextMobile) : 
+            base(root, title, primaryButtonText, primaryButtonWidth, primaryButtonTextMobile, null, null)
         {
             _header = root.Q<Label>("CategoryHeader");
             _sidebar = root.Q<VisualElement>("Sidebar");
