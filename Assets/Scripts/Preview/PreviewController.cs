@@ -6,6 +6,7 @@ using Loading;
 using Services;
 using UnityEngine;
 using UnityEngine.Assertions;
+using UnityEngine.VFX;
 using Utils;
 
 namespace Preview
@@ -24,6 +25,7 @@ namespace Preview
         [SerializeField] private Vector3 wearableOffset = new(-5, 0, 0);
 
         [SerializeField] private EmoteAnimationController emoteAnimationController;
+        [SerializeField] private VisualEffect             confirmationVFX;
 
         [SerializeField] private GameObject animationReference;
         [SerializeField] private GameObject platform;
@@ -121,6 +123,7 @@ namespace Preview
                 mainCamera.orthographic = config.Projection == "orthographic";
                 previewUIPresenter.EnableLoader(!config.DisableLoader);
                 previewCameraController.SetMode(config.Mode);
+                confirmationVFX.gameObject.SetActive(config.Mode is PreviewMode.Jesus);
 
                 var hasEmoteOverride = false;
                 var hasWearableOverride = false;
@@ -164,6 +167,11 @@ namespace Preview
                         case PreviewMode.Profile:
                             showingAvatar = true;
                             await LoadForProfile(config.Profile, config.Emote);
+                            break;
+                        case PreviewMode.Jesus:
+                            showingAvatar = true;
+                            confirmationVFX.Play();
+                            await LoadForProfile(config.Profile, "character/Particles_Anim", true);
                             break;
                         // case PreviewMode.Builder:
                         //     await LoadForBuilder(config.BodyShape, config.EyeColor, config.HairColor, config.SkinColor,
@@ -276,7 +284,7 @@ namespace Preview
             return (overrideDefinition.Type == EntityType.Emote, emoteAnimationController.HasAudio, hasValidRepresentation, avatarBodyShape);
         }
 
-        private async Awaitable LoadForProfile(string profileID, string defaultEmote)
+        private async Awaitable LoadForProfile(string profileID, string defaultEmote, bool loop = false)
         {
             Assert.IsNotNull(profileID);
 
@@ -284,7 +292,7 @@ namespace Preview
             var entities = await EntityService.GetEntities(avatar.wearables);
 
             await avatarLoader.LoadAvatar(avatar.GetBodyShape(), entities,
-                EntityDefinition.FromEmbeddedEmote(defaultEmote, false), avatar.forceRender, avatar.GetAvatarColors());
+                EntityDefinition.FromEmbeddedEmote(defaultEmote, loop), avatar.forceRender, avatar.GetAvatarColors());
         }
 
         private async Awaitable<List<string>> LoadUrns(AangConfiguration config)
