@@ -163,7 +163,8 @@ namespace Utils
             }
         }
 
-        public static void SetupColors(GameObject go, AvatarColors colors, List<Renderer> outlineRenderers)
+        public static void SetupColors(GameObject go, AvatarColors colors,
+            List<Renderer> outlineRenderers, Transform avatarRootBone = null, Transform[] avatarBones = null)
         {
             var renderers = go.GetComponentsInChildren<SkinnedMeshRenderer>();
             foreach (var r in renderers)
@@ -177,18 +178,17 @@ namespace Utils
                     r.material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Hair);
                 }
 
+                if (avatarRootBone != null && avatarBones != null)
+                {
+                    r.rootBone = avatarRootBone;
+                    r.bones = avatarBones;
+                }
+
                 if (r.material.shader.name == "DCL/DCL_Toon" && r.sharedMaterial.renderQueue is >= 2000 and < 3000)
                 {
                     outlineRenderers.Add(r);
                 }
             }
-        }
-
-        public static void RebindBones(GameObject go, Transform avatarRootBone, Transform[] avatarBones)
-        {
-            var renderers = go.GetComponentsInChildren<SkinnedMeshRenderer>();
-            foreach (var r in renderers)
-                RebindBones(r, avatarRootBone, avatarBones);
         }
 
         public static void SetupFacialFeatures(GameObject go, AvatarColors colors,
@@ -251,37 +251,6 @@ namespace Utils
                 WearableCategories.Categories.MOUTH => colors.Skin,
                 _ => throw new ArgumentOutOfRangeException(nameof(category), category, null)
             };
-        }
-
-        /// <summary>
-        /// Rebinds bones by matching names. Bones that match the avatar skeleton are replaced
-        /// so they animate together. Bones with no match keep their original transform, which
-        /// is essential for skin wearables that may have non-standard skeletons.
-        /// </summary>
-        private static void RebindBones(SkinnedMeshRenderer renderer, Transform avatarRootBone, Transform[] avatarBones)
-        {
-            var currentBones = renderer.bones;
-
-            // Build a lookup from bone name to avatar bone transform
-            var avatarBoneLookup = new Dictionary<string, Transform>(avatarBones.Length);
-
-            foreach (var bone in avatarBones)
-            {
-                if (bone != null)
-                    avatarBoneLookup[bone.name] = bone;
-            }
-
-            var newBones = new Transform[currentBones.Length];
-            for (var i = 0; i < currentBones.Length; i++)
-            {
-                if (currentBones[i] != null && avatarBoneLookup.TryGetValue(currentBones[i].name, out var match))
-                    newBones[i] = match;
-                else
-                    newBones[i] = currentBones[i];
-            }
-
-            renderer.rootBone = avatarBoneLookup.GetValueOrDefault(renderer.rootBone?.name ?? "", avatarRootBone);
-            renderer.bones = newBones;
         }
     }
 }

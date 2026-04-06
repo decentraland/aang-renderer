@@ -28,6 +28,7 @@ public class AangConfiguration
         Mode = value switch
         {
             "profile" => PreviewMode.Profile,
+            "jesus" => PreviewMode.Jesus,
             "authentication" => PreviewMode.Authentication,
             "builder" => PreviewMode.Builder,
             "configurator" => PreviewMode.Configurator,
@@ -373,5 +374,6 @@ public enum PreviewMode
     Authentication,
     Profile,
     Builder,
-    Configurator
+    Configurator,
+    Jesus,
 }

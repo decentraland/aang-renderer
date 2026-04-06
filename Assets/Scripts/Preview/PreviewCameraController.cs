@@ -15,6 +15,7 @@ namespace Preview
         [SerializeField] private CinemachineCamera marketplaceWearableCamera;
         [SerializeField] private CinemachineCamera marketplaceAvatarCamera;
         [SerializeField] private CinemachineCamera builderCamera;
+        [SerializeField] private CinemachineCamera jesusCamera;
 
         private float _targetFOV;
         private float _initialFOV;
@@ -40,6 +41,9 @@ namespace Preview
                 case PreviewMode.Authentication:
                 case PreviewMode.Profile:
                     authProfileCamera.Prioritize();
+                    break;
+                case PreviewMode.Jesus:
+                    jesusCamera.Prioritize();
                     break;
                 case PreviewMode.Builder:
                     builderCamera.Prioritize();
