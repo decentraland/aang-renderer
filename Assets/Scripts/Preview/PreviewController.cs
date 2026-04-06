@@ -82,6 +82,30 @@ namespace Preview
             avatarRotator.ResetRotation();
         }
 
+        public float GetEmoteLength() => emoteAnimationController.GetEmoteLength();
+
+        public bool IsEmotePlaying() => emoteAnimationController.IsEmotePlaying();
+
+        public void PlayEmote()
+        {
+            if (emoteAnimationController.IsPaused)
+                emoteAnimationController.ResumeEmote();
+            else
+                emoteAnimationController.ReplayEmote();
+        }
+
+        public void PauseEmote() => emoteAnimationController.PauseEmote();
+
+        public void GoToEmote(float seconds) => emoteAnimationController.GoToEmote(seconds);
+
+        public void StopEmote() => emoteAnimationController.StopEmote();
+
+        public void EnableSound() => emoteAnimationController.EnableSound();
+
+        public void DisableSound() => emoteAnimationController.DisableSound();
+
+        public bool HasSound() => emoteAnimationController.HasAudio;
+
         public void InvokeReload()
         {
             _shouldCleanup = false;
@@ -252,8 +276,8 @@ namespace Preview
 
             var colors = new AvatarColors(eyeColor ?? Color.black, hairColor ?? Color.black, skinColor ?? Color.black);
 
-            var emoteEntity = base64Emote ?? EntityDefinition.FromEmbeddedEmote(emoteName, true);
-            
+            var emoteEntity = base64Emote ?? (emoteName == "idle" ? null : EntityDefinition.FromEmbeddedEmote(emoteName, true));
+
             await avatarLoader.LoadAvatar(bodyShape,
                 wearableEntities,
                 emoteEntity,
@@ -362,6 +386,7 @@ namespace Preview
             _shouldCleanup = false;
 
             emoteAnimationController.ClearEmote();
+            avatarLoader.ClearEmote();
         }
     }
 }

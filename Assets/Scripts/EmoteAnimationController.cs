@@ -11,11 +11,14 @@ public class EmoteAnimationController : MonoBehaviour
     [SerializeField] private Animation avatarAnimation;
 
     public bool HasAudio => _emoteAudioClip != null;
+    public bool IsPaused => _paused;
     public event Action EmoteAnimationEnded;
 
     private LoadedEmote? _loadedEmote;
     private Animation _propAnimation;
     private AudioClip _emoteAudioClip;
+    private bool _paused;
+    private float _pausedTime;
 
     public void PlayEmote(LoadedEmote loadedEmote)
     {
@@ -44,9 +47,23 @@ public class EmoteAnimationController : MonoBehaviour
         ReplayEmote();
     }
 
+    public float GetEmoteLength()
+    {
+        if (!_loadedEmote.HasValue) return 0f;
+        return _loadedEmote.Value.Clip.length;
+    }
+
+    public bool IsEmotePlaying()
+    {
+        if (!_loadedEmote.HasValue) return false;
+        return avatarAnimation.IsPlaying(_loadedEmote.Value.Entity.URN);
+    }
+
     public void ReplayEmote()
     {
         if (!_loadedEmote.HasValue) return;
+
+        _paused = false;
 
         // Prop
         if (_propAnimation != null)
@@ -68,9 +85,50 @@ public class EmoteAnimationController : MonoBehaviour
         }
     }
 
+    public void PauseEmote()
+    {
+        if (!_loadedEmote.HasValue) return;
+        if (!avatarAnimation.IsPlaying(_loadedEmote.Value.Entity.URN)) return;
+
+        _paused = true;
+        _pausedTime = GetCurrentEmoteTime();
+
+        // Pause by setting speed to 0
+        var state = avatarAnimation[_loadedEmote.Value.Entity.URN];
+        if (state != null) state.speed = 0f;
+
+        if (_propAnimation != null)
+        {
+            var propState = _propAnimation[_loadedEmote.Value.Entity.URN];
+            if (propState != null) propState.speed = 0f;
+        }
+
+        audioSource.Pause();
+    }
+
+    public void ResumeEmote()
+    {
+        if (!_loadedEmote.HasValue || !_paused) return;
+
+        _paused = false;
+
+        var state = avatarAnimation[_loadedEmote.Value.Entity.URN];
+        if (state != null) state.speed = 1f;
+
+        if (_propAnimation != null)
+        {
+            var propState = _propAnimation[_loadedEmote.Value.Entity.URN];
+            if (propState != null) propState.speed = 1f;
+        }
+
+        audioSource.UnPause();
+    }
+
     public void StopEmote(bool withCrossFade = true)
     {
         if (!_loadedEmote.HasValue) return;
+
+        _paused = false;
 
         audioSource.Stop();
         if (_propAnimation != null)
@@ -86,6 +144,66 @@ public class EmoteAnimationController : MonoBehaviour
         {
             avatarAnimation.Play(IDLE_CLIP_NAME, PlayMode.StopAll);
         }
+    }
+
+    public void GoToEmote(float seconds)
+    {
+        if (!_loadedEmote.HasValue) return;
+
+        var urn = _loadedEmote.Value.Entity.URN;
+        var wasPaused = _paused;
+
+        // Ensure the animation is playing so we can seek it
+        if (!avatarAnimation.IsPlaying(urn))
+        {
+            avatarAnimation.Play(urn);
+        }
+
+        var state = avatarAnimation[urn];
+        if (state != null)
+        {
+            state.time = seconds;
+            // If it was paused (or we want to just seek), keep it paused
+            if (wasPaused)
+            {
+                state.speed = 0f;
+            }
+        }
+
+        avatarAnimation.Sample();
+
+        if (_propAnimation != null)
+        {
+            var propState = _propAnimation[urn];
+            if (propState != null)
+            {
+                propState.time = seconds;
+                if (wasPaused) propState.speed = 0f;
+            }
+        }
+
+        // Sync audio position
+        if (_emoteAudioClip != null && audioSource.isPlaying)
+        {
+            audioSource.time = Mathf.Clamp(seconds, 0f, _emoteAudioClip.length);
+        }
+    }
+
+    public void EnableSound()
+    {
+        if (audioSource != null) audioSource.volume = 1f;
+    }
+
+    public void DisableSound()
+    {
+        if (audioSource != null) audioSource.volume = 0f;
+    }
+
+    private float GetCurrentEmoteTime()
+    {
+        if (!_loadedEmote.HasValue) return 0f;
+        var state = avatarAnimation[_loadedEmote.Value.Entity.URN];
+        return state?.time ?? 0f;
     }
 
     public void ClearEmote()
