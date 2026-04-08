@@ -25,18 +25,13 @@ public class DragRotator : MonoBehaviour
 
     public bool AllowVertical { get; set; } = true;
     public bool EnableAutoRotate { get; set; } = true;
+    public float DragSpeed { get => dragSpeed; set => dragSpeed = value; }
 
     private Quaternion? _targetRotation;
 
     private void Awake()
     {
         _initialRotation = transform.rotation;
-
-        // // Web builds have an issue where the sensitivity of mouse is way too high, so we dampen it.
-        // if (!Application.isEditor)
-        // {
-        //     dragSpeed *= 0.05f;
-        // }
     }
 
     public void OnDrag(Vector2 drag, float deltaTime)

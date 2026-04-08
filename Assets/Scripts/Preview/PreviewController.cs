@@ -228,6 +228,10 @@ namespace Preview
                 {
                     previewCameraController.ShowMarketplaceWearable(!showingAvatar);
                 }
+                else if (config.Mode is PreviewMode.Builder)
+                {
+                    avatarRotator.DragSpeed = 2f;
+                }
 
                 avatarRotator.enabled = true;
                 wearableRotator.enabled = true;
