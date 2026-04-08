@@ -267,15 +267,21 @@ namespace Preview
 
             var base64Entities = base64.Select(EntityDefinition.FromBase64).ToArray();
             var base64Emote = base64Entities.FirstOrDefault(e => e.Type == EntityType.Emote);
-            var base64WearableEntities = base64Entities.Where(e => e.Type != EntityType.Emote).ToArray();
-            var base64WearableCategories = new HashSet<string>(base64WearableEntities.Select(e => e.Category));
+            var base64WearableEntities = base64Entities.Where(e => e.Type != EntityType.Emote);
 
-            var wearableEntities = await EntityService.GetEntities(urns);
-            wearableEntities = wearableEntities
-                .Where(e => e.Type != EntityType.Emote)
-                .Where(e => !base64WearableCategories.Contains(e.Category))
-                .Concat(base64WearableEntities)
-                .ToArray();
+            var urnEntities = await EntityService.GetEntities(urns);
+
+            // Slot-based deduplication: one wearable per category, base64 items take priority
+            var slots = new Dictionary<string, EntityDefinition>();
+            foreach (var entity in urnEntities.Where(e => e.Type != EntityType.Emote))
+            {
+                slots[entity.Category] = entity;
+            }
+            foreach (var entity in base64WearableEntities)
+            {
+                slots[entity.Category] = entity;
+            }
+            var wearableEntities = slots.Values.ToArray();
 
             var colors = new AvatarColors(eyeColor ?? Color.black, hairColor ?? Color.black, skinColor ?? Color.black);
 
