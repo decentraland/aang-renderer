@@ -200,6 +200,13 @@ namespace Utils
                     outlineRenderers.Add(r);
                 }
             }
+
+            // Re-parent extra bones (spring bone chains) under their nearest avatar skeleton ancestor
+            // so they follow the avatar during emotes instead of staying at a fixed world position.
+            if (avatarBoneMap != null)
+            {
+                ReparentExtraBonesUnderAvatarSkeleton(go, avatarBoneMap);
+            }
         }
 
         public static void SetupFacialFeatures(GameObject go, AvatarColors colors,
@@ -295,6 +302,51 @@ namespace Utils
 
             renderer.rootBone = avatarRootBone;
             renderer.bones = remapped;
+        }
+
+        /// <summary>
+        /// Re-parents all transforms in the wearable hierarchy that are not part of the
+        /// avatar skeleton under their nearest ancestor that IS in the avatar skeleton.
+        /// This ensures extra bones (e.g. spring bone chains) follow the avatar during emotes.
+        /// </summary>
+        public static void ReparentExtraBonesUnderAvatarSkeleton(GameObject wearableRoot,
+            Dictionary<string, Transform> avatarBoneMap)
+        {
+            // Collect all transforms in the wearable's hierarchy
+            var allTransforms = wearableRoot.GetComponentsInChildren<Transform>(true);
+
+            // Build a set of all live avatar transforms for fast identity checks
+            var liveAvatarTransforms = new HashSet<Transform>(avatarBoneMap.Values);
+
+            foreach (var t in allTransforms)
+            {
+                // Skip the root itself
+                if (t == wearableRoot.transform) continue;
+
+                // Skip if this transform is itself a live avatar bone
+                if (liveAvatarTransforms.Contains(t)) continue;
+
+                // Skip if already directly parented to a live avatar bone
+                if (t.parent != null && liveAvatarTransforms.Contains(t.parent)) continue;
+
+                // Walk up the wearable hierarchy to find the nearest ancestor that maps to an avatar bone
+                var ancestor = t.parent;
+                Transform mappedAncestor = null;
+                while (ancestor != null && ancestor != wearableRoot.transform)
+                {
+                    if (avatarBoneMap.TryGetValue(ancestor.name, out var avatarBone))
+                    {
+                        mappedAncestor = avatarBone;
+                        break;
+                    }
+                    ancestor = ancestor.parent;
+                }
+
+                if (mappedAncestor != null)
+                {
+                    t.SetParent(mappedAncestor, true);
+                }
+            }
         }
     }
 }
