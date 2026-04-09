@@ -305,11 +305,12 @@ namespace Utils
         }
 
         /// <summary>
-        /// Re-parents all transforms in the wearable hierarchy that are not part of the
-        /// avatar skeleton under their nearest ancestor that IS in the avatar skeleton.
-        /// This ensures extra bones (e.g. spring bone chains) follow the avatar during emotes.
+        /// Re-parents the roots of extra-bone chains (e.g. spring bone chains) under their
+        /// nearest avatar skeleton ancestor so they follow the avatar during emotes.
+        /// Only chain roots are re-parented; descendants stay under their chain parent,
+        /// preserving the chain hierarchy.
         /// </summary>
-        public static void ReparentExtraBonesUnderAvatarSkeleton(GameObject wearableRoot,
+        private static void ReparentExtraBonesUnderAvatarSkeleton(GameObject wearableRoot,
             Dictionary<string, Transform> avatarBoneMap)
         {
             // Collect all transforms in the wearable's hierarchy
@@ -326,25 +327,15 @@ namespace Utils
                 // Skip if this transform is itself a live avatar bone
                 if (liveAvatarTransforms.Contains(t)) continue;
 
-                // Skip if already directly parented to a live avatar bone
-                if (t.parent != null && liveAvatarTransforms.Contains(t.parent)) continue;
+                // Only re-parent chain roots: transforms whose direct parent is a live avatar bone.
+                // Descendants within the chain keep their existing parent, preserving chain structure.
+                if (t.parent == null || !liveAvatarTransforms.Contains(t.parent)) continue;
 
-                // Walk up the wearable hierarchy to find the nearest ancestor that maps to an avatar bone
-                var ancestor = t.parent;
-                Transform mappedAncestor = null;
-                while (ancestor != null && ancestor != wearableRoot.transform)
+                // The direct parent is a live avatar bone by identity, but it may be the wearable's
+                // copy of that bone rather than the actual live instance. Re-parent under the live one.
+                if (avatarBoneMap.TryGetValue(t.parent.name, out var liveParent) && t.parent != liveParent)
                 {
-                    if (avatarBoneMap.TryGetValue(ancestor.name, out var avatarBone))
-                    {
-                        mappedAncestor = avatarBone;
-                        break;
-                    }
-                    ancestor = ancestor.parent;
-                }
-
-                if (mappedAncestor != null)
-                {
-                    t.SetParent(mappedAncestor, true);
+                    t.SetParent(liveParent, true);
                 }
             }
         }
