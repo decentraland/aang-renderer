@@ -17,7 +17,7 @@ namespace Data
         public Data emoteDataADR74;
 
         // JsonUtility does not support null for custom classes, so we check category
-        public bool IsEmote => data.category == null;
+        public bool IsEmote => string.IsNullOrEmpty(data.category);
 
         [Serializable]
         public class Data
