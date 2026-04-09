@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Reflection;
 using Configurator;
 using GLTFast;
 using Preview;
@@ -15,6 +17,8 @@ public class Bootstrap : MonoBehaviour
 
     private void Start()
     {
+        RegisterDclGltfExtensions();
+
         // Common assets
         CommonAssets.AvatarMaterial = baseMat;
         CommonAssets.FacialFeaturesMaterial = facialFeaturesMat;
@@ -52,5 +56,26 @@ public class Bootstrap : MonoBehaviour
     {
         var bridge = FindAnyObjectByType<JSBridge>();
         bridge.SetUsername("Miha");
+    }
+
+    /// <summary>
+    /// Registers glTF extensions that GLTFast doesn't natively support but that are safe
+    /// to ignore (they don't affect geometry). Without this, GLTFast rejects any file that
+    /// lists these in extensionsRequired.
+    /// </summary>
+    private static void RegisterDclGltfExtensions()
+    {
+        var field = typeof(GltfImport).GetField("k_SupportedExtensions",
+            BindingFlags.Static | BindingFlags.NonPublic);
+
+        if (field == null)
+        {
+            Debug.LogWarning("Could not find k_SupportedExtensions field in GltfImport. " +
+                             "Spring bone wearables may fail to load.");
+            return;
+        }
+
+        var extensions = (HashSet<string>)field.GetValue(null);
+        extensions.Add("DCL_spring_bone_joint");
     }
 }

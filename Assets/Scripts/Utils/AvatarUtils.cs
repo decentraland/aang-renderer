@@ -166,6 +166,7 @@ namespace Utils
         public static void SetupColors(GameObject go, AvatarColors colors,
             List<Renderer> outlineRenderers, Transform avatarRootBone = null, Transform[] avatarBones = null)
         {
+            Dictionary<string, Transform> avatarBoneMap = null;
             var renderers = go.GetComponentsInChildren<SkinnedMeshRenderer>();
             foreach (var r in renderers)
             {
@@ -180,8 +181,18 @@ namespace Utils
 
                 if (avatarRootBone != null && avatarBones != null)
                 {
-                    r.rootBone = avatarRootBone;
-                    r.bones = avatarBones;
+                    if (r.bones.Length <= avatarBones.Length)
+                    {
+                        r.rootBone = avatarRootBone;
+                        r.bones = avatarBones;
+                    }
+                    else
+                    {
+                        // Wearable has extra bones (e.g. spring bones).
+                        // Remap standard avatar bones by name, preserve extra ones.
+                        avatarBoneMap ??= BuildBoneMap(avatarBones);
+                        RemapBonesPreservingExtras(r, avatarRootBone, avatarBoneMap);
+                    }
                 }
 
                 if (r.material.shader.name == "DCL/DCL_Toon" && r.sharedMaterial.renderQueue is >= 2000 and < 3000)
@@ -251,6 +262,39 @@ namespace Utils
                 WearableCategories.Categories.MOUTH => colors.Skin,
                 _ => throw new ArgumentOutOfRangeException(nameof(category), category, null)
             };
+        }
+
+        private static Dictionary<string, Transform> BuildBoneMap(Transform[] bones)
+        {
+            var map = new Dictionary<string, Transform>(bones.Length);
+            foreach (var bone in bones)
+            {
+                if (bone != null)
+                    map[bone.name] = bone;
+            }
+            return map;
+        }
+
+        /// <summary>
+        /// Remaps a skinned mesh's bones to the avatar skeleton by name,
+        /// preserving any extra bones (e.g. spring bone chains) that don't
+        /// exist in the avatar skeleton.
+        /// </summary>
+        private static void RemapBonesPreservingExtras(SkinnedMeshRenderer renderer,
+            Transform avatarRootBone, Dictionary<string, Transform> avatarBoneMap)
+        {
+            var meshBones = renderer.bones;
+            var remapped = new Transform[meshBones.Length];
+
+            for (var i = 0; i < meshBones.Length; i++)
+            {
+                remapped[i] = meshBones[i] != null && avatarBoneMap.TryGetValue(meshBones[i].name, out var avatarBone)
+                    ? avatarBone
+                    : meshBones[i];
+            }
+
+            renderer.rootBone = avatarRootBone;
+            renderer.bones = remapped;
         }
     }
 }
