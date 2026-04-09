@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.atteneder.gltfast": "https://github.com/decentraland/unity-gltf.git",
+    "com.atteneder.gltfast": "https://github.com/atteneder/glTFast.git",
     "com.decentraland.unity-shared-dependencies": "git@github.com:decentraland/unity-shared-dependencies.git#feat/update-to-gltfast-6.16.1",
     "com.unity.cinemachine": "3.1.4",
     "com.unity.ide.rider": "3.0.38",
