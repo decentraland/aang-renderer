@@ -201,6 +201,11 @@ namespace Preview
                                 config.Emote,
                                 config.Base64);
                             break;
+                        case PreviewMode.Jesus:
+                            showingAvatar = true;
+                            confirmationVFX.Play();
+                            await LoadForProfile(config.Profile, "character/Particles_Anim", true);
+                            break;
                         default:
                             throw new ArgumentOutOfRangeException();
                     }

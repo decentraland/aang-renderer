@@ -18,7 +18,6 @@ public class EmoteAnimationController : MonoBehaviour
     private Animation _propAnimation;
     private AudioClip _emoteAudioClip;
     private bool _paused;
-    private float _pausedTime;
 
     public void PlayEmote(LoadedEmote loadedEmote)
     {
@@ -91,7 +90,6 @@ public class EmoteAnimationController : MonoBehaviour
         if (!avatarAnimation.IsPlaying(_loadedEmote.Value.Entity.URN)) return;
 
         _paused = true;
-        _pausedTime = GetCurrentEmoteTime();
 
         // Pause by setting speed to 0
         var state = avatarAnimation[_loadedEmote.Value.Entity.URN];
@@ -182,8 +180,8 @@ public class EmoteAnimationController : MonoBehaviour
             }
         }
 
-        // Sync audio position
-        if (_emoteAudioClip != null && audioSource.isPlaying)
+        // Sync audio position (even when paused so UnPause resumes from the correct position)
+        if (_emoteAudioClip != null)
         {
             audioSource.time = Mathf.Clamp(seconds, 0f, _emoteAudioClip.length);
         }
