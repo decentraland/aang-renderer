@@ -81,8 +81,6 @@ namespace Loading
                 ? await GLTFLoader.LoadEmote(bodyShape, emoteDefinition, transform)
                 : (LoadedEmote?)null;
 
-            Debug.Log("EMOTE LOADED");
-
             var emoteChanged = _loadedEmote?.Entity.URN != emoteDefinition?.URN;
 
             // Clean up previous emote prop / audio
@@ -182,6 +180,25 @@ namespace Loading
 
             // Update character bounds for background highlight
             UpdateHighlight();
+        }
+
+        public void HideFacialFeatures()
+        {
+            var bodyGO = _loadedModels.Values.FirstOrDefault(er => er.Entity.Type == EntityType.Body).Root;
+            if (bodyGO != null)
+            {
+                AvatarUtils.HideBodyShapeFacialFeatures(bodyGO, true, true, true);
+            }
+        }
+
+        public void ClearEmote()
+        {
+            if (_loadedEmote != null)
+            {
+                _loadedEmote.Value.Disposable?.Dispose();
+                Destroy(_loadedEmote.Value.Prop);
+                _loadedEmote = null;
+            }
         }
 
         public void TryHideCategory(string category, bool hidden)

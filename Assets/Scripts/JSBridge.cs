@@ -85,6 +85,33 @@ public class JSBridge : MonoBehaviour
     public void GetElementBounds(string elementName) => configuratorUIPresenter.GetElementBounds(elementName);
 
     [UsedImplicitly]
+    public void GetEmoteLength() => NativeCalls.OnEmoteLength(previewController.GetEmoteLength());
+
+    [UsedImplicitly]
+    public void IsEmotePlaying() => NativeCalls.OnIsEmotePlaying(previewController.IsEmotePlaying());
+
+    [UsedImplicitly]
+    public void PlayEmote() => previewController.PlayEmote();
+
+    [UsedImplicitly]
+    public void PauseEmote() => previewController.PauseEmote();
+
+    [UsedImplicitly]
+    public void GoToEmote(string value) => previewController.GoToEmote(float.Parse(value));
+
+    [UsedImplicitly]
+    public void StopEmote() => previewController.StopEmote();
+
+    [UsedImplicitly]
+    public void EnableSound() => previewController.EnableSound();
+
+    [UsedImplicitly]
+    public void DisableSound() => previewController.DisableSound();
+
+    [UsedImplicitly]
+    public void HasSound() => NativeCalls.OnHasSound(previewController.HasSound());
+
+    [UsedImplicitly]
     public void Reload() => previewController.InvokeReload();
 
     [UsedImplicitly]
@@ -150,12 +177,18 @@ public class JSBridge : MonoBehaviour
         public static void OnLoadComplete() => Debug.Log("NativeCall OnLoadComplete");
 
         public static void OnError(string message) => Debug.LogError($"NativeCall OnError({message})");
-        
+
         public static void OnCustomizationDone(string message) => Debug.Log($"NativeCall OnCustomizationDone({message})");
 
         public static void OnElementBounds(string json) => Debug.Log($"NativeCall OnElementBounds({json})");
 
         public static void OnAvatarCustomizationStep(int step) => Debug.Log($"NativeCall OnAvatarCustomizationStep({step})");
+
+        public static void OnEmoteLength(float length) => Debug.Log($"NativeCall OnEmoteLength({length})");
+
+        public static void OnIsEmotePlaying(bool playing) => Debug.Log($"NativeCall OnIsEmotePlaying({playing})");
+
+        public static void OnHasSound(bool hasSound) => Debug.Log($"NativeCall OnHasSound({hasSound})");
 
         // ReSharper disable once InconsistentNaming
         public static void PreloadURLs(string urlsCSV) => Debug.Log($"NativeCall PreloadURLs({urlsCSV})");
@@ -177,6 +210,15 @@ public class JSBridge : MonoBehaviour
 
         [System.Runtime.InteropServices.DllImport("__Internal")]
         public static extern void OnAvatarCustomizationStep(int step);
+
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        public static extern void OnEmoteLength(float length);
+
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        public static extern void OnIsEmotePlaying(bool playing);
+
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        public static extern void OnHasSound(bool hasSound);
 
         [System.Runtime.InteropServices.DllImport("__Internal")]
         public static extern void PreloadURLs(string urlsCSV);

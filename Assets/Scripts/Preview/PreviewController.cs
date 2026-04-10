@@ -84,6 +84,30 @@ namespace Preview
             avatarRotator.ResetRotation();
         }
 
+        public float GetEmoteLength() => emoteAnimationController.GetEmoteLength();
+
+        public bool IsEmotePlaying() => emoteAnimationController.IsEmotePlaying();
+
+        public void PlayEmote()
+        {
+            if (emoteAnimationController.IsPaused)
+                emoteAnimationController.ResumeEmote();
+            else
+                emoteAnimationController.ReplayEmote();
+        }
+
+        public void PauseEmote() => emoteAnimationController.PauseEmote();
+
+        public void GoToEmote(float seconds) => emoteAnimationController.GoToEmote(seconds);
+
+        public void StopEmote() => emoteAnimationController.StopEmote();
+
+        public void EnableSound() => emoteAnimationController.EnableSound();
+
+        public void DisableSound() => emoteAnimationController.DisableSound();
+
+        public bool HasSound() => emoteAnimationController.HasAudio;
+
         public void InvokeReload()
         {
             _shouldCleanup = false;
@@ -168,15 +192,20 @@ namespace Preview
                             showingAvatar = true;
                             await LoadForProfile(config.Profile, config.Emote);
                             break;
+                        case PreviewMode.Builder:
+                            await LoadForBuilder(config.BodyShape,
+                                config.EyeColor,
+                                config.HairColor,
+                                config.SkinColor,
+                                config.Urns.ToArray(),
+                                config.Emote,
+                                config.Base64);
+                            break;
                         case PreviewMode.Jesus:
                             showingAvatar = true;
                             confirmationVFX.Play();
                             await LoadForProfile(config.Profile, "character/Particles_Anim", true);
                             break;
-                        // case PreviewMode.Builder:
-                        //     await LoadForBuilder(config.BodyShape, config.EyeColor, config.HairColor, config.SkinColor,
-                        //         await GetUrns(config), config.Emote, config.Base64);
-                        //     break;
                         default:
                             throw new ArgumentOutOfRangeException();
                     }
@@ -204,6 +233,10 @@ namespace Preview
                 {
                     previewCameraController.ShowMarketplaceWearable(!showingAvatar);
                 }
+                else if (config.Mode is PreviewMode.Builder)
+                {
+                    avatarRotator.DragSpeed = 2f;
+                }
 
                 avatarRotator.enabled = true;
                 wearableRotator.enabled = true;
@@ -227,6 +260,52 @@ namespace Preview
             }
 
             JSBridge.NativeCalls.OnLoadComplete();
+        }
+
+        private async Awaitable LoadForBuilder(string bodyShapeName,
+            Color? eyeColor,
+            Color? hairColor,
+            Color? skinColor,
+            string[] urns,
+            string emoteName,
+            List<byte[]> base64)
+        {
+            var bodyShape = bodyShapeName.Equals(WearablesConstants.BODY_SHAPE_FEMALE, StringComparison.OrdinalIgnoreCase)
+                ? BodyShape.Female
+                : BodyShape.Male;
+
+            var base64Entities = base64.Select(EntityDefinition.FromBase64).ToArray();
+            var base64Emote = base64Entities.FirstOrDefault(e => e.Type == EntityType.Emote);
+            var base64WearableEntities = base64Entities.Where(e => e.Type != EntityType.Emote);
+
+            var urnEntities = await EntityService.GetEntities(urns);
+
+            // Slot-based deduplication: one wearable per category, base64 items take priority
+            var slots = new Dictionary<string, EntityDefinition>();
+            foreach (var entity in urnEntities.Where(e => e.Type != EntityType.Emote))
+            {
+                slots[entity.Category] = entity;
+            }
+            foreach (var entity in base64WearableEntities)
+            {
+                slots[entity.Category] = entity;
+            }
+            var wearableEntities = slots.Values.ToArray();
+
+            var colors = new AvatarColors(eyeColor ?? Color.black, hairColor ?? Color.black, skinColor ?? Color.black);
+
+            var emoteEntity = base64Emote ?? (emoteName == "idle" ? null : EntityDefinition.FromEmbeddedEmote(emoteName, true));
+
+            await avatarLoader.LoadAvatar(bodyShape,
+                wearableEntities,
+                emoteEntity,
+                Array.Empty<string>(),
+                colors);
+
+            if (AangConfiguration.Instance.DisableFace)
+            {
+                avatarLoader.HideFacialFeatures();
+            }
         }
 
         private async Awaitable<(bool emoteOverride, bool emoteOverrideAudio, bool validRepresentation, BodyShape avatarBodyShape)> LoadForMarketplace(string profileID, string urn,
@@ -325,6 +404,7 @@ namespace Preview
             _shouldCleanup = false;
 
             emoteAnimationController.ClearEmote();
+            avatarLoader.ClearEmote();
         }
     }
 }

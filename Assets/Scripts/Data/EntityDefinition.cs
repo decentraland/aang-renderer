@@ -128,12 +128,6 @@ namespace Data
 
 
 
-            [CanBeNull]
-            public static Representation ForBodyShapeRaw(string bodyShape, ActiveEntity.Metadata.Data data)
-            {
-                throw new NotImplementedException();
-            }
-
             public static Representation ForEmbeddedEmote(string emote)
             {
                 return new Representation(
@@ -151,8 +145,10 @@ namespace Data
         {
             var urn = entity.pointers[0];
             var category = entity.IsEmote ? "emote" : entity.metadata.data.category;
-            var thumbnail = string.Format(APIService.APICatalyst,
-                entity.content.First(c => c.file == entity.metadata.thumbnail).hash);
+            var thumbnailContent = entity.content?.FirstOrDefault(c => c.file == entity.metadata.thumbnail);
+            var thumbnail = thumbnailContent != null
+                ? string.Format(APIService.APICatalyst, thumbnailContent.hash)
+                : null;
             var type = entity.IsEmote ? EntityType.Emote :
                 urn.Equals(WearablesConstants.BODY_SHAPE_FEMALE, StringComparison.OrdinalIgnoreCase) || urn.Equals(
                     WearablesConstants.BODY_SHAPE_MALE, StringComparison.OrdinalIgnoreCase)  ? EntityType.Body :
@@ -171,41 +167,13 @@ namespace Data
         public static EntityDefinition FromBase64(byte[] b64)
         {
             var base64String = Encoding.UTF8.GetString(b64);
-            var metadata = JsonUtility.FromJson<ActiveEntity.Metadata>(base64String);
 
-            // Note: We have to check category because JsonUtility does not support null for custom classes
-            if (metadata.data.category == null && metadata.emoteDataADR74.category == null ||
-                metadata.data.category != null && metadata.emoteDataADR74.category != null)
-            {
-                throw new NotSupportedException(
-                    "Improper data provided (either data or emoteDataADR74 should be defined, but not both");
-            }
+            // Base64 JSON uses {key, url} objects for contents instead of plain strings,
+            // so we parse into RawActiveEntity which handles that format
+            var raw = JsonUtility.FromJson<RawActiveEntity>(base64String);
+            var entity = raw.ToActiveEntity();
 
-            var isEmote = metadata.data.category == null;
-            var data = isEmote ? metadata.emoteDataADR74 : metadata.data;
-            var type = isEmote
-                ? EntityType.Emote
-                : metadata.id is WearablesConstants.BODY_SHAPE_FEMALE or WearablesConstants.BODY_SHAPE_MALE
-                    ? EntityType.Body
-                    : WearableCategories.FACIAL_FEATURES.Contains(data.category)
-                        ? EntityType.FacialFeature
-                        : EntityType.Wearable;
-            var flags = isEmote && metadata.emoteDataADR74.loop ? EntityFlags.Looping : EntityFlags.None;
-
-            var representations = new Dictionary<BodyShape, Representation>
-            {
-                [BodyShape.Male] = Representation.ForBodyShapeRaw(WearablesConstants.BODY_SHAPE_MALE, data),
-                [BodyShape.Female] = Representation.ForBodyShapeRaw(WearablesConstants.BODY_SHAPE_FEMALE, data)
-            };
-
-            return new EntityDefinition(
-                metadata.id,
-                isEmote ? "emote" : metadata.data.category,
-                metadata.thumbnail,
-                type,
-                flags,
-                representations
-            );
+            return FromActiveEntity(entity);
         }
 
         public static EntityDefinition FromEmbeddedEmote(string emote, bool loop)
