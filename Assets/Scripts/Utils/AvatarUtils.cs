@@ -168,36 +168,36 @@ namespace Utils
         {
             Dictionary<string, Transform> avatarBoneMap = null;
             var renderers = go.GetComponentsInChildren<SkinnedMeshRenderer>();
-            foreach (var r in renderers)
+            foreach (var renderer in renderers)
             {
-                if (r.material.name.Contains("skin", StringComparison.OrdinalIgnoreCase))
+                if (renderer.material.name.Contains("skin", StringComparison.OrdinalIgnoreCase))
                 {
-                    r.material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Skin);
+                    renderer.material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Skin);
                 }
-                else if (r.material.name.Contains("hair", StringComparison.OrdinalIgnoreCase))
+                else if (renderer.material.name.Contains("hair", StringComparison.OrdinalIgnoreCase))
                 {
-                    r.material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Hair);
+                    renderer.material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Hair);
                 }
 
                 if (avatarRootBone != null && avatarBones != null)
                 {
-                    if (r.bones.Length <= avatarBones.Length)
+                    if (renderer.bones.Length <= avatarBones.Length)
                     {
-                        r.rootBone = avatarRootBone;
-                        r.bones = avatarBones;
+                        renderer.rootBone = avatarRootBone;
+                        renderer.bones = avatarBones;
                     }
                     else
                     {
                         // Wearable has extra bones (e.g. spring bones).
                         // Remap standard avatar bones by name, preserve extra ones.
                         avatarBoneMap ??= BuildBoneMap(avatarBones);
-                        RemapBonesPreservingExtras(r, avatarRootBone, avatarBoneMap);
+                        RemapBonesPreservingExtras(renderer, avatarRootBone, avatarBoneMap);
                     }
                 }
 
-                if (r.material.shader.name == "DCL/DCL_Toon" && r.sharedMaterial.renderQueue is >= 2000 and < 3000)
+                if (renderer.material.shader.name == "DCL/DCL_Toon" && renderer.sharedMaterial.renderQueue is >= 2000 and < 3000)
                 {
-                    outlineRenderers.Add(r);
+                    outlineRenderers.Add(renderer);
                 }
             }
 
@@ -319,23 +319,23 @@ namespace Utils
             // Build a set of all live avatar transforms for fast identity checks
             var liveAvatarTransforms = new HashSet<Transform>(avatarBoneMap.Values);
 
-            foreach (var t in allTransforms)
+            foreach (var transform in allTransforms)
             {
                 // Skip the root itself
-                if (t == wearableRoot.transform) continue;
+                if (transform == wearableRoot.transform) continue;
 
                 // Skip if this transform is itself a live avatar bone
-                if (liveAvatarTransforms.Contains(t)) continue;
+                if (liveAvatarTransforms.Contains(transform)) continue;
 
                 // Only re-parent chain roots: transforms whose direct parent is a live avatar bone.
                 // Descendants within the chain keep their existing parent, preserving chain structure.
-                if (t.parent == null || !liveAvatarTransforms.Contains(t.parent)) continue;
+                if (transform.parent == null || !liveAvatarTransforms.Contains(transform.parent)) continue;
 
                 // The direct parent is a live avatar bone by identity, but it may be the wearable's
                 // copy of that bone rather than the actual live instance. Re-parent under the live one.
-                if (avatarBoneMap.TryGetValue(t.parent.name, out var liveParent) && t.parent != liveParent)
+                if (avatarBoneMap.TryGetValue(transform.parent.name, out var liveParent) && transform.parent != liveParent)
                 {
-                    t.SetParent(liveParent, true);
+                    transform.SetParent(liveParent, true);
                 }
             }
         }
