@@ -236,40 +236,6 @@ namespace Loading
                 Object.Destroy(sceneChild.gameObject);
             }
 
-            // var skinnedRenderer = root.GetComponentInChildren<SkinnedMeshRenderer>();
-            // var armatureRoot = skinnedRenderer.rootBone.parent;
-            // armatureRoot.name = "Armature"; // Force Armature name since legacy animation needs it
-            //
-            // // Fix for wearables with incorrect hierarchy. Why do we even have conventions?
-            // // Offender: urn:decentraland:matic:collections-v2:0xa6a59f7a7b1401670ea09dc5554b55757163e20d:0
-            // if (armatureRoot.parent != root)
-            // {
-            //     var armatureParent = armatureRoot.parent;
-            //
-            //     while (armatureParent.childCount > 0)
-            //     {
-            //         var child = armatureParent.GetChild(0);
-            //         child.SetParent(root, true);
-            //     }
-            //
-            //     Object.Destroy(armatureParent.gameObject);
-            // }
-            //
-            // // Some emotes like urn:decentraland:matic:collections-v2:0x705652b66a12dcf782b0b3d5673fbf0c1797eba2:3
-            // // move the armature??? And not all emotes reset it in animation. Dance does, idle does not.
-            // armatureRoot.localPosition = Vector3.zero;
-            //
-            // foreach (Transform t in root)
-            // {
-            //     // Some wearables have weird scales so we normalize them
-            //     t.localScale = new Vector3(0.01f, 0.01f, 0.01f);
-            //
-            //     // If there are objects named Armature that aren't the actual armature, rename them
-            //     if (t.name == "Armature" && t != armatureRoot)
-            //     {
-            //         t.name = "Armature_ThatShouldNotBeHere";
-            //     }
-            // }
         }
     }
 }

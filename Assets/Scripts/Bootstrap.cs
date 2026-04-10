@@ -53,4 +53,5 @@ public class Bootstrap : MonoBehaviour
         var bridge = FindAnyObjectByType<JSBridge>();
         bridge.SetUsername("Miha");
     }
+
 }

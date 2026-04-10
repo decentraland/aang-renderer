@@ -166,28 +166,46 @@ namespace Utils
         public static void SetupColors(GameObject go, AvatarColors colors,
             List<Renderer> outlineRenderers, Transform avatarRootBone = null, Transform[] avatarBones = null)
         {
+            Dictionary<string, Transform> avatarBoneMap = null;
             var renderers = go.GetComponentsInChildren<SkinnedMeshRenderer>();
-            foreach (var r in renderers)
+            foreach (var renderer in renderers)
             {
-                if (r.material.name.Contains("skin", StringComparison.OrdinalIgnoreCase))
+                if (renderer.material.name.Contains("skin", StringComparison.OrdinalIgnoreCase))
                 {
-                    r.material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Skin);
+                    renderer.material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Skin);
                 }
-                else if (r.material.name.Contains("hair", StringComparison.OrdinalIgnoreCase))
+                else if (renderer.material.name.Contains("hair", StringComparison.OrdinalIgnoreCase))
                 {
-                    r.material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Hair);
+                    renderer.material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Hair);
                 }
 
                 if (avatarRootBone != null && avatarBones != null)
                 {
-                    r.rootBone = avatarRootBone;
-                    r.bones = avatarBones;
+                    if (renderer.bones.Length <= avatarBones.Length)
+                    {
+                        renderer.rootBone = avatarRootBone;
+                        renderer.bones = avatarBones;
+                    }
+                    else
+                    {
+                        // Wearable has extra bones (e.g. spring bones).
+                        // Remap standard avatar bones by name, preserve extra ones.
+                        avatarBoneMap ??= BuildBoneMap(avatarBones);
+                        RemapBonesPreservingExtras(renderer, avatarRootBone, avatarBoneMap);
+                    }
                 }
 
-                if (r.material.shader.name == "DCL/DCL_Toon" && r.sharedMaterial.renderQueue is >= 2000 and < 3000)
+                if (renderer.material.shader.name == "DCL/DCL_Toon" && renderer.sharedMaterial.renderQueue is >= 2000 and < 3000)
                 {
-                    outlineRenderers.Add(r);
+                    outlineRenderers.Add(renderer);
                 }
+            }
+
+            // Re-parent extra bones (spring bone chains) under their nearest avatar skeleton ancestor
+            // so they follow the avatar during emotes instead of staying at a fixed world position.
+            if (avatarBoneMap != null)
+            {
+                ReparentExtraBonesUnderAvatarSkeleton(go, avatarBoneMap);
             }
         }
 
@@ -251,6 +269,75 @@ namespace Utils
                 WearableCategories.Categories.MOUTH => colors.Skin,
                 _ => throw new ArgumentOutOfRangeException(nameof(category), category, null)
             };
+        }
+
+        private static Dictionary<string, Transform> BuildBoneMap(Transform[] bones)
+        {
+            var map = new Dictionary<string, Transform>(bones.Length);
+            foreach (var bone in bones)
+            {
+                if (bone != null)
+                    map[bone.name] = bone;
+            }
+            return map;
+        }
+
+        /// <summary>
+        /// Remaps a skinned mesh's bones to the avatar skeleton by name,
+        /// preserving any extra bones (e.g. spring bone chains) that don't
+        /// exist in the avatar skeleton.
+        /// </summary>
+        private static void RemapBonesPreservingExtras(SkinnedMeshRenderer renderer,
+            Transform avatarRootBone, Dictionary<string, Transform> avatarBoneMap)
+        {
+            var meshBones = renderer.bones;
+            var remapped = new Transform[meshBones.Length];
+
+            for (var i = 0; i < meshBones.Length; i++)
+            {
+                remapped[i] = meshBones[i] != null && avatarBoneMap.TryGetValue(meshBones[i].name, out var avatarBone)
+                    ? avatarBone
+                    : meshBones[i];
+            }
+
+            renderer.rootBone = avatarRootBone;
+            renderer.bones = remapped;
+        }
+
+        /// <summary>
+        /// Re-parents the roots of extra-bone chains (e.g. spring bone chains) under their
+        /// nearest avatar skeleton ancestor so they follow the avatar during emotes.
+        /// Only chain roots are re-parented; descendants stay under their chain parent,
+        /// preserving the chain hierarchy.
+        /// </summary>
+        private static void ReparentExtraBonesUnderAvatarSkeleton(GameObject wearableRoot,
+            Dictionary<string, Transform> avatarBoneMap)
+        {
+            // Collect all transforms in the wearable's hierarchy
+            var allTransforms = wearableRoot.GetComponentsInChildren<Transform>(true);
+
+            // Build a set of all live avatar transforms for fast identity checks
+            var liveAvatarTransforms = new HashSet<Transform>(avatarBoneMap.Values);
+
+            foreach (var transform in allTransforms)
+            {
+                // Skip the root itself
+                if (transform == wearableRoot.transform) continue;
+
+                // Skip if this transform is itself a live avatar bone
+                if (liveAvatarTransforms.Contains(transform)) continue;
+
+                // Only re-parent chain roots: transforms whose direct parent is a live avatar bone.
+                // Descendants within the chain keep their existing parent, preserving chain structure.
+                if (transform.parent == null || !liveAvatarTransforms.Contains(transform.parent)) continue;
+
+                // The direct parent is a live avatar bone by identity, but it may be the wearable's
+                // copy of that bone rather than the actual live instance. Re-parent under the live one.
+                if (avatarBoneMap.TryGetValue(transform.parent.name, out var liveParent) && transform.parent != liveParent)
+                {
+                    transform.SetParent(liveParent, true);
+                }
+            }
         }
     }
 }
