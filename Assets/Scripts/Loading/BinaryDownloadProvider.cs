@@ -26,7 +26,7 @@ namespace Loading
         /// </summary>
         /// <param name="url">URI to request</param>
         /// <returns>Object representing the request</returns>
-        public async Task<IDownload> RequestAsync(Uri url)
+        public async Task<IDownload> Request(Uri url)
         {
             var req = new AwaitableDownload(url);
             await req.WaitAsync();
@@ -39,7 +39,7 @@ namespace Loading
         /// <param name="url">URI to request</param>
         /// <param name="nonReadable">If true, resulting texture is not CPU readable (uses less memory)</param>
         /// <returns>Object representing the request</returns>
-        public async Task<ITextureDownload> RequestTextureAsync(Uri url, bool nonReadable, bool forceLinear)
+        public async Task<ITextureDownload> RequestTexture(Uri url, bool nonReadable)
         {
             var fileName = Path.GetFileName(url.LocalPath);
             var file = _content[fileName];
@@ -159,6 +159,8 @@ namespace Loading
 
     public class AwaitableTextureDownload : AwaitableDownload, ITextureDownload
     {
+        public Texture2D Texture { get; }
+        
         /// <summary>
         /// Parameter-less constructor, required for inheritance.
         /// </summary>
@@ -192,17 +194,5 @@ namespace Loading
             m_Request = CreateRequest(url, nonReadable);
             m_AsyncOperation = m_Request.SendWebRequest();
         }
-
-        /// <inheritdoc />
-        public IDisposableTexture GetTexture(bool linear)
-        {
-            return (m_Request?.downloadHandler as DownloadHandlerTexture)?.texture.ToDisposableTexture();
-        }
-    }
-
-    internal static class DisposableTextureExtensions
-    {
-        internal static IDisposableTexture ToDisposableTexture(this Texture2D texture2D) =>
-            new NonReusableTexture(texture2D);
     }
 }
