@@ -325,7 +325,7 @@ namespace Utils
 
                 // Extra bone (e.g. spring bone) whose direct parent is a wearable copy of an avatar bone.
                 // Re-parent under the live avatar bone so it follows the avatar during emotes.
-                                // Descendants within the chain keep their existing parent, preserving chain structure.
+                // Descendants within the chain keep their existing parent, preserving chain structure.
                 if (transform.parent != null
                     && avatarBoneMap.TryGetValue(transform.parent.name, out var liveParent)
                     && transform.parent != liveParent)
