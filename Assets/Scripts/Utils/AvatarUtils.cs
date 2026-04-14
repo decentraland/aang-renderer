@@ -313,27 +313,22 @@ namespace Utils
         private static void ReparentExtraBonesUnderAvatarSkeleton(GameObject wearableRoot,
             Dictionary<string, Transform> avatarBoneMap)
         {
-            // Collect all transforms in the wearable's hierarchy
             var allTransforms = wearableRoot.GetComponentsInChildren<Transform>(true);
-
-            // Build a set of all live avatar transforms for fast identity checks
-            var liveAvatarTransforms = new HashSet<Transform>(avatarBoneMap.Values);
 
             foreach (var transform in allTransforms)
             {
                 // Skip the root itself
                 if (transform == wearableRoot.transform) continue;
 
-                // Skip if this transform is itself a live avatar bone
-                if (liveAvatarTransforms.Contains(transform)) continue;
+                // Skip transforms that correspond to standard avatar bones (by name).
+                if (avatarBoneMap.ContainsKey(transform.name)) continue;
 
-                // Only re-parent chain roots: transforms whose direct parent is a live avatar bone.
+                // Extra bone (e.g. spring bone) whose direct parent is a wearable copy of an avatar bone.
+                // Re-parent under the live avatar bone so it follows the avatar during emotes.
                 // Descendants within the chain keep their existing parent, preserving chain structure.
-                if (transform.parent == null || !liveAvatarTransforms.Contains(transform.parent)) continue;
-
-                // The direct parent is a live avatar bone by identity, but it may be the wearable's
-                // copy of that bone rather than the actual live instance. Re-parent under the live one.
-                if (avatarBoneMap.TryGetValue(transform.parent.name, out var liveParent) && transform.parent != liveParent)
+                if (transform.parent != null
+                    && avatarBoneMap.TryGetValue(transform.parent.name, out var liveParent)
+                    && transform.parent != liveParent)
                 {
                     transform.SetParent(liveParent, true);
                 }
