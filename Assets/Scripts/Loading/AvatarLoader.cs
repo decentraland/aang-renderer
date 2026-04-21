@@ -7,6 +7,7 @@ using DCL.Rendering.RenderGraphs.RenderFeatures.AvatarOutline;
 using JetBrains.Annotations;
 using Rendering;
 using Services;
+using SpringBones;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Serialization;
@@ -24,6 +25,7 @@ namespace Loading
         [SerializeField] private Animation avatarAnimation;
         [SerializeField] private Transform avatarRootBone;
         [SerializeField] private Transform[] avatarBones;
+        [SerializeField] private SpringBonesDriver springBonesDriver;
 
         [Header("Highlight"), SerializeField] private bool setsHighlight;
         [SerializeField] private Vector3 highlightCenter = new(0, 0.18f, 0);
@@ -161,6 +163,19 @@ namespace Loading
                 {
                     go.SetActive(false);
                 }
+            }
+
+            // Spring bones: scan after SetupColors so chain roots are already reparented
+            // under live avatar bones (parent-driven animation propagation works automatically).
+            if (springBonesDriver != null)
+            {
+                springBonesDriver.RegisterAll(_loadedModels.Values
+                    .Where(m => m.Root.activeSelf)
+                    .Select(m => AvatarUtils.BuildSpringBoneData(m.Root)));
+            }
+            else
+            {
+                Debug.LogWarning("[SpringBones] springBonesDriver not wired on AvatarLoader");
             }
 
             // If there is a new emote to be played

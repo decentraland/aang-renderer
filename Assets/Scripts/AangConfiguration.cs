@@ -246,8 +246,8 @@ public class AangConfiguration
         foreach (var parameter in split)
         {
             var keyValueSplit = parameter.Split('=');
-            var key = HttpUtility.UrlDecode(keyValueSplit[0]);
-            var value = keyValueSplit.Length > 1 ? HttpUtility.UrlDecode(keyValueSplit[1]) : string.Empty;
+            var key = HttpUtility.UrlDecode(keyValueSplit[0]).Trim();
+            var value = (keyValueSplit.Length > 1 ? HttpUtility.UrlDecode(keyValueSplit[1]) : string.Empty).Trim();
 
             switch (key)
             {
@@ -298,7 +298,7 @@ public class AangConfiguration
                     break;
                 case "env":
                     APIService.Environment = value == "dev" ? "zone" : "org";
-                    Debug.Log($"Using environment {APIService.Environment}");
+                    Debug.Log($"Using environment {APIService.Environment} (env value=[{value}])");
                     break;
                 case "disableLoader":
                     Instance.DisableLoader = bool.Parse(value);

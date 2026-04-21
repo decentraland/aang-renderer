@@ -5,6 +5,7 @@ using Data;
 using JetBrains.Annotations;
 using Loading;
 using Runtime.Wearables;
+using SpringBones;
 using UnityEngine;
 using UnityEngine.Pool;
 
@@ -302,6 +303,58 @@ namespace Utils
 
             renderer.rootBone = avatarRootBone;
             renderer.bones = remapped;
+        }
+
+        /// <summary>
+        /// Walks a wearable's skeleton, extracts spring bone chains tagged with
+        /// <see cref="GLTFast.SpringBoneJointComponent"/>, and returns flat data for the
+        /// SpringBones simulator. Chain order: each tagged root is followed by its untagged
+        /// descendants that participate in the skinning, in DFS order.
+        /// </summary>
+        public static SpringBoneData[] BuildSpringBoneData(GameObject wearable)
+        {
+            var skeleton = wearable.GetComponentInChildren<SkinnedMeshRenderer>();
+            if (skeleton == null) return Array.Empty<SpringBoneData>();
+
+            var boneSet = new HashSet<Transform>(skeleton.bones);
+            var result = new List<SpringBoneData>();
+
+            foreach (var bone in skeleton.bones)
+            {
+                if (bone == null) continue;
+                var joint = bone.GetComponent<GLTFast.SpringBoneJointComponent>();
+                if (joint == null) continue;
+
+                result.Add(new SpringBoneData(
+                    bone, joint.IsRoot,
+                    joint.Stiffness, joint.Drag, joint.GravityDir, joint.GravityPower, joint.HitRadius,
+                    bone.localRotation));
+
+                if (joint.IsRoot)
+                    CollectSpringBoneChain(bone, joint, boneSet, result);
+            }
+
+            Debug.Log($"[SpringBones] {wearable.name}: found {result.Count} spring joints (skeleton bones={skeleton.bones.Length})");
+            return result.Count > 0 ? result.ToArray() : Array.Empty<SpringBoneData>();
+        }
+
+        private static void CollectSpringBoneChain(Transform parent,
+            GLTFast.SpringBoneJointComponent rootCfg,
+            HashSet<Transform> boneSet, List<SpringBoneData> output)
+        {
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                var child = parent.GetChild(i);
+                if (!boneSet.Contains(child)) continue;
+                if (child.GetComponent<GLTFast.SpringBoneJointComponent>() != null) continue;
+
+                output.Add(new SpringBoneData(
+                    child, false,
+                    rootCfg.Stiffness, rootCfg.Drag, rootCfg.GravityDir, rootCfg.GravityPower, rootCfg.HitRadius,
+                    child.localRotation));
+
+                CollectSpringBoneChain(child, rootCfg, boneSet, output);
+            }
         }
 
         /// <summary>
