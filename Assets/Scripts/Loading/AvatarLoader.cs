@@ -199,9 +199,9 @@ namespace Loading
 
         public void SetSpringBonesParams(SpringBones.SpringBonesParamsPayload payload)
         {
-            if (payload == null || string.IsNullOrEmpty(payload.itemId) || payload.@params == null || payload.@params.Count == 0)
+            if (payload == null || string.IsNullOrEmpty(payload.itemId))
             {
-                Debug.Log($"[SpringBones] AvatarLoader.SetSpringBonesParams rejected payload (itemId='{payload?.itemId}', paramsCount={payload?.@params?.Count ?? 0})");
+                Debug.Log($"[SpringBones] AvatarLoader.SetSpringBonesParams rejected payload (itemId='{payload?.itemId}')");
                 return;
             }
             if (springBonesDriver == null)
@@ -218,8 +218,7 @@ namespace Loading
             }
 
             Debug.Log($"[SpringBones] resolved itemId '{payload.itemId}' -> GameObject '{owner.name}'");
-            int updated = springBonesDriver.UpdateParamsForWearable(owner, payload.@params);
-            Debug.Log($"[SpringBones] applied {updated} chain(s) to '{payload.itemId}'");
+            springBonesDriver.SetSpringChainsForWearable(owner, payload.@params);
         }
 
         private bool TryFindWearableByItemId(string itemId, out GameObject owner)

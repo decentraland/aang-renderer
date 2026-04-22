@@ -11,6 +11,8 @@ namespace SpringBones
         readonly List<Transform> chainRootParents = new();
         readonly List<GameObject> chainOwners = new();
         readonly List<string> chainRootBoneNames = new();
+        readonly List<Transform[]> chainBones = new();
+        readonly List<Quaternion[]> chainInitialRotations = new();
 
         readonly List<Transform> chainJoints = new();
         readonly List<SpringBoneJointConfig> chainConfigs = new();
@@ -31,6 +33,8 @@ namespace SpringBones
             chainRootParents.Clear();
             chainOwners.Clear();
             chainRootBoneNames.Clear();
+            chainBones.Clear();
+            chainInitialRotations.Clear();
         }
 
         public void RegisterAll(IEnumerable<(GameObject owner, SpringBoneData[] springs)> wearableSprings)
@@ -78,6 +82,101 @@ namespace SpringBones
                 FlushChain(owner, chainRootParent, chainRootBoneName);
         }
 
+        /// <summary>
+        /// Replace the full set of spring chains for a wearable with the ones declared in
+        /// <paramref name="paramsByBone"/>. Empty / null map clears all chains owned by
+        /// <paramref name="owner"/>, restoring the bones to their captured rest pose (normal bones).
+        /// Bones present in the map that were not spring bones before become spring bones.
+        /// </summary>
+        public void SetSpringChainsForWearable(GameObject owner, Dictionary<string, SpringBoneParamsDTO> paramsByBone)
+        {
+            if (service == null || owner == null) return;
+
+            int removed = RemoveChainsForOwner(owner);
+
+            if (paramsByBone == null || paramsByBone.Count == 0)
+            {
+                Debug.Log($"[SpringBones] cleared {removed} chain(s) on '{owner.name}'");
+                return;
+            }
+
+            var skinned = owner.GetComponentInChildren<SkinnedMeshRenderer>();
+            if (skinned == null)
+            {
+                Debug.Log($"[SpringBones] '{owner.name}' has no SkinnedMeshRenderer; cannot build chains");
+                return;
+            }
+
+            var boneSet = new HashSet<Transform>(skinned.bones);
+            var nameIndex = new Dictionary<string, Transform>();
+            foreach (var b in skinned.bones)
+                if (b != null && !nameIndex.ContainsKey(b.name))
+                    nameIndex[b.name] = b;
+
+            int added = 0;
+            foreach (var kv in paramsByBone)
+            {
+                if (!nameIndex.TryGetValue(kv.Key, out var rootBone))
+                {
+                    Debug.Log($"[SpringBones] bone '{kv.Key}' not found in '{owner.name}'; skipped");
+                    continue;
+                }
+
+                chainJoints.Clear();
+                chainConfigs.Clear();
+                var rootConfig = BuildConfigFromDTO(kv.Value, rootBone.localRotation);
+                chainJoints.Add(rootBone);
+                chainConfigs.Add(rootConfig);
+                CollectChainDescendants(rootBone, boneSet, paramsByBone, rootConfig);
+                FlushChain(owner, rootBone.parent, rootBone.name);
+                Debug.Log($"[SpringBones] chain '{rootBone.name}' on '{owner.name}' -> {chainJoints.Count} joint(s), stiffness={kv.Value.stiffness} drag={kv.Value.drag} gravityPower={kv.Value.gravityPower}");
+                added++;
+            }
+
+            Debug.Log($"[SpringBones] rebuilt '{owner.name}': removed {removed}, added {added}");
+        }
+
+        int RemoveChainsForOwner(GameObject owner)
+        {
+            int removed = 0;
+            for (int i = slotIndices.Count - 1; i >= 0; i--)
+            {
+                if (chainOwners[i] != owner) continue;
+
+                var bones = chainBones[i];
+                var rots = chainInitialRotations[i];
+                for (int j = 0; j < bones.Length; j++)
+                    if (bones[j] != null) bones[j].localRotation = rots[j];
+
+                service.UnregisterSpring(slotIndices[i]);
+                slotIndices.RemoveAt(i);
+                chainRootParents.RemoveAt(i);
+                chainOwners.RemoveAt(i);
+                chainRootBoneNames.RemoveAt(i);
+                chainBones.RemoveAt(i);
+                chainInitialRotations.RemoveAt(i);
+                removed++;
+            }
+            return removed;
+        }
+
+        void CollectChainDescendants(Transform parent, HashSet<Transform> boneSet,
+            Dictionary<string, SpringBoneParamsDTO> paramsByBone, SpringBoneJointConfig inheritedConfig)
+        {
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                var child = parent.GetChild(i);
+                if (!boneSet.Contains(child)) continue;
+                if (paramsByBone.ContainsKey(child.name)) continue;
+
+                var c = inheritedConfig;
+                c.LocalRotation = child.localRotation;
+                chainJoints.Add(child);
+                chainConfigs.Add(c);
+                CollectChainDescendants(child, boneSet, paramsByBone, inheritedConfig);
+            }
+        }
+
         void FlushChain(GameObject owner, Transform rootParent, string rootBoneName)
         {
             for (int j = 0; j < chainJoints.Count; j++)
@@ -107,47 +206,17 @@ namespace SpringBones
             for (int j = 0; j < chainJoints.Count; j++)
                 tails[j] = j + 1 < chainJoints.Count ? (float3)chainJoints[j + 1].position : (float3)chainJoints[j].position;
 
-            int slot = service.RegisterSpring(chainJoints.ToArray(), chainConfigs.ToArray(), tails);
+            var jointsCopy = chainJoints.ToArray();
+            var initRots = new Quaternion[jointsCopy.Length];
+            for (int j = 0; j < jointsCopy.Length; j++) initRots[j] = jointsCopy[j].localRotation;
+
+            int slot = service.RegisterSpring(jointsCopy, chainConfigs.ToArray(), tails);
             slotIndices.Add(slot);
             chainRootParents.Add(rootParent);
             chainOwners.Add(owner);
             chainRootBoneNames.Add(rootBoneName);
-        }
-
-        /// <summary>
-        /// Override physics params per chain. Keys in <paramref name="paramsByBone"/> match the
-        /// chain's root bone name. Returns number of chains updated.
-        /// </summary>
-        public int UpdateParamsForWearable(GameObject owner, Dictionary<string, SpringBoneParamsDTO> paramsByBone)
-        {
-            if (service == null || owner == null || paramsByBone == null) return 0;
-
-            int ownedChains = 0;
-            int updated = 0;
-            for (int i = 0; i < slotIndices.Count; i++)
-            {
-                if (chainOwners[i] != owner) continue;
-                ownedChains++;
-
-                if (!paramsByBone.TryGetValue(chainRootBoneNames[i], out var p))
-                {
-                    Debug.Log($"[SpringBones] chain root '{chainRootBoneNames[i]}' on '{owner.name}' not in payload, skipped");
-                    continue;
-                }
-
-                float3 gravityDir = p.gravityDir != null && p.gravityDir.Length == 3
-                    ? new float3(p.gravityDir[0], p.gravityDir[1], p.gravityDir[2])
-                    : new float3(0, -1, 0);
-
-                service.UpdateSlotParams(slotIndices[i], p.stiffness, p.drag, gravityDir, p.gravityPower);
-                Debug.Log($"[SpringBones] updated chain '{chainRootBoneNames[i]}' on '{owner.name}' -> stiffness={p.stiffness} drag={p.drag} gravityPower={p.gravityPower} gravityDir=({gravityDir.x},{gravityDir.y},{gravityDir.z})");
-                updated++;
-            }
-
-            if (ownedChains == 0)
-                Debug.Log($"[SpringBones] '{owner.name}' owns 0 chains in driver (nothing to update)");
-
-            return updated;
+            chainBones.Add(jointsCopy);
+            chainInitialRotations.Add(initRots);
         }
 
         static SpringBoneJointConfig BuildJointConfig(SpringBoneData d) => new()
@@ -158,6 +227,21 @@ namespace SpringBones
             GravityPower = d.GravityPower,
             LocalRotation = d.InitialLocalRotation,
         };
+
+        static SpringBoneJointConfig BuildConfigFromDTO(SpringBoneParamsDTO p, Quaternion initialRotation)
+        {
+            float3 gravityDir = p.gravityDir != null && p.gravityDir.Length == 3
+                ? new float3(p.gravityDir[0], p.gravityDir[1], p.gravityDir[2])
+                : new float3(0, -1, 0);
+            return new SpringBoneJointConfig
+            {
+                Stiffness = p.stiffness,
+                Drag = p.drag,
+                GravityDir = gravityDir,
+                GravityPower = p.gravityPower,
+                LocalRotation = initialRotation,
+            };
+        }
 
         void LateUpdate()
         {
