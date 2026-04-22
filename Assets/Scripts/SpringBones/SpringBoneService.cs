@@ -75,6 +75,24 @@ namespace SpringBones
                 managedTransforms[baseIndex + j] = null;
         }
 
+        public void UpdateSlotParams(int slotIndex, float stiffness, float drag, float3 gravityDir, float gravityPower)
+        {
+            int jointCount = slotJointCounts[slotIndex];
+            if (jointCount == 0) return;
+
+            int baseIndex = slotIndex * MAX_JOINTS_PER_SPRING;
+            for (int j = 0; j < jointCount; j++)
+            {
+                int idx = baseIndex + j;
+                var c = jointConfigs[idx];
+                c.Stiffness = stiffness;
+                c.Drag = drag;
+                c.GravityDir = gravityDir;
+                c.GravityPower = gravityPower;
+                jointConfigs[idx] = c;
+            }
+        }
+
         public void SetParentData(int slotIndex, quaternion rotation, float4x4 localToWorldMatrix)
         {
             parentData[slotIndex] = new SpringBoneParentData

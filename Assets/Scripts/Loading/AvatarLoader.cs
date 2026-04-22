@@ -171,7 +171,7 @@ namespace Loading
             {
                 springBonesDriver.RegisterAll(_loadedModels.Values
                     .Where(m => m.Root.activeSelf)
-                    .Select(m => AvatarUtils.BuildSpringBoneData(m.Root)));
+                    .Select(m => (m.Root, AvatarUtils.BuildSpringBoneData(m.Root))));
             }
             else
             {
@@ -195,6 +195,53 @@ namespace Loading
 
             // Update character bounds for background highlight
             UpdateHighlight();
+        }
+
+        public bool SetSpringBonesParams(SpringBones.SpringBonesParamsPayload payload)
+        {
+            if (payload == null || string.IsNullOrEmpty(payload.itemId) || payload.@params == null || payload.@params.Count == 0) return false;
+            if (springBonesDriver == null)
+            {
+                Debug.LogWarning("[SpringBones] springBonesDriver not wired on AvatarLoader");
+                return false;
+            }
+
+            if (!TryFindWearableByItemId(payload.itemId, out var owner))
+            {
+                Debug.LogWarning($"[SpringBones] no loaded wearable matches itemId '{payload.itemId}'");
+                return false;
+            }
+
+            int updated = springBonesDriver.UpdateParamsForWearable(owner, payload.@params);
+            Debug.Log($"[SpringBones] applied {updated} chain(s) to '{payload.itemId}'");
+            return updated > 0;
+        }
+
+        private bool TryFindWearableByItemId(string itemId, out GameObject owner)
+        {
+            if (_loadedModels.TryGetValue(itemId, out var exact))
+            {
+                owner = exact.Root;
+                return true;
+            }
+            foreach (var m in _loadedModels.Values)
+            {
+                if (m.Entity.URN != null && m.Entity.URN.EndsWith(itemId, StringComparison.Ordinal))
+                {
+                    owner = m.Root;
+                    return true;
+                }
+            }
+            foreach (var m in _loadedModels.Values)
+            {
+                if (m.Entity.URN != null && m.Entity.URN.Contains(itemId))
+                {
+                    owner = m.Root;
+                    return true;
+                }
+            }
+            owner = null;
+            return false;
         }
 
         public void HideFacialFeatures()

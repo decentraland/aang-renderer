@@ -82,6 +82,19 @@ public class JSBridge : MonoBehaviour
     public void SetUsername(string value) => AangConfiguration.Instance.Username = value;
 
     [UsedImplicitly]
+    public void SetSpringBonesParams(string value)
+    {
+        SpringBones.SpringBonesParamsPayload payload;
+        try { payload = SpringBones.SpringBonesParamsPayload.Parse(value); }
+        catch (Exception e)
+        {
+            Debug.LogError($"[SpringBones] failed to parse SetSpringBonesParams payload: {e.Message}");
+            return;
+        }
+        previewController.SetSpringBonesParams(payload);
+    }
+
+    [UsedImplicitly]
     public void GetElementBounds(string elementName) => configuratorUIPresenter.GetElementBounds(elementName);
 
     [UsedImplicitly]

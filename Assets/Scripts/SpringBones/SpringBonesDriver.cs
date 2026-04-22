@@ -9,6 +9,8 @@ namespace SpringBones
         SpringBoneService service;
         readonly List<int> slotIndices = new();
         readonly List<Transform> chainRootParents = new();
+        readonly List<GameObject> chainOwners = new();
+        readonly List<string> chainRootBoneNames = new();
 
         readonly List<Transform> chainJoints = new();
         readonly List<SpringBoneJointConfig> chainConfigs = new();
@@ -27,24 +29,27 @@ namespace SpringBones
             foreach (int s in slotIndices) service.UnregisterSpring(s);
             slotIndices.Clear();
             chainRootParents.Clear();
+            chainOwners.Clear();
+            chainRootBoneNames.Clear();
         }
 
-        public void RegisterAll(IEnumerable<SpringBoneData[]> wearableSprings)
+        public void RegisterAll(IEnumerable<(GameObject owner, SpringBoneData[] springs)> wearableSprings)
         {
             UnregisterAll();
-            foreach (var springs in wearableSprings)
+            foreach (var (owner, springs) in wearableSprings)
             {
                 if (springs == null || springs.Length == 0) continue;
-                RegisterWearable(springs);
+                RegisterWearable(owner, springs);
             }
             Debug.Log($"[SpringBones] driver registered {slotIndices.Count} chain(s)");
         }
 
-        void RegisterWearable(SpringBoneData[] springs)
+        void RegisterWearable(GameObject owner, SpringBoneData[] springs)
         {
             chainJoints.Clear();
             chainConfigs.Clear();
             Transform chainRootParent = null;
+            string chainRootBoneName = null;
 
             for (int i = 0; i < springs.Length; i++)
             {
@@ -52,7 +57,7 @@ namespace SpringBones
 
                 if (sb.IsRoot && chainJoints.Count > 0)
                 {
-                    FlushChain(chainRootParent);
+                    FlushChain(owner, chainRootParent, chainRootBoneName);
                     chainJoints.Clear();
                     chainConfigs.Clear();
                 }
@@ -60,17 +65,20 @@ namespace SpringBones
                 sb.ManagedTransform.localRotation = sb.InitialLocalRotation;
 
                 if (sb.IsRoot)
+                {
                     chainRootParent = sb.ManagedTransform.parent;
+                    chainRootBoneName = sb.ManagedTransform.name;
+                }
 
                 chainJoints.Add(sb.ManagedTransform);
                 chainConfigs.Add(BuildJointConfig(sb));
             }
 
             if (chainJoints.Count > 0)
-                FlushChain(chainRootParent);
+                FlushChain(owner, chainRootParent, chainRootBoneName);
         }
 
-        void FlushChain(Transform rootParent)
+        void FlushChain(GameObject owner, Transform rootParent, string rootBoneName)
         {
             for (int j = 0; j < chainJoints.Count; j++)
             {
@@ -102,6 +110,32 @@ namespace SpringBones
             int slot = service.RegisterSpring(chainJoints.ToArray(), chainConfigs.ToArray(), tails);
             slotIndices.Add(slot);
             chainRootParents.Add(rootParent);
+            chainOwners.Add(owner);
+            chainRootBoneNames.Add(rootBoneName);
+        }
+
+        /// <summary>
+        /// Override physics params per chain. Keys in <paramref name="paramsByBone"/> match the
+        /// chain's root bone name. Returns number of chains updated.
+        /// </summary>
+        public int UpdateParamsForWearable(GameObject owner, Dictionary<string, SpringBoneParamsDTO> paramsByBone)
+        {
+            if (service == null || owner == null || paramsByBone == null) return 0;
+
+            int updated = 0;
+            for (int i = 0; i < slotIndices.Count; i++)
+            {
+                if (chainOwners[i] != owner) continue;
+                if (!paramsByBone.TryGetValue(chainRootBoneNames[i], out var p)) continue;
+
+                float3 gravityDir = p.gravityDir != null && p.gravityDir.Length == 3
+                    ? new float3(p.gravityDir[0], p.gravityDir[1], p.gravityDir[2])
+                    : new float3(0, -1, 0);
+
+                service.UpdateSlotParams(slotIndices[i], p.stiffness, p.drag, gravityDir, p.gravityPower);
+                updated++;
+            }
+            return updated;
         }
 
         static SpringBoneJointConfig BuildJointConfig(SpringBoneData d) => new()
