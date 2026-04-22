@@ -199,19 +199,25 @@ namespace Loading
 
         public void SetSpringBonesParams(SpringBones.SpringBonesParamsPayload payload)
         {
-            if (payload == null || string.IsNullOrEmpty(payload.itemId) || payload.@params == null || payload.@params.Count == 0) return;
+            if (payload == null || string.IsNullOrEmpty(payload.itemId) || payload.@params == null || payload.@params.Count == 0)
+            {
+                Debug.Log($"[SpringBones] AvatarLoader.SetSpringBonesParams rejected payload (itemId='{payload?.itemId}', paramsCount={payload?.@params?.Count ?? 0})");
+                return;
+            }
             if (springBonesDriver == null)
             {
-                Debug.LogWarning("[SpringBones] springBonesDriver not wired on AvatarLoader");
+                Debug.Log("[SpringBones] springBonesDriver not wired on AvatarLoader");
                 return;
             }
 
             if (!TryFindWearableByItemId(payload.itemId, out var owner))
             {
-                Debug.LogWarning($"[SpringBones] no loaded wearable matches itemId '{payload.itemId}'");
+                var loadedUrns = string.Join(", ", _loadedModels.Keys);
+                Debug.Log($"[SpringBones] no loaded wearable matches itemId '{payload.itemId}'. loaded URNs: [{loadedUrns}]");
                 return;
             }
 
+            Debug.Log($"[SpringBones] resolved itemId '{payload.itemId}' -> GameObject '{owner.name}'");
             int updated = springBonesDriver.UpdateParamsForWearable(owner, payload.@params);
             Debug.Log($"[SpringBones] applied {updated} chain(s) to '{payload.itemId}'");
         }

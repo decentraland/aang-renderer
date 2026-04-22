@@ -122,19 +122,31 @@ namespace SpringBones
         {
             if (service == null || owner == null || paramsByBone == null) return 0;
 
+            int ownedChains = 0;
             int updated = 0;
             for (int i = 0; i < slotIndices.Count; i++)
             {
                 if (chainOwners[i] != owner) continue;
-                if (!paramsByBone.TryGetValue(chainRootBoneNames[i], out var p)) continue;
+                ownedChains++;
+
+                if (!paramsByBone.TryGetValue(chainRootBoneNames[i], out var p))
+                {
+                    Debug.Log($"[SpringBones] chain root '{chainRootBoneNames[i]}' on '{owner.name}' not in payload, skipped");
+                    continue;
+                }
 
                 float3 gravityDir = p.gravityDir != null && p.gravityDir.Length == 3
                     ? new float3(p.gravityDir[0], p.gravityDir[1], p.gravityDir[2])
                     : new float3(0, -1, 0);
 
                 service.UpdateSlotParams(slotIndices[i], p.stiffness, p.drag, gravityDir, p.gravityPower);
+                Debug.Log($"[SpringBones] updated chain '{chainRootBoneNames[i]}' on '{owner.name}' -> stiffness={p.stiffness} drag={p.drag} gravityPower={p.gravityPower} gravityDir=({gravityDir.x},{gravityDir.y},{gravityDir.z})");
                 updated++;
             }
+
+            if (ownedChains == 0)
+                Debug.Log($"[SpringBones] '{owner.name}' owns 0 chains in driver (nothing to update)");
+
             return updated;
         }
 
