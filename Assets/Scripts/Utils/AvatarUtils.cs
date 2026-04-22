@@ -171,13 +171,17 @@ namespace Utils
             var renderers = go.GetComponentsInChildren<SkinnedMeshRenderer>();
             foreach (var renderer in renderers)
             {
-                if (renderer.material.name.Contains("skin", StringComparison.OrdinalIgnoreCase))
+                var materials = renderer.materials;
+                foreach (var material in materials)
                 {
-                    renderer.material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Skin);
-                }
-                else if (renderer.material.name.Contains("hair", StringComparison.OrdinalIgnoreCase))
-                {
-                    renderer.material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Hair);
+                    if (material.name.Contains("skin", StringComparison.OrdinalIgnoreCase))
+                    {
+                        material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Skin);
+                    }
+                    else if (material.name.Contains("hair", StringComparison.OrdinalIgnoreCase))
+                    {
+                        material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Hair);
+                    }
                 }
 
                 if (avatarRootBone != null && avatarBones != null)
@@ -196,9 +200,14 @@ namespace Utils
                     }
                 }
 
-                if (renderer.material.shader.name == "DCL/DCL_Toon" && renderer.sharedMaterial.renderQueue is >= 2000 and < 3000)
+                foreach (var sharedMaterial in renderer.sharedMaterials)
                 {
-                    outlineRenderers.Add(renderer);
+                    if (sharedMaterial != null && sharedMaterial.shader.name == "DCL/DCL_Toon"
+                                               && sharedMaterial.renderQueue is >= 2000 and < 3000)
+                    {
+                        outlineRenderers.Add(renderer);
+                        break;
+                    }
                 }
             }
 
