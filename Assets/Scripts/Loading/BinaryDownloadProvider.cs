@@ -159,9 +159,7 @@ namespace Loading
 
     public class AwaitableTextureDownload : AwaitableDownload, ITextureDownload
     {
-        
-        /// <inheritdoc />
-        public Texture2D Texture => (m_Request?.downloadHandler as DownloadHandlerTexture)?.texture;
+        public Texture2D Texture { get; }
         
         /// <summary>
         /// Parameter-less constructor, required for inheritance.
