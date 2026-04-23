@@ -14,11 +14,11 @@
       "hash": "3360ccae0a91cbc1bafb32d4aa0132fc82add141"
     },
     "com.decentraland.unity-shared-dependencies": {
-      "version": "git@github.com:decentraland/unity-shared-dependencies.git#main",
+      "version": "git@github.com:decentraland/unity-shared-dependencies.git#feat/update-to-gltfast-6.16.1",
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "0132f23fb5d1bfa1634a872ef28e131067df7a69"
+      "hash": "e7dc3286806e732f4388754ec17df23b81a8d89e"
     },
     "com.unity.burst": {
       "version": "1.8.27",
