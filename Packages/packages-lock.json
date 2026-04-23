@@ -1,24 +1,23 @@
 {
   "dependencies": {
     "com.atteneder.gltfast": {
-      "version": "https://github.com/atteneder/glTFast.git",
+      "version": "https://github.com/decentraland/unity-gltf.git",
       "depth": 0,
       "source": "git",
       "dependencies": {
         "com.unity.modules.jsonserialize": "1.0.0",
         "com.unity.modules.unitywebrequest": "1.0.0",
         "com.unity.mathematics": "1.2.6",
-        "com.unity.burst": "1.8.24",
-        "com.unity.collections": "1.2.4"
+        "com.unity.burst": "1.6.6"
       },
-      "hash": "3360ccae0a91cbc1bafb32d4aa0132fc82add141"
+      "hash": "e4587451389b6cf93b084ae434d0cc3d32a45076"
     },
     "com.decentraland.unity-shared-dependencies": {
-      "version": "git@github.com:decentraland/unity-shared-dependencies.git#feat/update-to-gltfast-6.16.1",
+      "version": "git@github.com:decentraland/unity-shared-dependencies.git#main",
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "e7dc3286806e732f4388754ec17df23b81a8d89e"
+      "hash": "da34743b0e4c01191c72f58af715bf2c0dfc2d67"
     },
     "com.unity.burst": {
       "version": "1.8.27",
@@ -42,7 +41,7 @@
     },
     "com.unity.collections": {
       "version": "2.6.2",
-      "depth": 1,
+      "depth": 2,
       "source": "registry",
       "dependencies": {
         "com.unity.burst": "1.8.23",
@@ -95,7 +94,7 @@
     },
     "com.unity.nuget.mono-cecil": {
       "version": "1.11.6",
-      "depth": 2,
+      "depth": 3,
       "source": "registry",
       "dependencies": {},
       "url": "https://packages.unity.com"
@@ -178,7 +177,7 @@
     },
     "com.unity.test-framework.performance": {
       "version": "3.2.0",
-      "depth": 2,
+      "depth": 3,
       "source": "registry",
       "dependencies": {
         "com.unity.test-framework": "1.1.33",
