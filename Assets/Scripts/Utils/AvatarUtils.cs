@@ -314,11 +314,22 @@ namespace Utils
             renderer.bones = remapped;
         }
 
+        // Default spring bone parameters used when detecting bones by naming convention.
+        // Actual parameters arrive later via JSBridge setSpringBonesParams from metadata.
+        const float DEFAULT_STIFFNESS = 2f;
+        const float DEFAULT_DRAG = 0.5f;
+        const float DEFAULT_GRAVITY_POWER = 0f;
+        static readonly Vector3 DEFAULT_GRAVITY_DIR = new(0, -1, 0);
+        const float DEFAULT_HIT_RADIUS = 0f;
+        const string SPRING_BONE_PREFIX = "SpringBone_";
+
         /// <summary>
-        /// Walks a wearable's skeleton, extracts spring bone chains tagged with
-        /// <see cref="GLTFast.SpringBoneJointComponent"/>, and returns flat data for the
-        /// SpringBones simulator. Chain order: each tagged root is followed by its untagged
-        /// descendants that participate in the skinning, in DFS order.
+        /// Walks a wearable's skeleton, detects spring bone chains by the
+        /// <c>SpringBone_</c> naming convention on transforms, and returns flat data
+        /// for the SpringBones simulator using default parameters.
+        /// Actual parameters are supplied later via JSBridge (<c>setSpringBonesParams</c>).
+        /// Chain order: each root is followed by its descendants that participate
+        /// in the skinning, in DFS order.
         /// </summary>
         public static SpringBoneData[] BuildSpringBoneData(GameObject wearable)
         {
@@ -331,16 +342,15 @@ namespace Utils
             foreach (var bone in skeleton.bones)
             {
                 if (bone == null) continue;
-                var joint = bone.GetComponent<GLTFast.SpringBoneJointComponent>();
-                if (joint == null) continue;
+                if (!bone.name.StartsWith(SPRING_BONE_PREFIX, StringComparison.Ordinal)) continue;
 
+                // Every SpringBone_ prefixed bone is treated as a chain root
                 result.Add(new SpringBoneData(
-                    bone, joint.IsRoot,
-                    joint.Stiffness, joint.Drag, joint.GravityDir, joint.GravityPower, joint.HitRadius,
+                    bone, true,
+                    DEFAULT_STIFFNESS, DEFAULT_DRAG, DEFAULT_GRAVITY_DIR, DEFAULT_GRAVITY_POWER, DEFAULT_HIT_RADIUS,
                     bone.localRotation));
 
-                if (joint.IsRoot)
-                    CollectSpringBoneChain(bone, joint, boneSet, result);
+                CollectSpringBoneChain(bone, boneSet, result);
             }
 
             Debug.Log($"[SpringBones] {wearable.name}: found {result.Count} spring joints (skeleton bones={skeleton.bones.Length})");
@@ -348,21 +358,22 @@ namespace Utils
         }
 
         private static void CollectSpringBoneChain(Transform parent,
-            GLTFast.SpringBoneJointComponent rootCfg,
             HashSet<Transform> boneSet, List<SpringBoneData> output)
         {
             for (int i = 0; i < parent.childCount; i++)
             {
                 var child = parent.GetChild(i);
                 if (!boneSet.Contains(child)) continue;
-                if (child.GetComponent<GLTFast.SpringBoneJointComponent>() != null) continue;
+                // If the child is itself a SpringBone_ root, skip it here; it will
+                // be picked up as its own chain root in the outer loop.
+                if (child.name.StartsWith(SPRING_BONE_PREFIX, StringComparison.Ordinal)) continue;
 
                 output.Add(new SpringBoneData(
                     child, false,
-                    rootCfg.Stiffness, rootCfg.Drag, rootCfg.GravityDir, rootCfg.GravityPower, rootCfg.HitRadius,
+                    DEFAULT_STIFFNESS, DEFAULT_DRAG, DEFAULT_GRAVITY_DIR, DEFAULT_GRAVITY_POWER, DEFAULT_HIT_RADIUS,
                     child.localRotation));
 
-                CollectSpringBoneChain(child, rootCfg, boneSet, output);
+                CollectSpringBoneChain(child, boneSet, output);
             }
         }
 
