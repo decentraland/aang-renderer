@@ -19,7 +19,23 @@ namespace Data
         public readonly EntityType Type;
         public readonly EntityFlags Flags;
 
+        [CanBeNull] private readonly SpringBonesDto _springBones;
+
         [ItemCanBeNull] private readonly Dictionary<BodyShape, Representation> _representations;
+
+        /// <summary>
+        /// Returns the spring-bone params (boneName → params) declared in the wearable
+        /// metadata for the given body shape's mainFile, or null if none.
+        /// </summary>
+        [CanBeNull]
+        public IReadOnlyDictionary<string, SpringBoneParamsDto> GetSpringBoneParams(BodyShape shape)
+        {
+            if (_springBones?.models == null) return null;
+            if (!HasRepresentation(shape)) return null;
+
+            var mainFile = _representations[shape].MainFile;
+            return _springBones.models.TryGetValue(mainFile, out var map) ? map : null;
+        }
 
         public Representation[] GetAllRepresentations()
         {
@@ -48,7 +64,8 @@ namespace Data
         public Representation this[BodyShape shape] => _representations[shape] ?? throw new InvalidOperationException(
             $"Missing {shape} representation for {URN}");
 
-        private EntityDefinition(string urn, string category, string thumbnail, EntityType type, EntityFlags flags, Dictionary<BodyShape, Representation> representations)
+        private EntityDefinition(string urn, string category, string thumbnail, EntityType type, EntityFlags flags,
+            Dictionary<BodyShape, Representation> representations, [CanBeNull] SpringBonesDto springBones)
         {
             URN = urn;
             Category = category;
@@ -56,6 +73,7 @@ namespace Data
             Type = type;
             _representations = representations;
             Flags = flags;
+            _springBones = springBones;
         }
 
         public class Representation
@@ -161,7 +179,7 @@ namespace Data
                 [BodyShape.Female] = Representation.ForBodyShape(WearablesConstants.BODY_SHAPE_FEMALE, entity)
             };
 
-            return new EntityDefinition(urn, category, thumbnail, type, flags, representations);
+            return new EntityDefinition(urn, category, thumbnail, type, flags, representations, entity.springBones);
         }
 
         public static EntityDefinition FromBase64(byte[] b64)
@@ -188,7 +206,8 @@ namespace Data
                 {
                     [BodyShape.Male] = Representation.ForEmbeddedEmote(emote),
                     [BodyShape.Female] = Representation.ForEmbeddedEmote(emote)
-                }
+                },
+                null
             );
         }
     }

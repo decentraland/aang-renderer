@@ -37,6 +37,10 @@ namespace Loading
         private readonly Dictionary<string, LoadedFacialFeature> _loadedFacialFeatures = new();
         private LoadedEmote? _loadedEmote;
 
+        // JSBridge spring-bone overrides keyed by itemId; these take precedence over the
+        // params declared in the wearable definition and are re-applied after every reload.
+        private readonly Dictionary<string, Dictionary<string, SpringBoneParamsDTO>> _springBoneOverrides = new();
+
         private readonly Dictionary<string, (Texture2D main, Texture2D mask)> _defaultBodyFacialFeatures = new();
 
         private readonly HashSet<string> _hiddenCategories = new();
@@ -171,7 +175,14 @@ namespace Loading
             {
                 springBonesDriver.RegisterAll(_loadedModels.Values
                     .Where(m => m.Root.activeSelf)
-                    .Select(m => (m.Root, AvatarUtils.BuildSpringBoneData(m.Root))));
+                    .Select(m => (m.Root, AvatarUtils.BuildSpringBoneData(m.Root, m.Entity.GetSpringBoneParams(bodyShape)))));
+
+                // JSBridge overrides win over wearable definition params.
+                foreach (var (itemId, paramsByBone) in _springBoneOverrides)
+                {
+                    if (TryFindWearableByItemId(itemId, out var owner))
+                        springBonesDriver.SetSpringChainsForWearable(owner, paramsByBone);
+                }
             }
             else
             {
@@ -209,6 +220,9 @@ namespace Loading
                 Debug.Log("[SpringBones] springBonesDriver not wired on AvatarLoader");
                 return;
             }
+
+            // Cache so the override is re-applied after every reload (wins over wearable definition).
+            _springBoneOverrides[payload.itemId] = payload.@params;
 
             if (!TryFindWearableByItemId(payload.itemId, out var owner))
             {

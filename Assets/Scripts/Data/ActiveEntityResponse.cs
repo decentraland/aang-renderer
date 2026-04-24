@@ -11,6 +11,8 @@ namespace Data
         public Content[] content;
         public Metadata metadata;
 
+        public SpringBonesDto springBones;
+
         public bool IsEmote => type == "emote";
 
         [Serializable]
