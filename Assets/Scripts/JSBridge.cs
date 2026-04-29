@@ -84,7 +84,6 @@ public class JSBridge : MonoBehaviour
     [UsedImplicitly]
     public void SetSpringBonesParams(string value)
     {
-        Debug.Log($"[SpringBones] JSBridge.SetSpringBonesParams raw payload ({value?.Length ?? 0} chars): {value}");
         SpringBones.SpringBonesParamsPayload payload;
         try { payload = SpringBones.SpringBonesParamsPayload.Parse(value); }
         catch (Exception e)
@@ -92,12 +91,7 @@ public class JSBridge : MonoBehaviour
             Debug.LogError($"[SpringBones] failed to parse SetSpringBonesParams payload: {e.Message}");
             return;
         }
-        if (payload == null)
-        {
-            Debug.LogError("[SpringBones] parsed payload is null");
-            return;
-        }
-        Debug.Log($"[SpringBones] parsed itemId='{payload.itemId}' paramsKeys=[{(payload.@params == null ? "null" : string.Join(",", payload.@params.Keys))}]");
+        if (payload == null) return;
         previewController.SetSpringBonesParams(payload);
     }
 

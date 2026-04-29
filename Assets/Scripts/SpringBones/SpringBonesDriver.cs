@@ -47,48 +47,40 @@ namespace SpringBones
         {
             if (service == null || owner == null) return;
 
-            int removed = RemoveChainsForOwner(owner);
+            RemoveChainsForOwner(owner);
 
-            if (paramsByBone == null || paramsByBone.Count == 0)
-            {
-                Debug.Log($"[SpringBones] cleared {removed} chain(s) on '{owner.name}'");
-                return;
-            }
+            if (paramsByBone == null || paramsByBone.Count == 0) return;
 
             var skinned = owner.GetComponentInChildren<SkinnedMeshRenderer>();
             if (skinned == null)
             {
-                Debug.Log($"[SpringBones] '{owner.name}' has no SkinnedMeshRenderer; cannot build chains");
+                Debug.LogError($"[SpringBones] '{owner.name}' has no SkinnedMeshRenderer; cannot build chains");
                 return;
             }
 
             var boneSet = new HashSet<Transform>(skinned.bones);
-            var nameIndex = new Dictionary<string, Transform>();
-            foreach (var b in skinned.bones)
-                if (b != null && !nameIndex.ContainsKey(b.name))
-                    nameIndex[b.name] = b;
 
-            int added = 0;
+            int rootCount = 0;
             foreach (var kv in paramsByBone)
+                if (kv.Value.isRoot) rootCount++;
+            // Fallback: if no entry is flagged as root (e.g. JSBridge payload, legacy data),
+            // treat every entry as a root so chains still register.
+            var treatAllAsRoots = rootCount == 0;
+
+            foreach (var bone in skinned.bones)
             {
-                if (!nameIndex.TryGetValue(kv.Key, out var rootBone))
-                {
-                    Debug.Log($"[SpringBones] bone '{kv.Key}' not found in '{owner.name}'; skipped");
-                    continue;
-                }
+                if (bone == null) continue;
+                if (!paramsByBone.TryGetValue(bone.name, out var paramsDto)) continue;
+                if (!treatAllAsRoots && !paramsDto.isRoot) continue;
 
                 chainJoints.Clear();
                 chainConfigs.Clear();
-                var rootConfig = BuildConfigFromDTO(kv.Value, rootBone.localRotation);
-                chainJoints.Add(rootBone);
+                var rootConfig = BuildConfigFromDTO(paramsDto, bone.localRotation);
+                chainJoints.Add(bone);
                 chainConfigs.Add(rootConfig);
-                CollectChainDescendants(rootBone, boneSet, paramsByBone, rootConfig);
-                FlushChain(owner, rootBone.parent, rootBone.name);
-                Debug.Log($"[SpringBones] chain '{rootBone.name}' on '{owner.name}' -> {chainJoints.Count} joint(s), stiffness={kv.Value.stiffness} drag={kv.Value.drag} gravityPower={kv.Value.gravityPower}");
-                added++;
+                CollectChainDescendants(bone, boneSet, paramsByBone, rootConfig);
+                FlushChain(owner, bone.parent, bone.name);
             }
-
-            Debug.Log($"[SpringBones] rebuilt '{owner.name}': removed {removed}, added {added}");
         }
 
         int RemoveChainsForOwner(GameObject owner)
@@ -122,10 +114,21 @@ namespace SpringBones
             {
                 var child = parent.GetChild(i);
                 if (!boneSet.Contains(child)) continue;
-                if (paramsByBone.ContainsKey(child.name)) continue;
 
-                var c = inheritedConfig;
-                c.LocalRotation = child.localRotation;
+                SpringBoneJointConfig c;
+                if (paramsByBone.TryGetValue(child.name, out var childParams))
+                {
+                    // Tagged as its own root: independent chain — let outer loop handle it.
+                    if (childParams.isRoot) continue;
+                    // Non-root entry: use its own params for this joint.
+                    c = BuildConfigFromDTO(childParams, child.localRotation);
+                }
+                else
+                {
+                    c = inheritedConfig;
+                    c.LocalRotation = child.localRotation;
+                }
+
                 chainJoints.Add(child);
                 chainConfigs.Add(c);
                 CollectChainDescendants(child, boneSet, paramsByBone, inheritedConfig);

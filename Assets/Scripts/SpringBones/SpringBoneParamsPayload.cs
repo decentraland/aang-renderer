@@ -26,5 +26,6 @@ namespace SpringBones
         public float[] gravityDir;
         public float drag;
         public string center;
+        public bool isRoot;
     }
 }

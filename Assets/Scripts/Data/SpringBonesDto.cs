@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
@@ -45,6 +46,13 @@ namespace Data
         {
             if (reader.TokenType == JsonToken.Null) return existingValue;
             var t = JToken.Load(reader);
+            if (t.Type == JTokenType.Array)
+            {
+                return new Vector3(
+                    t.Count() > 0 ? t[0].Value<float>() : 0f,
+                    t.Count() > 1 ? t[1].Value<float>() : 0f,
+                    t.Count() > 2 ? t[2].Value<float>() : 0f);
+            }
             return new Vector3(
                 t["x"]?.Value<float>() ?? 0f,
                 t["y"]?.Value<float>() ?? 0f,

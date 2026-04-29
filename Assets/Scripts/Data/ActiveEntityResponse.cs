@@ -11,8 +11,6 @@ namespace Data
         public Content[] content;
         public Metadata metadata;
 
-        public SpringBonesDto springBones;
-
         public bool IsEmote => type == "emote";
 
         [Serializable]
@@ -45,6 +43,7 @@ namespace Data
                 public string[] replaces = Array.Empty<string>();
                 public string[] removesDefaultHiding = Array.Empty<string>();
                 public bool loop; // For emotes only
+                public SpringBonesDto springBones;
             }
             
             [Serializable]

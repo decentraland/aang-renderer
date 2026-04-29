@@ -33,8 +33,9 @@ namespace Data
             if (_springBones?.models == null) return null;
             if (!HasRepresentation(shape)) return null;
 
-            var mainFile = _representations[shape].MainFile;
-            return _springBones.models.TryGetValue(mainFile, out var map) ? map : null;
+            var mainFileHash = _representations[shape].MainFileHash;
+            if (string.IsNullOrEmpty(mainFileHash)) return null;
+            return _springBones.models.TryGetValue(mainFileHash, out var map) ? map : null;
         }
 
         public Representation[] GetAllRepresentations()
@@ -80,14 +81,16 @@ namespace Data
         {
             public readonly Dictionary<string, string> Files;
             public readonly string MainFile;
+            public readonly string MainFileHash;
             public readonly string[] Hides;
             public readonly string[] RemovesDefaultHiding;
 
-            private Representation(Dictionary<string, string> files, string mainFile, string[] hides,
-                string[] removesDefaultHiding)
+            private Representation(Dictionary<string, string> files, string mainFile, string mainFileHash,
+                string[] hides, string[] removesDefaultHiding)
             {
                 Files = files;
                 MainFile = mainFile;
+                MainFileHash = mainFileHash;
                 Hides = hides;
                 RemovesDefaultHiding = removesDefaultHiding;
             }
@@ -130,9 +133,13 @@ namespace Data
                         StringComparer.OrdinalIgnoreCase
                     );
 
+                var mainFileHash = entity.content
+                    .FirstOrDefault(c => string.Equals(c.file, main, StringComparison.OrdinalIgnoreCase))?.hash;
+
                 var representation = new Representation(
                     filesDict,
                     entityRepresentation.mainFile,
+                    mainFileHash,
                     entityRepresentation.overrideHides is { Length: > 0 }
                         ? entityRepresentation.overrideHides
                         : data.hides.Union(entityRepresentation.overrideReplaces is { Length: > 0 }
@@ -153,7 +160,7 @@ namespace Data
                     {
                         ["main"] = Path.Combine(Application.streamingAssetsPath, $"{emote}.glb")
                     },
-                    "main", Array.Empty<string>(),
+                    "main", null, Array.Empty<string>(),
                     Array.Empty<string>()
                 );
             }
@@ -179,7 +186,8 @@ namespace Data
                 [BodyShape.Female] = Representation.ForBodyShape(WearablesConstants.BODY_SHAPE_FEMALE, entity)
             };
 
-            return new EntityDefinition(urn, category, thumbnail, type, flags, representations, entity.springBones);
+            return new EntityDefinition(urn, category, thumbnail, type, flags, representations,
+                entity.IsEmote ? null : entity.metadata?.data?.springBones);
         }
 
         public static EntityDefinition FromBase64(byte[] b64)

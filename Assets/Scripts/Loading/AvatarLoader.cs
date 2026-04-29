@@ -220,28 +220,18 @@ namespace Loading
 
         public void SetSpringBonesParams(SpringBones.SpringBonesParamsPayload payload)
         {
-            if (payload == null || string.IsNullOrEmpty(payload.itemId))
-            {
-                Debug.Log($"[SpringBones] AvatarLoader.SetSpringBonesParams rejected payload (itemId='{payload?.itemId}')");
-                return;
-            }
+            if (payload == null || string.IsNullOrEmpty(payload.itemId)) return;
             if (springBonesDriver == null)
             {
-                Debug.Log("[SpringBones] springBonesDriver not wired on AvatarLoader");
+                Debug.LogError("[SpringBones] springBonesDriver not wired on AvatarLoader");
                 return;
             }
 
             // Cache so the override is re-applied after every reload (wins over wearable definition).
             _springBoneOverrides[payload.itemId] = payload.@params;
 
-            if (!TryFindWearableByItemId(payload.itemId, out var owner))
-            {
-                var loadedUrns = string.Join(", ", _loadedModels.Keys);
-                Debug.Log($"[SpringBones] no loaded wearable matches itemId '{payload.itemId}'. loaded URNs: [{loadedUrns}]");
-                return;
-            }
+            if (!TryFindWearableByItemId(payload.itemId, out var owner)) return;
 
-            Debug.Log($"[SpringBones] resolved itemId '{payload.itemId}' -> GameObject '{owner.name}'");
             springBonesDriver.SetSpringChainsForWearable(owner, payload.@params);
         }
 
@@ -258,6 +248,7 @@ namespace Loading
                     drag = m.drag,
                     gravityPower = m.gravityPower,
                     gravityDir = new[] { m.gravityDir.x, m.gravityDir.y, m.gravityDir.z },
+                    isRoot = m.isRoot,
                 };
             }
             return result;
