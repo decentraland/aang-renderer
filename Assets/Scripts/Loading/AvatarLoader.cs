@@ -171,22 +171,32 @@ namespace Loading
 
             // Spring bones: scan after SetupColors so chain roots are already reparented
             // under live avatar bones (parent-driven animation propagation works automatically).
+            // JSBridge overrides win over wearable definition params.
             if (springBonesDriver != null)
             {
-                springBonesDriver.RegisterAll(_loadedModels.Values
-                    .Where(m => m.Root.activeSelf)
-                    .Select(m => (m.Root, AvatarUtils.BuildSpringBoneData(m.Root, m.Entity.GetSpringBoneParams(bodyShape)))));
+                springBonesDriver.UnregisterAll();
 
-                // JSBridge overrides win over wearable definition params.
+                var ownersWithOverride = new HashSet<GameObject>();
                 foreach (var (itemId, paramsByBone) in _springBoneOverrides)
                 {
                     if (TryFindWearableByItemId(itemId, out var owner))
+                    {
                         springBonesDriver.SetSpringChainsForWearable(owner, paramsByBone);
+                        ownersWithOverride.Add(owner);
+                    }
+                }
+
+                foreach (var loaded in _loadedModels.Values.Where(m => m.Root.activeSelf))
+                {
+                    if (ownersWithOverride.Contains(loaded.Root)) continue;
+                    var meta = ConvertMetadataParams(loaded.Entity.GetSpringBoneParams(bodyShape));
+                    if (meta != null && meta.Count > 0)
+                        springBonesDriver.SetSpringChainsForWearable(loaded.Root, meta);
                 }
             }
             else
             {
-                Debug.LogWarning("[SpringBones] springBonesDriver not wired on AvatarLoader");
+                Debug.LogError("[SpringBones] springBonesDriver not wired on AvatarLoader");
             }
 
             // If there is a new emote to be played
@@ -233,6 +243,24 @@ namespace Loading
 
             Debug.Log($"[SpringBones] resolved itemId '{payload.itemId}' -> GameObject '{owner.name}'");
             springBonesDriver.SetSpringChainsForWearable(owner, payload.@params);
+        }
+
+        private static Dictionary<string, SpringBoneParamsDTO> ConvertMetadataParams(
+            IReadOnlyDictionary<string, SpringBoneParamsDto> source)
+        {
+            if (source == null || source.Count == 0) return null;
+            var result = new Dictionary<string, SpringBoneParamsDTO>(source.Count);
+            foreach (var (boneName, m) in source)
+            {
+                result[boneName] = new SpringBoneParamsDTO
+                {
+                    stiffness = m.stiffness,
+                    drag = m.drag,
+                    gravityPower = m.gravityPower,
+                    gravityDir = new[] { m.gravityDir.x, m.gravityDir.y, m.gravityDir.z },
+                };
+            }
+            return result;
         }
 
         private bool TryFindWearableByItemId(string itemId, out GameObject owner)

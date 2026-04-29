@@ -37,51 +37,6 @@ namespace SpringBones
             chainInitialRotations.Clear();
         }
 
-        public void RegisterAll(IEnumerable<(GameObject owner, SpringBoneData[] springs)> wearableSprings)
-        {
-            UnregisterAll();
-            foreach (var (owner, springs) in wearableSprings)
-            {
-                if (springs == null || springs.Length == 0) continue;
-                RegisterWearable(owner, springs);
-            }
-            Debug.Log($"[SpringBones] driver registered {slotIndices.Count} chain(s)");
-        }
-
-        void RegisterWearable(GameObject owner, SpringBoneData[] springs)
-        {
-            chainJoints.Clear();
-            chainConfigs.Clear();
-            Transform chainRootParent = null;
-            string chainRootBoneName = null;
-
-            for (int i = 0; i < springs.Length; i++)
-            {
-                var sb = springs[i];
-
-                if (sb.IsRoot && chainJoints.Count > 0)
-                {
-                    FlushChain(owner, chainRootParent, chainRootBoneName);
-                    chainJoints.Clear();
-                    chainConfigs.Clear();
-                }
-
-                sb.ManagedTransform.localRotation = sb.InitialLocalRotation;
-
-                if (sb.IsRoot)
-                {
-                    chainRootParent = sb.ManagedTransform.parent;
-                    chainRootBoneName = sb.ManagedTransform.name;
-                }
-
-                chainJoints.Add(sb.ManagedTransform);
-                chainConfigs.Add(BuildJointConfig(sb));
-            }
-
-            if (chainJoints.Count > 0)
-                FlushChain(owner, chainRootParent, chainRootBoneName);
-        }
-
         /// <summary>
         /// Replace the full set of spring chains for a wearable with the ones declared in
         /// <paramref name="paramsByBone"/>. Empty / null map clears all chains owned by
@@ -218,15 +173,6 @@ namespace SpringBones
             chainBones.Add(jointsCopy);
             chainInitialRotations.Add(initRots);
         }
-
-        static SpringBoneJointConfig BuildJointConfig(SpringBoneData d) => new()
-        {
-            Stiffness = d.Stiffness,
-            Drag = d.Drag,
-            GravityDir = d.GravityDir,
-            GravityPower = d.GravityPower,
-            LocalRotation = d.InitialLocalRotation,
-        };
 
         static SpringBoneJointConfig BuildConfigFromDTO(SpringBoneParamsDTO p, Quaternion initialRotation)
         {

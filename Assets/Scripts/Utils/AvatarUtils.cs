@@ -5,7 +5,6 @@ using Data;
 using JetBrains.Annotations;
 using Loading;
 using Runtime.Wearables;
-using SpringBones;
 using UnityEngine;
 using UnityEngine.Pool;
 
@@ -312,64 +311,6 @@ namespace Utils
 
             renderer.rootBone = avatarRootBone;
             renderer.bones = remapped;
-        }
-
-        /// <summary>
-        /// Walks a wearable's skeleton and returns flat spring-bone data for the SpringBones
-        /// simulator, using the per-bone params declared in the wearable definition.
-        /// Chain order: each root is followed by its untagged descendants that participate in
-        /// the skinning, in DFS order.
-        /// </summary>
-        public static SpringBoneData[] BuildSpringBoneData(GameObject wearable,
-            IReadOnlyDictionary<string, SpringBoneParamsDto> springBoneParams)
-        {
-            if (springBoneParams == null || springBoneParams.Count == 0)
-                return Array.Empty<SpringBoneData>();
-
-            var skeleton = wearable.GetComponentInChildren<SkinnedMeshRenderer>();
-            if (skeleton == null) return Array.Empty<SpringBoneData>();
-
-            var boneSet = new HashSet<Transform>(skeleton.bones);
-            var result = new List<SpringBoneData>();
-
-            foreach (var bone in skeleton.bones)
-            {
-                if (bone == null) continue;
-                if (!springBoneParams.TryGetValue(bone.name, out var paramsDto)) continue;
-
-                result.Add(new SpringBoneData(
-                    bone, paramsDto.isRoot,
-                    paramsDto.stiffness, paramsDto.drag, paramsDto.gravityDir, paramsDto.gravityPower, paramsDto.hitRadius,
-                    bone.localRotation));
-
-                if (paramsDto.isRoot)
-                    CollectSpringBoneChain(bone, paramsDto, boneSet, springBoneParams, result);
-            }
-
-            Debug.Log($"[SpringBones] {wearable.name}: found {result.Count} spring joints (skeleton bones={skeleton.bones.Length})");
-            return result.Count > 0 ? result.ToArray() : Array.Empty<SpringBoneData>();
-        }
-
-        private static void CollectSpringBoneChain(Transform parent,
-            SpringBoneParamsDto rootCfg,
-            HashSet<Transform> boneSet,
-            IReadOnlyDictionary<string, SpringBoneParamsDto> springBoneParams,
-            List<SpringBoneData> output)
-        {
-            for (int i = 0; i < parent.childCount; i++)
-            {
-                var child = parent.GetChild(i);
-                if (!boneSet.Contains(child)) continue;
-                // If the child has its own entry, it's an independent root — skip
-                if (springBoneParams.ContainsKey(child.name)) continue;
-
-                output.Add(new SpringBoneData(
-                    child, false,
-                    rootCfg.stiffness, rootCfg.drag, rootCfg.gravityDir, rootCfg.gravityPower, rootCfg.hitRadius,
-                    child.localRotation));
-
-                CollectSpringBoneChain(child, rootCfg, boneSet, springBoneParams, output);
-            }
         }
 
         /// <summary>
