@@ -239,7 +239,16 @@ namespace SpringBones
                 // Spring bone is a child of wearableParent, so its world transform follows the avatar
                 // while preserving the authored local pose under the wearable hierarchy.
                 if (wearableParent != null && wearableParent != avatarParent)
+                {
+                    var grandparent = wearableParent.parent;
+                    var grandparentLossy = grandparent != null ? grandparent.lossyScale : Vector3.one;
+                    var avatarLossy = avatarParent.lossyScale;
+                    wearableParent.localScale = new Vector3(
+                        SafeDiv(avatarLossy.x, grandparentLossy.x),
+                        SafeDiv(avatarLossy.y, grandparentLossy.y),
+                        SafeDiv(avatarLossy.z, grandparentLossy.z));
                     wearableParent.SetPositionAndRotation(avatarParent.position, avatarParent.rotation);
+                }
 
                 service.SetParentData(slotIndices[i], avatarParent.rotation, avatarParent.localToWorldMatrix);
             }
