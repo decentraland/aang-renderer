@@ -199,6 +199,23 @@ namespace Data
             var raw = JsonUtility.FromJson<RawActiveEntity>(base64String);
             var entity = raw.ToActiveEntity();
 
+            // JsonUtility can't deserialize the nested Dictionary in springBones.models,
+            // so re-parse just that field with Newtonsoft and inject it into the entity.
+            if (!entity.IsEmote && entity.metadata?.data != null)
+            {
+                try
+                {
+                    var jo = Newtonsoft.Json.Linq.JObject.Parse(base64String);
+                    var springBonesToken = jo["data"]?["springBones"];
+                    if (springBonesToken != null)
+                        entity.metadata.data.springBones = springBonesToken.ToObject<SpringBonesDto>();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"[Base64] failed to parse springBones: {e.Message}");
+                }
+            }
+
             return FromActiveEntity(entity);
         }
 

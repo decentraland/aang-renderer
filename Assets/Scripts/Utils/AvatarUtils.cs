@@ -185,18 +185,12 @@ namespace Utils
 
                 if (avatarRootBone != null && avatarBones != null)
                 {
-                    if (renderer.bones.Length <= avatarBones.Length)
-                    {
-                        renderer.rootBone = avatarRootBone;
-                        renderer.bones = avatarBones;
-                    }
-                    else
-                    {
-                        // Wearable has extra bones (e.g. spring bones).
-                        // Remap standard avatar bones by name, preserve extra ones.
-                        avatarBoneMap ??= BuildBoneMap(avatarBones);
-                        RemapBonesPreservingExtras(renderer, avatarRootBone, avatarBoneMap);
-                    }
+                    // Always remap by name — preserves any extra bones (spring chains, attachment
+                    // nodes) regardless of bone count vs avatar skeleton. The previous fast path
+                    // (renderer.bones = avatarBones) only worked when wearables shipped with the
+                    // canonical skeleton intact and dropped extras for any wearable with fewer bones.
+                    avatarBoneMap ??= BuildBoneMap(avatarBones);
+                    RemapBonesPreservingExtras(renderer, avatarRootBone, avatarBoneMap);
                 }
 
                 foreach (var sharedMaterial in renderer.sharedMaterials)

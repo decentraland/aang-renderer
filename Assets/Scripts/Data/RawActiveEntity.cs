@@ -54,6 +54,14 @@ namespace Data
             public string text;
         }
 
+        static string ExtractHashFromUrl(string url)
+        {
+            if (string.IsNullOrEmpty(url)) return null;
+            var trimmed = url.TrimEnd('/');
+            var slash = trimmed.LastIndexOf('/');
+            return slash >= 0 && slash + 1 < trimmed.Length ? trimmed[(slash + 1)..] : null;
+        }
+
         public ActiveEntity ToActiveEntity()
         {
             var reps = IsEmote ? emoteDataADR74.representations : data.representations;
@@ -64,7 +72,14 @@ namespace Data
                 type = IsEmote ? "emote" : "wearable",
                 content = reps
                     .SelectMany(r => r.contents
-                        .Select(c => new ActiveEntity.Content { file = c.key, url = c.url }))
+                        .Select(c => new ActiveEntity.Content
+                        {
+                            file = c.key,
+                            url = c.url,
+                            // Spring-bone metadata keys models by content hash (CID). The CID is the
+                            // last path segment of the builder-api URL — extract it so the lookup works.
+                            hash = ExtractHashFromUrl(c.url),
+                        }))
                     .GroupBy(c => c.file)
                     .Select(g => g.First())
                     .ToArray(),
