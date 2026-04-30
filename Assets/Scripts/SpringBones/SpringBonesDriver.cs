@@ -8,7 +8,8 @@ namespace SpringBones
     {
         SpringBoneService service;
         readonly List<int> slotIndices = new();
-        readonly List<Transform> chainRootParents = new();
+        readonly List<Transform> chainWearableParents = new();
+        readonly List<Transform> chainAvatarParents = new();
         readonly List<GameObject> chainOwners = new();
         readonly List<string> chainRootBoneNames = new();
         readonly List<Transform[]> chainBones = new();
@@ -16,6 +17,10 @@ namespace SpringBones
 
         readonly List<Transform> chainJoints = new();
         readonly List<SpringBoneJointConfig> chainConfigs = new();
+
+        // Live avatar skeleton bones keyed by name. Used to find the avatar bone that the
+        // spring chain's wearable parent should follow each frame.
+        public IReadOnlyDictionary<string, Transform> AvatarBoneMap { get; set; }
 
         void Awake() => service = new SpringBoneService();
 
@@ -28,9 +33,19 @@ namespace SpringBones
         public void UnregisterAll()
         {
             if (service == null) return;
-            foreach (int s in slotIndices) service.UnregisterSpring(s);
+            // Restore each chain's bones to their captured rest pose before clearing,
+            // otherwise re-registration would capture stale sim rotations as the new rest.
+            for (int i = 0; i < slotIndices.Count; i++)
+            {
+                var bones = chainBones[i];
+                var rots = chainInitialRotations[i];
+                for (int j = 0; j < bones.Length; j++)
+                    if (bones[j] != null) bones[j].localRotation = rots[j];
+                service.UnregisterSpring(slotIndices[i]);
+            }
             slotIndices.Clear();
-            chainRootParents.Clear();
+            chainWearableParents.Clear();
+            chainAvatarParents.Clear();
             chainOwners.Clear();
             chainRootBoneNames.Clear();
             chainBones.Clear();
@@ -60,18 +75,12 @@ namespace SpringBones
 
             var boneSet = new HashSet<Transform>(skinned.bones);
 
-            int rootCount = 0;
-            foreach (var kv in paramsByBone)
-                if (kv.Value.isRoot) rootCount++;
-            // Fallback: if no entry is flagged as root (e.g. JSBridge payload, legacy data),
-            // treat every entry as a root so chains still register.
-            var treatAllAsRoots = rootCount == 0;
-
             foreach (var bone in skinned.bones)
             {
                 if (bone == null) continue;
                 if (!paramsByBone.TryGetValue(bone.name, out var paramsDto)) continue;
-                if (!treatAllAsRoots && !paramsDto.isRoot) continue;
+                // Match unity-explorer: only roots register chains; non-root tagged entries are skipped.
+                if (!paramsDto.isRoot) continue;
 
                 chainJoints.Clear();
                 chainConfigs.Clear();
@@ -79,9 +88,32 @@ namespace SpringBones
                 chainJoints.Add(bone);
                 chainConfigs.Add(rootConfig);
                 CollectChainDescendants(bone, boneSet, paramsByBone, rootConfig);
-                FlushChain(owner, bone.parent, bone.name);
+
+                Transform avatarParent = null;
+                if (bone.parent != null && AvatarBoneMap != null)
+                    AvatarBoneMap.TryGetValue(bone.parent.name, out avatarParent);
+
+                // Snap wearable parent to live avatar bone NOW so chain tails get initialized at
+                // the correct world positions (otherwise first sim frame integrates against stale
+                // wearable-hierarchy positions). Also align scale so authored local positions
+                // translate to the expected world distances.
+                if (avatarParent != null && bone.parent != null && bone.parent != avatarParent)
+                {
+                    var grandparent = bone.parent.parent;
+                    var grandparentLossy = grandparent != null ? grandparent.lossyScale : Vector3.one;
+                    var avatarLossy = avatarParent.lossyScale;
+                    bone.parent.localScale = new Vector3(
+                        SafeDiv(avatarLossy.x, grandparentLossy.x),
+                        SafeDiv(avatarLossy.y, grandparentLossy.y),
+                        SafeDiv(avatarLossy.z, grandparentLossy.z));
+                    bone.parent.SetPositionAndRotation(avatarParent.position, avatarParent.rotation);
+                }
+
+                FlushChain(owner, bone.parent, avatarParent, bone.name);
             }
         }
+
+        static float SafeDiv(float a, float b) => Mathf.Abs(b) > 1e-6f ? a / b : 1f;
 
         int RemoveChainsForOwner(GameObject owner)
         {
@@ -97,7 +129,8 @@ namespace SpringBones
 
                 service.UnregisterSpring(slotIndices[i]);
                 slotIndices.RemoveAt(i);
-                chainRootParents.RemoveAt(i);
+                chainWearableParents.RemoveAt(i);
+                chainAvatarParents.RemoveAt(i);
                 chainOwners.RemoveAt(i);
                 chainRootBoneNames.RemoveAt(i);
                 chainBones.RemoveAt(i);
@@ -115,19 +148,12 @@ namespace SpringBones
                 var child = parent.GetChild(i);
                 if (!boneSet.Contains(child)) continue;
 
-                SpringBoneJointConfig c;
-                if (paramsByBone.TryGetValue(child.name, out var childParams))
-                {
-                    // Tagged as its own root: independent chain — let outer loop handle it.
-                    if (childParams.isRoot) continue;
-                    // Non-root entry: use its own params for this joint.
-                    c = BuildConfigFromDTO(childParams, child.localRotation);
-                }
-                else
-                {
-                    c = inheritedConfig;
-                    c.LocalRotation = child.localRotation;
-                }
+                // Match unity-explorer: skip any tagged child (root or not). Tagged children are
+                // either standalone roots (handled by outer loop) or filtered out entirely.
+                if (paramsByBone.ContainsKey(child.name)) continue;
+
+                var c = inheritedConfig;
+                c.LocalRotation = child.localRotation;
 
                 chainJoints.Add(child);
                 chainConfigs.Add(c);
@@ -135,7 +161,7 @@ namespace SpringBones
             }
         }
 
-        void FlushChain(GameObject owner, Transform rootParent, string rootBoneName)
+        void FlushChain(GameObject owner, Transform wearableParent, Transform avatarParent, string rootBoneName)
         {
             for (int j = 0; j < chainJoints.Count; j++)
             {
@@ -170,7 +196,8 @@ namespace SpringBones
 
             int slot = service.RegisterSpring(jointsCopy, chainConfigs.ToArray(), tails);
             slotIndices.Add(slot);
-            chainRootParents.Add(rootParent);
+            chainWearableParents.Add(wearableParent);
+            chainAvatarParents.Add(avatarParent);
             chainOwners.Add(owner);
             chainRootBoneNames.Add(rootBoneName);
             chainBones.Add(jointsCopy);
@@ -198,9 +225,23 @@ namespace SpringBones
 
             for (int i = 0; i < slotIndices.Count; i++)
             {
-                var p = chainRootParents[i];
-                if (p == null) continue;
-                service.SetParentData(slotIndices[i], p.rotation, p.localToWorldMatrix);
+                var wearableParent = chainWearableParents[i];
+                var avatarParent = chainAvatarParents[i];
+                if (avatarParent == null)
+                {
+                    // No live avatar bone match — fall back to whatever the chain root's parent is.
+                    if (wearableParent == null) continue;
+                    service.SetParentData(slotIndices[i], wearableParent.rotation, wearableParent.localToWorldMatrix);
+                    continue;
+                }
+
+                // Snap the wearable's intermediate parent to follow the live avatar bone every frame.
+                // Spring bone is a child of wearableParent, so its world transform follows the avatar
+                // while preserving the authored local pose under the wearable hierarchy.
+                if (wearableParent != null && wearableParent != avatarParent)
+                    wearableParent.SetPositionAndRotation(avatarParent.position, avatarParent.rotation);
+
+                service.SetParentData(slotIndices[i], avatarParent.rotation, avatarParent.localToWorldMatrix);
             }
 
             service.Simulate(Time.deltaTime);

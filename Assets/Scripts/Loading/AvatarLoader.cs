@@ -174,6 +174,11 @@ namespace Loading
             // JSBridge overrides win over wearable definition params.
             if (springBonesDriver != null)
             {
+                var liveBoneMap = new Dictionary<string, Transform>(avatarBones.Length);
+                foreach (var b in avatarBones)
+                    if (b != null) liveBoneMap[b.name] = b;
+                springBonesDriver.AvatarBoneMap = liveBoneMap;
+
                 springBonesDriver.UnregisterAll();
 
                 var ownersWithOverride = new HashSet<GameObject>();

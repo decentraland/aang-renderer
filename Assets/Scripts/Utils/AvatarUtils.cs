@@ -210,12 +210,9 @@ namespace Utils
                 }
             }
 
-            // Re-parent extra bones (spring bone chains) under their nearest avatar skeleton ancestor
-            // so they follow the avatar during emotes instead of staying at a fixed world position.
-            if (avatarBoneMap != null)
-            {
-                ReparentExtraBonesUnderAvatarSkeleton(go, avatarBoneMap);
-            }
+            // Spring bone chains stay in the wearable hierarchy. SpringBonesDriver snaps
+            // each chain's wearable parent to the live avatar bone every frame so the chain
+            // follows animation while preserving its authored local pose.
         }
 
         public static void SetupFacialFeatures(GameObject go, AvatarColors colors,
