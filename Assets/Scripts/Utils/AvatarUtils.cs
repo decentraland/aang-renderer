@@ -163,7 +163,7 @@ namespace Utils
             }
         }
 
-        public static void SetupColors(GameObject go, AvatarColors colors,
+        public static void SetupWearable(GameObject go, AvatarColors colors,
             List<Renderer> outlineRenderers, Transform avatarRootBone = null, Transform[] avatarBones = null)
         {
             Dictionary<string, Transform> avatarBoneMap = null;
@@ -204,9 +204,13 @@ namespace Utils
                 }
             }
 
-            // Spring bone chains stay in the wearable hierarchy. SpringBonesDriver snaps
-            // each chain's wearable parent to the live avatar bone every frame so the chain
-            // follows animation while preserving its authored local pose.
+            // Reparent extra-bone chain tops under live avatar bones so wearable extras (e.g.
+            // ponytail rigs) follow animation by default — independent of spring-bone tagging.
+            // Without this, untagged or partially-tagged chains stay anchored to the wearable's
+            // static skeleton copy and don't move. When chains ARE tagged, SpringBonesDriver
+            // sees rootBone.parent == avatarParent and skips its wearable-parent snap (no-op).
+            if (avatarBoneMap != null)
+                ReparentExtraBonesUnderAvatarSkeleton(go, avatarBoneMap);
         }
 
         public static void SetupFacialFeatures(GameObject go, AvatarColors colors,
@@ -308,7 +312,9 @@ namespace Utils
         /// Re-parents the roots of extra-bone chains (e.g. spring bone chains) under their
         /// nearest avatar skeleton ancestor so they follow the avatar during emotes.
         /// Only chain roots are re-parented; descendants stay under their chain parent,
-        /// preserving the chain hierarchy.
+        /// preserving the chain hierarchy. Authored local pose is preserved (worldPositionStays=false)
+        /// — the wearable-copy parent world transform is stale, so we want the authored local
+        /// applied against the live avatar bone's world transform instead.
         /// </summary>
         private static void ReparentExtraBonesUnderAvatarSkeleton(GameObject wearableRoot,
             Dictionary<string, Transform> avatarBoneMap)
@@ -317,20 +323,14 @@ namespace Utils
 
             foreach (var transform in allTransforms)
             {
-                // Skip the root itself
                 if (transform == wearableRoot.transform) continue;
-
-                // Skip transforms that correspond to standard avatar bones (by name).
                 if (avatarBoneMap.ContainsKey(transform.name)) continue;
 
-                // Extra bone (e.g. spring bone) whose direct parent is a wearable copy of an avatar bone.
-                // Re-parent under the live avatar bone so it follows the avatar during emotes.
-                // Descendants within the chain keep their existing parent, preserving chain structure.
                 if (transform.parent != null
                     && avatarBoneMap.TryGetValue(transform.parent.name, out var liveParent)
                     && transform.parent != liveParent)
                 {
-                    transform.SetParent(liveParent, true);
+                    transform.SetParent(liveParent, false);
                 }
             }
         }

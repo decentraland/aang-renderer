@@ -160,8 +160,7 @@ namespace Loading
                 go.SetActive(true);
                 outlineRenderers.Clear();
 
-                // Colors
-                AvatarUtils.SetupColors(go, colors, outlineRenderers, avatarRootBone, avatarBones);
+                AvatarUtils.SetupWearable(go, colors, outlineRenderers, avatarRootBone, avatarBones);
 
                 if (hiddenCategories.Contains(ed.Category))
                 {
@@ -169,7 +168,7 @@ namespace Loading
                 }
             }
 
-            // Spring bones: scan after SetupColors so chain roots are already reparented
+            // Spring bones: scan after SetupWearable so chain roots are already reparented
             // under live avatar bones (parent-driven animation propagation works automatically).
             // JSBridge overrides win over wearable definition params.
             if (springBonesDriver != null)
