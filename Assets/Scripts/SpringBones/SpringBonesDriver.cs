@@ -56,7 +56,9 @@ namespace SpringBones
         /// Replace the full set of spring chains for a wearable with the ones declared in
         /// <paramref name="paramsByBone"/>. Empty / null map clears all chains owned by
         /// <paramref name="owner"/>, restoring the bones to their captured rest pose (normal bones).
-        /// Bones present in the map that were not spring bones before become spring bones.
+        /// Every entry in <paramref name="paramsByBone"/> becomes its own chain root; descendants
+        /// are collected by walking first-child until no children remain or the joint cap is hit.
+        /// Untagged bones stay rigid (driven by their armature parent via normal skinning).
         /// </summary>
         public void SetSpringChainsForWearable(GameObject owner, Dictionary<string, SpringBoneParamsDTO> paramsByBone)
         {
@@ -73,43 +75,55 @@ namespace SpringBones
                 return;
             }
 
-            var boneSet = new HashSet<Transform>(skinned.bones);
+            var bonesByName = new Dictionary<string, Transform>(skinned.bones.Length);
+            foreach (var b in skinned.bones)
+                if (b != null) bonesByName[b.name] = b;
 
-            foreach (var bone in skinned.bones)
+            foreach (var (boneName, paramsDto) in paramsByBone)
             {
-                if (bone == null) continue;
-                if (!paramsByBone.TryGetValue(bone.name, out var paramsDto)) continue;
-                // Match unity-explorer: only roots register chains; non-root tagged entries are skipped.
-                if (!paramsDto.isRoot) continue;
+                if (!bonesByName.TryGetValue(boneName, out var rootBone)) continue;
 
                 chainJoints.Clear();
                 chainConfigs.Clear();
-                var rootConfig = BuildConfigFromDTO(paramsDto, bone.localRotation);
-                chainJoints.Add(bone);
+                var rootConfig = BuildConfigFromDTO(paramsDto, rootBone.localRotation);
+                chainJoints.Add(rootBone);
                 chainConfigs.Add(rootConfig);
-                CollectChainDescendants(bone, boneSet, paramsByBone, rootConfig);
+
+                // Linear first-child walk. Tagged bone is the chain anchor; armature sits above it
+                // and is never visited because traversal only goes down. Untagged descendants are
+                // pulled in as joints sharing the root's params.
+                var current = rootBone;
+                while (chainJoints.Count < SpringBoneService.MAX_JOINTS_PER_SPRING && current.childCount > 0)
+                {
+                    var next = current.GetChild(0);
+                    var c = rootConfig;
+                    c.LocalRotation = next.localRotation;
+                    chainJoints.Add(next);
+                    chainConfigs.Add(c);
+                    current = next;
+                }
 
                 Transform avatarParent = null;
-                if (bone.parent != null && AvatarBoneMap != null)
-                    AvatarBoneMap.TryGetValue(bone.parent.name, out avatarParent);
+                if (rootBone.parent != null && AvatarBoneMap != null)
+                    AvatarBoneMap.TryGetValue(rootBone.parent.name, out avatarParent);
 
                 // Snap wearable parent to live avatar bone NOW so chain tails get initialized at
                 // the correct world positions (otherwise first sim frame integrates against stale
                 // wearable-hierarchy positions). Also align scale so authored local positions
                 // translate to the expected world distances.
-                if (avatarParent != null && bone.parent != null && bone.parent != avatarParent)
+                if (avatarParent != null && rootBone.parent != null && rootBone.parent != avatarParent)
                 {
-                    var grandparent = bone.parent.parent;
+                    var grandparent = rootBone.parent.parent;
                     var grandparentLossy = grandparent != null ? grandparent.lossyScale : Vector3.one;
                     var avatarLossy = avatarParent.lossyScale;
-                    bone.parent.localScale = new Vector3(
+                    rootBone.parent.localScale = new Vector3(
                         SafeDiv(avatarLossy.x, grandparentLossy.x),
                         SafeDiv(avatarLossy.y, grandparentLossy.y),
                         SafeDiv(avatarLossy.z, grandparentLossy.z));
-                    bone.parent.SetPositionAndRotation(avatarParent.position, avatarParent.rotation);
+                    rootBone.parent.SetPositionAndRotation(avatarParent.position, avatarParent.rotation);
                 }
 
-                FlushChain(owner, bone.parent, avatarParent, bone.name);
+                FlushChain(owner, rootBone.parent, avatarParent, rootBone.name);
             }
         }
 
@@ -138,27 +152,6 @@ namespace SpringBones
                 removed++;
             }
             return removed;
-        }
-
-        void CollectChainDescendants(Transform parent, HashSet<Transform> boneSet,
-            Dictionary<string, SpringBoneParamsDTO> paramsByBone, SpringBoneJointConfig inheritedConfig)
-        {
-            for (int i = 0; i < parent.childCount; i++)
-            {
-                var child = parent.GetChild(i);
-                if (!boneSet.Contains(child)) continue;
-
-                // Match unity-explorer: skip any tagged child (root or not). Tagged children are
-                // either standalone roots (handled by outer loop) or filtered out entirely.
-                if (paramsByBone.ContainsKey(child.name)) continue;
-
-                var c = inheritedConfig;
-                c.LocalRotation = child.localRotation;
-
-                chainJoints.Add(child);
-                chainConfigs.Add(c);
-                CollectChainDescendants(child, boneSet, paramsByBone, inheritedConfig);
-            }
         }
 
         void FlushChain(GameObject owner, Transform wearableParent, Transform avatarParent, string rootBoneName)
