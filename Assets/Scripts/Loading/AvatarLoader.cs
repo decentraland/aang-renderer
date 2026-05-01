@@ -7,6 +7,7 @@ using DCL.Rendering.RenderGraphs.RenderFeatures.AvatarOutline;
 using JetBrains.Annotations;
 using Rendering;
 using Services;
+using SpringBones;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Serialization;
@@ -24,6 +25,7 @@ namespace Loading
         [SerializeField] private Animation avatarAnimation;
         [SerializeField] private Transform avatarRootBone;
         [SerializeField] private Transform[] avatarBones;
+        [SerializeField] private SpringBonesDriver springBonesDriver;
 
         [Header("Highlight"), SerializeField] private bool setsHighlight;
         [SerializeField] private Vector3 highlightCenter = new(0, 0.18f, 0);
@@ -34,6 +36,10 @@ namespace Loading
         private readonly Dictionary<string, LoadedModel> _loadedModels = new();
         private readonly Dictionary<string, LoadedFacialFeature> _loadedFacialFeatures = new();
         private LoadedEmote? _loadedEmote;
+
+        // JSBridge spring-bone overrides keyed by itemId; these take precedence over the
+        // params declared in the wearable definition and are re-applied after every reload.
+        private readonly Dictionary<string, Dictionary<string, SpringBoneParamsDTO>> _springBoneOverrides = new();
 
         private readonly Dictionary<string, (Texture2D main, Texture2D mask)> _defaultBodyFacialFeatures = new();
 
@@ -154,13 +160,47 @@ namespace Loading
                 go.SetActive(true);
                 outlineRenderers.Clear();
 
-                // Colors
-                AvatarUtils.SetupColors(go, colors, outlineRenderers, avatarRootBone, avatarBones);
+                AvatarUtils.SetupWearable(go, colors, outlineRenderers, avatarRootBone, avatarBones);
 
                 if (hiddenCategories.Contains(ed.Category))
                 {
                     go.SetActive(false);
                 }
+            }
+
+            // Spring bones: scan after SetupWearable so chain roots are already reparented
+            // under live avatar bones (parent-driven animation propagation works automatically).
+            // JSBridge overrides win over wearable definition params.
+            if (springBonesDriver != null)
+            {
+                var liveBoneMap = new Dictionary<string, Transform>(avatarBones.Length);
+                foreach (var b in avatarBones)
+                    if (b != null) liveBoneMap[b.name] = b;
+                springBonesDriver.AvatarBoneMap = liveBoneMap;
+
+                springBonesDriver.UnregisterAll();
+
+                var ownersWithOverride = new HashSet<GameObject>();
+                foreach (var (itemId, paramsByBone) in _springBoneOverrides)
+                {
+                    if (TryFindWearableByItemId(itemId, out var owner))
+                    {
+                        springBonesDriver.SetSpringChainsForWearable(owner, paramsByBone);
+                        ownersWithOverride.Add(owner);
+                    }
+                }
+
+                foreach (var loaded in _loadedModels.Values.Where(m => m.Root.activeSelf))
+                {
+                    if (ownersWithOverride.Contains(loaded.Root)) continue;
+                    var meta = ConvertMetadataParams(loaded.Entity.GetSpringBoneParams(bodyShape));
+                    if (meta != null && meta.Count > 0)
+                        springBonesDriver.SetSpringChainsForWearable(loaded.Root, meta);
+                }
+            }
+            else
+            {
+                Debug.LogError("[SpringBones] springBonesDriver not wired on AvatarLoader");
             }
 
             // If there is a new emote to be played
@@ -180,6 +220,69 @@ namespace Loading
 
             // Update character bounds for background highlight
             UpdateHighlight();
+        }
+
+        public void SetSpringBonesParams(SpringBones.SpringBonesParamsPayload payload)
+        {
+            if (payload == null || string.IsNullOrEmpty(payload.itemId)) return;
+            if (springBonesDriver == null)
+            {
+                Debug.LogError("[SpringBones] springBonesDriver not wired on AvatarLoader");
+                return;
+            }
+
+            // Cache so the override is re-applied after every reload (wins over wearable definition).
+            _springBoneOverrides[payload.itemId] = payload.@params;
+
+            if (!TryFindWearableByItemId(payload.itemId, out var owner)) return;
+
+            springBonesDriver.SetSpringChainsForWearable(owner, payload.@params);
+        }
+
+        private static Dictionary<string, SpringBoneParamsDTO> ConvertMetadataParams(
+            IReadOnlyDictionary<string, SpringBoneParamsDto> source)
+        {
+            if (source == null || source.Count == 0) return null;
+            var result = new Dictionary<string, SpringBoneParamsDTO>(source.Count);
+            foreach (var (boneName, m) in source)
+            {
+                result[boneName] = new SpringBoneParamsDTO
+                {
+                    stiffness = m.stiffness,
+                    drag = m.drag,
+                    gravityPower = m.gravityPower,
+                    gravityDir = new[] { m.gravityDir.x, m.gravityDir.y, m.gravityDir.z },
+                    isRoot = m.isRoot,
+                };
+            }
+            return result;
+        }
+
+        private bool TryFindWearableByItemId(string itemId, out GameObject owner)
+        {
+            if (_loadedModels.TryGetValue(itemId, out var exact))
+            {
+                owner = exact.Root;
+                return true;
+            }
+            foreach (var m in _loadedModels.Values)
+            {
+                if (m.Entity.URN != null && m.Entity.URN.EndsWith(itemId, StringComparison.Ordinal))
+                {
+                    owner = m.Root;
+                    return true;
+                }
+            }
+            foreach (var m in _loadedModels.Values)
+            {
+                if (m.Entity.URN != null && m.Entity.URN.Contains(itemId))
+                {
+                    owner = m.Root;
+                    return true;
+                }
+            }
+            owner = null;
+            return false;
         }
 
         public void HideFacialFeatures()

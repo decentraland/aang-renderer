@@ -84,6 +84,9 @@ namespace Preview
             avatarRotator.ResetRotation();
         }
 
+        public void SetSpringBonesParams(SpringBones.SpringBonesParamsPayload payload) =>
+            avatarLoader.SetSpringBonesParams(payload);
+
         public float GetEmoteLength() => emoteAnimationController.GetEmoteLength();
 
         public bool IsEmotePlaying() => emoteAnimationController.IsEmotePlaying();

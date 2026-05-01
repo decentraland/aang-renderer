@@ -19,7 +19,24 @@ namespace Data
         public readonly EntityType Type;
         public readonly EntityFlags Flags;
 
+        [CanBeNull] private readonly SpringBonesDto _springBones;
+
         [ItemCanBeNull] private readonly Dictionary<BodyShape, Representation> _representations;
+
+        /// <summary>
+        /// Returns the spring-bone params (boneName → params) declared in the wearable
+        /// metadata for the given body shape's mainFile, or null if none.
+        /// </summary>
+        [CanBeNull]
+        public IReadOnlyDictionary<string, SpringBoneParamsDto> GetSpringBoneParams(BodyShape shape)
+        {
+            if (_springBones?.models == null) return null;
+            if (!HasRepresentation(shape)) return null;
+
+            var mainFileHash = _representations[shape].MainFileHash;
+            if (string.IsNullOrEmpty(mainFileHash)) return null;
+            return _springBones.models.TryGetValue(mainFileHash, out var map) ? map : null;
+        }
 
         public Representation[] GetAllRepresentations()
         {
@@ -48,7 +65,8 @@ namespace Data
         public Representation this[BodyShape shape] => _representations[shape] ?? throw new InvalidOperationException(
             $"Missing {shape} representation for {URN}");
 
-        private EntityDefinition(string urn, string category, string thumbnail, EntityType type, EntityFlags flags, Dictionary<BodyShape, Representation> representations)
+        private EntityDefinition(string urn, string category, string thumbnail, EntityType type, EntityFlags flags,
+            Dictionary<BodyShape, Representation> representations, [CanBeNull] SpringBonesDto springBones)
         {
             URN = urn;
             Category = category;
@@ -56,20 +74,23 @@ namespace Data
             Type = type;
             _representations = representations;
             Flags = flags;
+            _springBones = springBones;
         }
 
         public class Representation
         {
             public readonly Dictionary<string, string> Files;
             public readonly string MainFile;
+            public readonly string MainFileHash;
             public readonly string[] Hides;
             public readonly string[] RemovesDefaultHiding;
 
-            private Representation(Dictionary<string, string> files, string mainFile, string[] hides,
-                string[] removesDefaultHiding)
+            private Representation(Dictionary<string, string> files, string mainFile, string mainFileHash,
+                string[] hides, string[] removesDefaultHiding)
             {
                 Files = files;
                 MainFile = mainFile;
+                MainFileHash = mainFileHash;
                 Hides = hides;
                 RemovesDefaultHiding = removesDefaultHiding;
             }
@@ -112,9 +133,13 @@ namespace Data
                         StringComparer.OrdinalIgnoreCase
                     );
 
+                var mainFileHash = entity.content
+                    .FirstOrDefault(c => string.Equals(c.file, main, StringComparison.OrdinalIgnoreCase))?.hash;
+
                 var representation = new Representation(
                     filesDict,
                     entityRepresentation.mainFile,
+                    mainFileHash,
                     entityRepresentation.overrideHides is { Length: > 0 }
                         ? entityRepresentation.overrideHides
                         : data.hides.Union(entityRepresentation.overrideReplaces is { Length: > 0 }
@@ -135,7 +160,7 @@ namespace Data
                     {
                         ["main"] = Path.Combine(Application.streamingAssetsPath, $"{emote}.glb")
                     },
-                    "main", Array.Empty<string>(),
+                    "main", null, Array.Empty<string>(),
                     Array.Empty<string>()
                 );
             }
@@ -161,7 +186,8 @@ namespace Data
                 [BodyShape.Female] = Representation.ForBodyShape(WearablesConstants.BODY_SHAPE_FEMALE, entity)
             };
 
-            return new EntityDefinition(urn, category, thumbnail, type, flags, representations);
+            return new EntityDefinition(urn, category, thumbnail, type, flags, representations,
+                entity.IsEmote ? null : entity.metadata?.data?.springBones);
         }
 
         public static EntityDefinition FromBase64(byte[] b64)
@@ -172,6 +198,23 @@ namespace Data
             // so we parse into RawActiveEntity which handles that format
             var raw = JsonUtility.FromJson<RawActiveEntity>(base64String);
             var entity = raw.ToActiveEntity();
+
+            // JsonUtility can't deserialize the nested Dictionary in springBones.models,
+            // so re-parse just that field with Newtonsoft and inject it into the entity.
+            if (!entity.IsEmote && entity.metadata?.data != null)
+            {
+                try
+                {
+                    var jo = Newtonsoft.Json.Linq.JObject.Parse(base64String);
+                    var springBonesToken = jo["data"]?["springBones"];
+                    if (springBonesToken != null)
+                        entity.metadata.data.springBones = springBonesToken.ToObject<SpringBonesDto>();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"[Base64] failed to parse springBones: {e.Message}");
+                }
+            }
 
             return FromActiveEntity(entity);
         }
@@ -188,7 +231,8 @@ namespace Data
                 {
                     [BodyShape.Male] = Representation.ForEmbeddedEmote(emote),
                     [BodyShape.Female] = Representation.ForEmbeddedEmote(emote)
-                }
+                },
+                null
             );
         }
     }

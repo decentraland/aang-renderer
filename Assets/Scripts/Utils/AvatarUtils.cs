@@ -163,50 +163,54 @@ namespace Utils
             }
         }
 
-        public static void SetupColors(GameObject go, AvatarColors colors,
+        public static void SetupWearable(GameObject go, AvatarColors colors,
             List<Renderer> outlineRenderers, Transform avatarRootBone = null, Transform[] avatarBones = null)
         {
             Dictionary<string, Transform> avatarBoneMap = null;
             var renderers = go.GetComponentsInChildren<SkinnedMeshRenderer>();
             foreach (var renderer in renderers)
             {
-                if (renderer.material.name.Contains("skin", StringComparison.OrdinalIgnoreCase))
+                var materials = renderer.materials;
+                foreach (var material in materials)
                 {
-                    renderer.material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Skin);
-                }
-                else if (renderer.material.name.Contains("hair", StringComparison.OrdinalIgnoreCase))
-                {
-                    renderer.material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Hair);
+                    if (material.name.Contains("skin", StringComparison.OrdinalIgnoreCase))
+                    {
+                        material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Skin);
+                    }
+                    else if (material.name.Contains("hair", StringComparison.OrdinalIgnoreCase))
+                    {
+                        material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Hair);
+                    }
                 }
 
                 if (avatarRootBone != null && avatarBones != null)
                 {
-                    if (renderer.bones.Length <= avatarBones.Length)
-                    {
-                        renderer.rootBone = avatarRootBone;
-                        renderer.bones = avatarBones;
-                    }
-                    else
-                    {
-                        // Wearable has extra bones (e.g. spring bones).
-                        // Remap standard avatar bones by name, preserve extra ones.
-                        avatarBoneMap ??= BuildBoneMap(avatarBones);
-                        RemapBonesPreservingExtras(renderer, avatarRootBone, avatarBoneMap);
-                    }
+                    // Always remap by name — preserves any extra bones (spring chains, attachment
+                    // nodes) regardless of bone count vs avatar skeleton. The previous fast path
+                    // (renderer.bones = avatarBones) only worked when wearables shipped with the
+                    // canonical skeleton intact and dropped extras for any wearable with fewer bones.
+                    avatarBoneMap ??= BuildBoneMap(avatarBones);
+                    RemapBonesPreservingExtras(renderer, avatarRootBone, avatarBoneMap);
                 }
 
-                if (renderer.material.shader.name == "DCL/DCL_Toon" && renderer.sharedMaterial.renderQueue is >= 2000 and < 3000)
+                foreach (var sharedMaterial in renderer.sharedMaterials)
                 {
-                    outlineRenderers.Add(renderer);
+                    if (sharedMaterial != null && sharedMaterial.shader.name == "DCL/DCL_Toon"
+                                               && sharedMaterial.renderQueue is >= 2000 and < 3000)
+                    {
+                        outlineRenderers.Add(renderer);
+                        break;
+                    }
                 }
             }
 
-            // Re-parent extra bones (spring bone chains) under their nearest avatar skeleton ancestor
-            // so they follow the avatar during emotes instead of staying at a fixed world position.
+            // Reparent extra-bone chain tops under live avatar bones so wearable extras (e.g.
+            // ponytail rigs) follow animation by default — independent of spring-bone tagging.
+            // Without this, untagged or partially-tagged chains stay anchored to the wearable's
+            // static skeleton copy and don't move. When chains ARE tagged, SpringBonesDriver
+            // sees rootBone.parent == avatarParent and skips its wearable-parent snap (no-op).
             if (avatarBoneMap != null)
-            {
                 ReparentExtraBonesUnderAvatarSkeleton(go, avatarBoneMap);
-            }
         }
 
         public static void SetupFacialFeatures(GameObject go, AvatarColors colors,
@@ -308,7 +312,9 @@ namespace Utils
         /// Re-parents the roots of extra-bone chains (e.g. spring bone chains) under their
         /// nearest avatar skeleton ancestor so they follow the avatar during emotes.
         /// Only chain roots are re-parented; descendants stay under their chain parent,
-        /// preserving the chain hierarchy.
+        /// preserving the chain hierarchy. Authored local pose is preserved (worldPositionStays=false)
+        /// — the wearable-copy parent world transform is stale, so we want the authored local
+        /// applied against the live avatar bone's world transform instead.
         /// </summary>
         private static void ReparentExtraBonesUnderAvatarSkeleton(GameObject wearableRoot,
             Dictionary<string, Transform> avatarBoneMap)
@@ -317,20 +323,14 @@ namespace Utils
 
             foreach (var transform in allTransforms)
             {
-                // Skip the root itself
                 if (transform == wearableRoot.transform) continue;
-
-                // Skip transforms that correspond to standard avatar bones (by name).
                 if (avatarBoneMap.ContainsKey(transform.name)) continue;
 
-                // Extra bone (e.g. spring bone) whose direct parent is a wearable copy of an avatar bone.
-                // Re-parent under the live avatar bone so it follows the avatar during emotes.
-                // Descendants within the chain keep their existing parent, preserving chain structure.
                 if (transform.parent != null
                     && avatarBoneMap.TryGetValue(transform.parent.name, out var liveParent)
                     && transform.parent != liveParent)
                 {
-                    transform.SetParent(liveParent, true);
+                    transform.SetParent(liveParent, false);
                 }
             }
         }
