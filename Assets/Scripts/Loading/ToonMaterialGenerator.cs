@@ -2,10 +2,8 @@ using Data;
 using GLTFast;
 using GLTFast.Logging;
 using GLTFast.Materials;
-using GLTFast.Schema;
 using UnityEngine;
 using UnityEngine.Rendering;
-using Material = UnityEngine.Material;
 
 namespace Loading
 {
@@ -37,7 +35,7 @@ namespace Loading
             //_avatarColors = avatarColors;
         }
 
-        public Material GenerateMaterial(MaterialBase gltfMaterial, IGltfReadable gltf,
+        public Material GenerateMaterial(int materialIndex, GLTFast.Schema.Material gltfMaterial, IGltfReadable gltf,
             bool pointsSupport = false)
         {
             var isFacialFeature = IsFacialFeature(gltfMaterial.name);
@@ -45,20 +43,20 @@ namespace Loading
                 { name = gltfMaterial.name };
 
             // Base color and texture
-            var baseColor = gltfMaterial.PbrMetallicRoughness.BaseColor;
+            var baseColor = gltfMaterial.pbrMetallicRoughness.BaseColor;
             mat.SetColor(BASE_COLOR_ID, baseColor);
 
-            if (gltfMaterial.PbrMetallicRoughness.BaseColorTexture.index != -1)
+            if (gltfMaterial.pbrMetallicRoughness.baseColorTexture.index != -1)
             {
-                mat.SetTexture(MAIN_TEX_ID, gltf.GetTexture(gltfMaterial.PbrMetallicRoughness.BaseColorTexture.index));
+                mat.SetTexture(MAIN_TEX_ID, gltf.GetTexture(gltfMaterial.pbrMetallicRoughness.baseColorTexture.index));
             }
 
             // Emission
             mat.SetColor(EMISSIVE_COLOR_ID, gltfMaterial.Emissive * EMISSIVE_MAGIC_NUMBER);
 
-            if (gltfMaterial.EmissiveTexture.index != -1)
+            if (gltfMaterial.emissiveTexture.index != -1)
             {
-                mat.SetTexture(EMISSIVE_TEX_ID, gltf.GetTexture(gltfMaterial.EmissiveTexture.index));
+                mat.SetTexture(EMISSIVE_TEX_ID, gltf.GetTexture(gltfMaterial.emissiveTexture.index));
             }
 
             // Alpha
