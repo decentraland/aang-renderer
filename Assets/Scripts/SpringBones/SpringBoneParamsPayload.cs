@@ -12,7 +12,8 @@ namespace SpringBones
     public class SpringBonesParamsPayload
     {
         public string itemId;
-        public Dictionary<string, SpringBoneParamsDTO> @params;
+        [JsonProperty("params")]
+        public Dictionary<string, SpringBoneParamsDTO> parameters;
 
         public static SpringBonesParamsPayload Parse(string json) =>
             JsonConvert.DeserializeObject<SpringBonesParamsPayload>(json);

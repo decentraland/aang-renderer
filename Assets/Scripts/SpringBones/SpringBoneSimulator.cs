@@ -5,6 +5,8 @@ namespace SpringBones
 {
     internal static class SpringBoneSimulator
     {
+        const float EPSILON = 0.0001f;
+
         public static void SimulateSlot(
             int slotIndex,
             int jointCount,
@@ -45,7 +47,7 @@ namespace SpringBones
                 float3 headToTail = nextTail - head.Position;
                 float len = math.length(headToTail);
 
-                nextTail = len > 0.0001f
+                nextTail = len > EPSILON
                     ? head.Position + (headToTail / len) * config.Length
                     : head.Position + math.mul(math.mul(parentRotation, config.LocalRotation), config.BoneAxis) * config.Length;
 
@@ -98,7 +100,7 @@ namespace SpringBones
             float fromLenSq = math.lengthsq(from);
             float toLenSq = math.lengthsq(to);
 
-            if (fromLenSq < 0.0001f || toLenSq < 0.0001f)
+            if (fromLenSq < EPSILON || toLenSq < EPSILON)
                 return quaternion.identity;
 
             float3 f = math.normalize(from);
@@ -111,7 +113,7 @@ namespace SpringBones
             {
                 float3 axis = math.cross(f, new float3(1, 0, 0));
 
-                if (math.lengthsq(axis) < 0.0001f)
+                if (math.lengthsq(axis) < EPSILON)
                     axis = math.cross(f, new float3(0, 1, 0));
 
                 return quaternion.AxisAngle(math.normalize(axis), math.PI);

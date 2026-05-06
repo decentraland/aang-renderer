@@ -180,6 +180,13 @@ namespace Loading
 
                 springBonesDriver.UnregisterAll();
 
+                // Prune overrides whose wearable is no longer loaded so the dict cannot grow unbounded
+                foreach (var itemId in _springBoneOverrides.Keys.ToList())
+                {
+                    if (!TryFindWearableByItemId(itemId, out _))
+                        _springBoneOverrides.Remove(itemId);
+                }
+
                 var ownersWithOverride = new HashSet<GameObject>();
                 foreach (var (itemId, paramsByBone) in _springBoneOverrides)
                 {
@@ -232,11 +239,11 @@ namespace Loading
             }
 
             // Cache so the override is re-applied after every reload (wins over wearable definition).
-            _springBoneOverrides[payload.itemId] = payload.@params;
+            _springBoneOverrides[payload.itemId] = payload.parameters;
 
             if (!TryFindWearableByItemId(payload.itemId, out var owner)) return;
 
-            springBonesDriver.SetSpringChainsForWearable(owner, payload.@params);
+            springBonesDriver.SetSpringChainsForWearable(owner, payload.parameters);
         }
 
         private static Dictionary<string, SpringBoneParamsDTO> ConvertMetadataParams(

@@ -183,6 +183,7 @@ namespace SpringBones
             jointConfigs = null;
             slotJointCounts = null;
             parentData = null;
+            accumulatedDt = 0f;
         }
     }
 }
