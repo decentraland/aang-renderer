@@ -81,9 +81,8 @@ namespace Loading
                     throw new NotSupportedException($"Trying to load unsupported wearable type: {entityDefinition.Type}");
             }
 
-            // Colors
             _outlineRenderers.Clear();
-            AvatarUtils.SetupColors(_wearableGO, colors, _outlineRenderers);
+            AvatarUtils.SetupWearable(_wearableGO, colors, _outlineRenderers);
         }
 
         private void Update()

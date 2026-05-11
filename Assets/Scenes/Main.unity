@@ -130,6 +130,7 @@ GameObject:
   - component: {fileID: 9355361}
   - component: {fileID: 9355362}
   - component: {fileID: 9355363}
+  - component: {fileID: 9355364}
   m_Layer: 0
   m_Name: AvatarRoot
   m_TagString: Untagged
@@ -233,6 +234,7 @@ MonoBehaviour:
   - {fileID: 979165189}
   - {fileID: 979165180}
   - {fileID: 979165181}
+  springBonesDriver: {fileID: 9355364}
   setsHighlight: 0
   highlightCenter: {x: 0, y: 0.18, z: 0}
   highlightSize: {x: 0.57, y: 2.3}
@@ -254,6 +256,18 @@ MonoBehaviour:
   autoRotateSpeed: 10
   autoRotateDelay: 1
   returnSpeed: 2
+--- !u!114 &9355364
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9355360}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95ea887eb11d7f94eaef9ace0bb62be9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpringBones.SpringBonesDriver
 --- !u!1001 &64509934
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2747,6 +2761,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8085770638703914882}
   - component: {fileID: 8085770638703914883}
+  - component: {fileID: 8085770638703914884}
   m_Layer: 0
   m_Name: AvatarRoot
   m_TagString: Untagged
@@ -4566,9 +4581,22 @@ MonoBehaviour:
   - {fileID: 64509949}
   - {fileID: 64509940}
   - {fileID: 64509941}
+  springBonesDriver: {fileID: 8085770638703914884}
   setsHighlight: 1
   highlightCenter: {x: 0, y: 0.18, z: 0}
   highlightSize: {x: 0.57, y: 2.3}
+--- !u!114 &8085770638703914884
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2042814726327143098}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95ea887eb11d7f94eaef9ace0bb62be9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpringBones.SpringBonesDriver
 --- !u!114 &8186094461447319126
 MonoBehaviour:
   m_ObjectHideFlags: 0

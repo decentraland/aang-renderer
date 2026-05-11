@@ -1,5 +1,6 @@
 using System;
 using Data;
+using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Networking;
 using Utils;
@@ -59,29 +60,25 @@ namespace Services
         public static Awaitable<MarketplaceNTFResponse> GetMarketplaceItemFromToken(string contract, string tokenID) =>
             GetWithRetry<MarketplaceNTFResponse>(APIMarketplaceTokenID, contract, tokenID);
 
-        public static Awaitable<ActiveEntity[]> GetActiveEntities(string[] pointers) =>
-            PostWithRetryArray<ActiveEntity>(APIActiveEntities, new ActiveEntitiesRequest(pointers));
-
-
-        private static async Awaitable<T[]> PostWithRetryArray<T>(string url, object data)
+        public static async Awaitable<ActiveEntity[]> GetActiveEntities(string[] pointers)
         {
             var retries = 0;
-
             UnityWebRequest request;
 
             do
             {
-                request = UnityWebRequest.Post(url, JsonUtility.ToJson(data), "application/json");
+                request = UnityWebRequest.Post(APIActiveEntities,
+                    JsonUtility.ToJson(new ActiveEntitiesRequest(pointers)), "application/json");
                 await request.SendWebRequest();
                 retries++;
             } while (request.result != UnityWebRequest.Result.Success && retries <= RETRY_COUNT);
 
             if (request.result != UnityWebRequest.Result.Success)
-            {
                 throw new Exception(request.error);
-            }
 
-            return FromJsonArray<T>(request.downloadHandler.text);
+            // Newtonsoft (not JsonUtility) because ActiveEntity.springBones contains a
+            // Dictionary<string, Dictionary<string, SpringBoneParamsDto>> that JsonUtility can't bind.
+            return JsonConvert.DeserializeObject<ActiveEntity[]>(request.downloadHandler.text) ?? Array.Empty<ActiveEntity>();
         }
 
 
@@ -106,15 +103,5 @@ namespace Services
             return JsonUtility.FromJson<T>(request.downloadHandler.text);
         }
 
-        private static T[] FromJsonArray<T>(string json)
-        {
-            return JsonUtility.FromJson<JsonArrayWrapper<T>>($"{{\"items\":{json}}}").items;
-        }
-
-        [Serializable]
-        private class JsonArrayWrapper<T>
-        {
-            public T[] items;
-        }
     }
 }
