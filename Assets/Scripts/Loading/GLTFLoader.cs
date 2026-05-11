@@ -42,7 +42,7 @@ namespace Loading
                 root.SetActive(false);
                 root.transform.SetParent(parent, false);
 
-                var instantiator = new DclGameObjectInstantiator(importer, root.transform);
+                var instantiator = new GameObjectInstantiator(importer, root.transform);
                 await importer.InstantiateSceneAsync(instantiator);
 
                 Sanitize(root.transform);
