@@ -60,7 +60,7 @@ jobs:
       cache_strategy: ${{ steps.set_defaults.outputs.cache_strategy }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -148,13 +148,13 @@ jobs:
     timeout-minutes: 360
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
 
       - name: Setup python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: 3.12.3
 
@@ -205,7 +205,7 @@ jobs:
 
       - name: Upload artifact
         id: upload-artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ env.artifact_name }}
           path: build
@@ -249,7 +249,7 @@ jobs:
 
       - name: Upload cloud logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: web_unity_log
           path: unity_cloud_log.log
@@ -286,7 +286,7 @@ jobs:
 
     steps:
       - name: Checkout repo (for project link/config)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: false
@@ -298,7 +298,7 @@ jobs:
         run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Download built artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: aang-renderer
           path: .vercel/output/static
