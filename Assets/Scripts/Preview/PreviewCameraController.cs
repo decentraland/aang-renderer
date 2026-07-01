@@ -40,6 +40,7 @@ namespace Preview
                 case PreviewMode.Marketplace:
                 case PreviewMode.Authentication:
                 case PreviewMode.Profile:
+                case PreviewMode.Showroom:
                     authProfileCamera.Prioritize();
                     break;
                 case PreviewMode.Jesus:

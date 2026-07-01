@@ -292,6 +292,24 @@ namespace Loading
             return false;
         }
 
+        public bool TryGetWearableBounds(string urn, out Bounds bounds)
+        {
+            bounds = default;
+
+            if (!_loadedModels.TryGetValue(urn, out var model) || model.Root == null)
+                return false;
+
+            var renderers = model.Root.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0)
+                return false;
+
+            bounds = renderers[0].bounds;
+            for (var i = 1; i < renderers.Length; i++)
+                bounds.Encapsulate(renderers[i].bounds);
+
+            return true;
+        }
+
         public void HideFacialFeatures()
         {
             var bodyGO = _loadedModels.Values.FirstOrDefault(er => er.Entity.Type == EntityType.Body).Root;

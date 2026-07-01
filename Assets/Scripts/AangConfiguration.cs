@@ -32,6 +32,7 @@ public class AangConfiguration
             "authentication" => PreviewMode.Authentication,
             "builder" => PreviewMode.Builder,
             "configurator" => PreviewMode.Configurator,
+            "showroom" => PreviewMode.Showroom,
             _ => PreviewMode.Marketplace
         };
     }
@@ -376,4 +377,5 @@ public enum PreviewMode
     Builder,
     Configurator,
     Jesus,
+    Showroom,
 }

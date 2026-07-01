@@ -30,11 +30,19 @@ namespace Preview
         [SerializeField] private GameObject animationReference;
         [SerializeField] private GameObject platform;
 
+        [Header("Showroom")]
+        [SerializeField] private GameObject showroomProps;
+        [SerializeField] private GameObject equipVFXPrefab;
+        [SerializeField] private float equipVFXLifetime = 3f;
+
         [SerializeField] private float wearablePadding = 0.15f;
 
         private bool _loading;
         private bool _shouldReload;
         private bool _shouldCleanup;
+
+        private readonly HashSet<string> _showroomEquippedUrns = new();
+        private bool _showroomInitialized;
 
         private void Start()
         {
@@ -125,10 +133,12 @@ namespace Preview
                 return;
             }
 
+            var isShowroom = AangConfiguration.Instance.Mode is PreviewMode.Showroom;
+
             Cleanup();
-            previewUIPresenter.ShowLoader(true);
+            if (!isShowroom) previewUIPresenter.ShowLoader(true);
             _loading = true;
-            mainCamera.cullingMask = 0; // Render nothing
+            if (!isShowroom) mainCamera.cullingMask = 0; // Render nothing
             avatarLoader.enabled = false; // Disables Update for Outline
             wearableLoader.enabled = false; // Disables Update for Outline
 
@@ -146,6 +156,14 @@ namespace Preview
 
                 animationReference.SetActive(config.ShowAnimationReference);
                 platform.SetActive(config.Mode is PreviewMode.Authentication);
+                if (showroomProps != null) showroomProps.SetActive(config.Mode is PreviewMode.Showroom);
+
+                if (config.Mode is not PreviewMode.Showroom)
+                {
+                    _showroomInitialized = false;
+                    _showroomEquippedUrns.Clear();
+                }
+
                 mainCamera.backgroundColor = config.Background;
                 mainCamera.orthographic = config.Projection == "orthographic";
                 previewUIPresenter.EnableLoader(!config.DisableLoader);
@@ -156,6 +174,7 @@ namespace Preview
                 var hasWearableOverride = false;
                 var hasEmoteAudio = false;
                 var showingAvatar = false;
+                HashSet<string> showroomEquipped = null;
 
                 try
                 {
@@ -189,6 +208,10 @@ namespace Preview
                             hasEmoteOverride = result.emoteOverride;
                             hasWearableOverride = !hasEmoteOverride;
                             hasEmoteAudio = result.emoteOverrideAudio;
+                            break;
+                        case PreviewMode.Showroom:
+                            showingAvatar = true;
+                            showroomEquipped = await LoadForShowroom(config.Profile, config.Urns, config.Emote);
                             break;
                         case PreviewMode.Authentication:
                         case PreviewMode.Profile:
@@ -239,6 +262,10 @@ namespace Preview
                 else if (config.Mode is PreviewMode.Builder)
                 {
                     avatarRotator.DragSpeed = 2f;
+                }
+                else if (config.Mode is PreviewMode.Showroom)
+                {
+                    HandleShowroomEquipParticles(showroomEquipped);
                 }
 
                 avatarRotator.enabled = true;
@@ -364,6 +391,86 @@ namespace Preview
 
             // TODO: This check for audio clip is ugly
             return (overrideDefinition.Type == EntityType.Emote, emoteAnimationController.HasAudio, hasValidRepresentation, avatarBodyShape);
+        }
+
+        private async Awaitable<HashSet<string>> LoadForShowroom(string profileID, List<string> urns,
+            string defaultEmote)
+        {
+            Assert.IsNotNull(profileID);
+            Assert.IsNotNull(defaultEmote);
+
+            var overlayUrns = urns ?? new List<string>();
+
+            var avatar = await APIService.GetAvatar(profileID);
+            var avatarBodyShape = avatar.GetBodyShape();
+            var avatarColors = avatar.GetAvatarColors();
+
+            var allUrns = avatar.wearables.Concat(overlayUrns).Distinct().ToArray();
+            var allEntities = await EntityService.GetEntities(allUrns);
+
+            var slots = new Dictionary<string, EntityDefinition>();
+            foreach (var entity in allEntities.Where(ed =>
+                         ed.Type is EntityType.Wearable or EntityType.FacialFeature))
+            {
+                var isOverride = overlayUrns.Contains(entity.URN);
+                if (isOverride || !slots.ContainsKey(entity.Category))
+                {
+                    slots[entity.Category] = entity;
+                }
+            }
+
+            var wearables = slots.Values.ToArray();
+            var overrideCategories = slots.Values
+                .Where(ed => overlayUrns.Contains(ed.URN))
+                .Select(ed => ed.Category);
+            var forceRender = avatar.forceRender.Concat(overrideCategories).Distinct().ToArray();
+
+            var emoteDefinition =
+                defaultEmote == "idle" ? null : EntityDefinition.FromEmbeddedEmote(defaultEmote, false);
+
+            await avatarLoader.LoadAvatar(avatarBodyShape, wearables, emoteDefinition, forceRender, avatarColors);
+
+            return slots.Values
+                .Where(ed => overlayUrns.Contains(ed.URN))
+                .Select(ed => ed.URN)
+                .ToHashSet();
+        }
+
+        private void HandleShowroomEquipParticles(HashSet<string> currentEquipped)
+        {
+            currentEquipped ??= new HashSet<string>();
+
+            if (_showroomInitialized)
+            {
+                foreach (var urn in currentEquipped)
+                {
+                    if (_showroomEquippedUrns.Contains(urn)) continue;
+                    if (avatarLoader.TryGetWearableBounds(urn, out var bounds))
+                    {
+                        SpawnEquipVFX(bounds.center);
+                    }
+                }
+            }
+            else
+            {
+                _showroomInitialized = true;
+            }
+
+            _showroomEquippedUrns.Clear();
+            _showroomEquippedUrns.UnionWith(currentEquipped);
+        }
+
+        private void SpawnEquipVFX(Vector3 worldPosition)
+        {
+            if (equipVFXPrefab == null) return;
+
+            var instance = Instantiate(equipVFXPrefab, worldPosition, Quaternion.identity);
+            if (instance.TryGetComponent<VisualEffect>(out var vfx))
+            {
+                vfx.Play();
+            }
+
+            Destroy(instance, equipVFXLifetime);
         }
 
         private async Awaitable LoadForProfile(string profileID, string defaultEmote, bool loop = false)
