@@ -3258,7 +3258,7 @@ MonoBehaviour:
   animationReference: {fileID: 5311886945900016938}
   platform: {fileID: 1330754706}
   showroomProps: {fileID: 1897066280}
-  equipVFXPrefab: {fileID: 0}
+  equipVFXPrefab: {fileID: 5503993255901439970, guid: 81187900b0e744dad954d3bbb29edd00, type: 3}
   equipVFXLifetime: 3
   wearablePadding: 0.15
 --- !u!4 &1670447877458925803
