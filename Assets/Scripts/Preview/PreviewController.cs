@@ -35,12 +35,15 @@ namespace Preview
         private bool _loading;
         private bool _shouldReload;
         private bool _shouldCleanup;
+        private AvatarColors _marketplaceColors;
+        private string _marketplaceColorsProfile;
 
         private void Start()
         {
             previewUIPresenter.ShowAvatarClicked += OnShowAvatarClicked;
             previewUIPresenter.ShowWearableClicked += OnShowWearableClicked;
             previewUIPresenter.EmoteToggleClicked += OnEmoteToggleClicked;
+            previewUIPresenter.AvatarColorChanged += OnAvatarColorChanged;
             previewUIPresenter.ContainerDrag += avatarRotator.OnDrag;
             previewUIPresenter.ContainerDrag += wearableRotator.OnDrag;
             emoteAnimationController.EmoteAnimationEnded += OnEmoteAnimationEnded;
@@ -66,6 +69,19 @@ namespace Preview
             {
                 emoteAnimationController.StopEmote();
             }
+        }
+
+        private void OnAvatarColorChanged(PreviewUIPresenter.ColorTarget target, Color color)
+        {
+            if (_marketplaceColors == null) return;
+
+            _marketplaceColors = new AvatarColors(
+                target == PreviewUIPresenter.ColorTarget.Eyes ? color : _marketplaceColors.Eyes,
+                target == PreviewUIPresenter.ColorTarget.Hair ? color : _marketplaceColors.Hair,
+                target == PreviewUIPresenter.ColorTarget.Skin ? color : _marketplaceColors.Skin);
+
+            avatarLoader.ApplyColors(_marketplaceColors);
+            wearableLoader.ApplyColors(_marketplaceColors);
         }
 
         private void OnShowWearableClicked()
@@ -249,6 +265,12 @@ namespace Preview
                 previewUIPresenter.EnableZoom(config.Mode is PreviewMode.Marketplace or PreviewMode.Builder);
                 previewUIPresenter.EnableSwitcher(hasWearableOverride);
                 previewUIPresenter.EnableAudioControls(hasEmoteAudio);
+                previewUIPresenter.EnableColorPicker(config.Mode is PreviewMode.Marketplace);
+
+                if (config.Mode is PreviewMode.Marketplace)
+                {
+                    previewUIPresenter.SetColorPickerColors(_marketplaceColors);
+                }
             } while (_shouldReload);
 
             previewUIPresenter.ShowLoader(false);
@@ -320,7 +342,13 @@ namespace Preview
 
             var avatar = await APIService.GetAvatar(profileID);
             var avatarBodyShape = avatar.GetBodyShape();
-            var avatarColors = avatar.GetAvatarColors();
+
+            // Keep user-picked colors across wearable reloads within the same profile
+            var avatarColors = _marketplaceColors != null && _marketplaceColorsProfile == profileID
+                ? _marketplaceColors
+                : avatar.GetAvatarColors();
+            _marketplaceColors = avatarColors;
+            _marketplaceColorsProfile = profileID;
             var allEntities = await EntityService.GetEntities(avatar.wearables.Append(urn).ToArray());
             var overrideDefinition = allEntities.First(ed => ed.URN == urn);
 

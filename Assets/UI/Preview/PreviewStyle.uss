@@ -91,6 +91,183 @@
     background-image: url("project://database/Assets/UI/Sprites/ZoomOut.png?fileID=2800000&guid=02a7e65a07d244303a2618485f704d8b&type=3#ZoomOut");
 }
 
+.color-picker {
+    position: absolute;
+    top: 74px;
+    left: 0;
+}
+
+.color-picker__button {
+    border-top-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    padding-top: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    width: 32px;
+    height: 32px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    justify-content: center;
+    align-items: center;
+    transition-duration: 0.15s;
+    cursor: var(--dcl-cursor-interactive);
+}
+
+.color-picker__button:hover {
+    background-color: rgb(0, 0, 0);
+}
+
+.color-picker__button--active {
+    background-color: rgb(231, 63, 78);
+}
+
+.color-picker__button--active:hover {
+    background-color: rgb(231, 63, 78);
+}
+
+.color-picker__button-icon {
+    width: 18px;
+    height: 18px;
+    border-top-left-radius: 9px;
+    border-top-right-radius: 9px;
+    border-bottom-right-radius: 9px;
+    border-bottom-left-radius: 9px;
+    border-top-width: 2px;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
+    border-color: rgb(255, 255, 255);
+    background-color: rgb(255, 255, 255);
+}
+
+.color-picker__panel {
+    position: absolute;
+    top: 40px;
+    left: 0;
+    width: 220px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    padding-top: 12px;
+    padding-right: 12px;
+    padding-bottom: 12px;
+    padding-left: 12px;
+    cursor: initial;
+}
+
+.color-picker__tabs {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.color-picker__tab {
+    flex-grow: 1;
+    height: 24px;
+    font-size: 11px;
+    color: rgb(255, 255, 255);
+    background-color: rgba(255, 255, 255, 0.1);
+    border-top-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+    border-bottom-left-radius: 6px;
+    margin-top: 0;
+    margin-right: 4px;
+    margin-bottom: 0;
+    margin-left: 0;
+    padding-top: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    transition-duration: 0.1s;
+    cursor: var(--dcl-cursor-interactive);
+}
+
+.color-picker__tab:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+}
+
+.color-picker__tab--selected {
+    background-color: rgb(231, 63, 78);
+}
+
+.color-picker__tab--selected:hover {
+    background-color: rgb(231, 63, 78);
+}
+
+.color-picker__swatch {
+    width: 24px;
+    height: 24px;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+    border-bottom-left-radius: 6px;
+    border-top-width: 1px;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+    border-color: rgb(255, 255, 255);
+}
+
+.color-picker__slider {
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 4px;
+    margin-left: 0;
+}
+
+.color-picker__slider .unity-base-field__label {
+    min-width: 16px;
+    color: rgb(255, 255, 255);
+    font-size: 12px;
+}
+
+.color-picker__slider .unity-base-slider__tracker {
+    height: 6px;
+    margin-top: -3px;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+    background-color: rgba(255, 255, 255, 0.25);
+    border-top-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
+}
+
+.color-picker__slider .unity-base-slider__dragger {
+    width: 14px;
+    height: 14px;
+    margin-top: -7px;
+    border-top-left-radius: 7px;
+    border-top-right-radius: 7px;
+    border-bottom-right-radius: 7px;
+    border-bottom-left-radius: 7px;
+    background-color: rgb(252, 252, 252);
+    border-top-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
+    cursor: var(--dcl-cursor-interactive);
+}
+
 .emote-controls {
     bottom: 0;
     left: 0;

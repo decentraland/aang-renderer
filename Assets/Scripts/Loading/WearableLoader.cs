@@ -85,6 +85,18 @@ namespace Loading
             AvatarUtils.SetupWearable(_wearableGO, colors, _outlineRenderers);
         }
 
+        /// <summary>
+        /// Re-applies avatar colors to the currently loaded wearable without reloading it.
+        /// </summary>
+        public void ApplyColors(AvatarColors colors)
+        {
+            if (_wearableGO == null) return;
+
+            AvatarUtils.ApplyWearableColors(_wearableGO, colors);
+            // Only has an effect for facial feature overrides, which load a head-only body
+            AvatarUtils.ApplyFacialFeatureColors(_wearableGO, colors);
+        }
+
         private void Update()
         {
             if (gameObject.activeInHierarchy)

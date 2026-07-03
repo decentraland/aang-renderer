@@ -292,6 +292,23 @@ namespace Loading
             return false;
         }
 
+        /// <summary>
+        /// Re-applies avatar colors to all currently loaded models without reloading anything.
+        /// </summary>
+        public void ApplyColors(AvatarColors colors)
+        {
+            foreach (var model in _loadedModels.Values)
+            {
+                AvatarUtils.ApplyWearableColors(model.Root, colors);
+            }
+
+            var bodyGO = _loadedModels.Values.FirstOrDefault(er => er.Entity.Type == EntityType.Body).Root;
+            if (bodyGO != null)
+            {
+                AvatarUtils.ApplyFacialFeatureColors(bodyGO, colors);
+            }
+        }
+
         public void HideFacialFeatures()
         {
             var bodyGO = _loadedModels.Values.FirstOrDefault(er => er.Entity.Type == EntityType.Body).Root;

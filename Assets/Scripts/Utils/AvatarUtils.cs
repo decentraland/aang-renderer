@@ -249,6 +249,44 @@ namespace Utils
             }
         }
 
+        /// <summary>
+        /// Re-applies skin/hair colors to the materials of an already set-up wearable.
+        /// Color-only fast path for live color changes — no bone remapping or outline setup.
+        /// </summary>
+        public static void ApplyWearableColors(GameObject go, AvatarColors colors)
+        {
+            foreach (var renderer in go.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                foreach (var material in renderer.materials)
+                {
+                    if (material.name.Contains("skin", StringComparison.OrdinalIgnoreCase))
+                    {
+                        material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Skin);
+                    }
+                    else if (material.name.Contains("hair", StringComparison.OrdinalIgnoreCase))
+                    {
+                        material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Hair);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Re-applies facial feature colors (eyebrows→hair, eyes→eyes, mouth→skin) to an
+        /// already set-up body. Color-only fast path — textures are left untouched.
+        /// </summary>
+        public static void ApplyFacialFeatureColors(GameObject bodyGO, AvatarColors colors)
+        {
+            foreach (var cat in WearableCategories.FACIAL_FEATURES)
+            {
+                var ffRenderer = GetFacialFeatureRenderer(cat, bodyGO);
+                if (ffRenderer == null) continue;
+
+                ffRenderer.material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID,
+                    GetFacialFeatureColor(cat, colors));
+            }
+        }
+
         private static SkinnedMeshRenderer GetFacialFeatureRenderer(string category, GameObject bodyGO)
         {
             var suffix = category switch

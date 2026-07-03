@@ -10,6 +10,22 @@
             <engine:VisualElement name="Spacer" style="height: 1px;" />
             <engine:Button name="ZoomOutButton" class="zoomer__button zoomer__button--out" />
         </engine:VisualElement>
+        <engine:VisualElement name="ColorPicker" class="color-picker">
+            <engine:Button name="ColorPickerButton" tooltip="Colors" class="color-picker__button dcl-clickable">
+                <engine:VisualElement name="Icon" picking-mode="Ignore" class="color-picker__button-icon" />
+            </engine:Button>
+            <engine:VisualElement name="ColorPickerPanel" class="color-picker__panel" style="display: none;">
+                <engine:VisualElement name="Tabs" class="color-picker__tabs">
+                    <engine:Button name="HairTab" text="HAIR" class="color-picker__tab color-picker__tab--selected dcl-clickable" />
+                    <engine:Button name="EyesTab" text="EYES" class="color-picker__tab dcl-clickable" />
+                    <engine:Button name="SkinTab" text="SKIN" class="color-picker__tab dcl-clickable" />
+                    <engine:VisualElement name="Swatch" class="color-picker__swatch" />
+                </engine:VisualElement>
+                <engine:Slider name="HueSlider" label="H" high-value="360" class="color-picker__slider" />
+                <engine:Slider name="SaturationSlider" label="S" high-value="100" class="color-picker__slider" />
+                <engine:Slider name="ValueSlider" label="V" high-value="100" class="color-picker__slider" />
+            </engine:VisualElement>
+        </engine:VisualElement>
         <engine:VisualElement name="EmoteControls" class="emote-controls">
             <engine:Button name="PlayStopButton" class="emote-controls__button emote-controls__button-play dcl-clickable">
                 <engine:VisualElement picking-mode="Ignore" name="Icon" style="flex-grow: 1;" />

@@ -17,6 +17,8 @@ namespace Preview
     public class PreviewUIPresenter : MonoBehaviour
     {
         private const string USS_SWITCHER_BUTTON_SELECTED = "switcher__button--selected";
+        private const string USS_COLOR_PICKER_BUTTON_ACTIVE = "color-picker__button--active";
+        private const string USS_COLOR_PICKER_TAB_SELECTED = "color-picker__tab--selected";
         private const float LOADER_SPEED = 360f;
         private const string DEBUG_PASSPHRASE = "debugmesilly";
 
@@ -27,6 +29,7 @@ namespace Preview
         public event Action ShowWearableClicked;
         public event Action<bool> EmoteToggleClicked;
         public event Action<Vector2, float> ContainerDrag;
+        public event Action<ColorTarget, Color> AvatarColorChanged;
 
         private VisualElement _switcher;
         private VisualElement _wearableButton;
@@ -41,6 +44,18 @@ namespace Preview
         private Label _playEmoteLabel;
         private Button _muteEmoteButton;
 
+        private VisualElement _colorPicker;
+        private Button _colorPickerButton;
+        private VisualElement _colorPickerButtonIcon;
+        private VisualElement _colorPickerPanel;
+        private Button _hairTab;
+        private Button _eyesTab;
+        private Button _skinTab;
+        private VisualElement _colorSwatch;
+        private Slider _hueSlider;
+        private Slider _saturationSlider;
+        private Slider _valueSlider;
+
         private VisualElement _controls;
         private VisualElement _loader;
         private VisualElement _loaderIcon;
@@ -50,6 +65,8 @@ namespace Preview
         private bool _animationPlaying = true;
         private SwitcherState _switcherState = SwitcherState.Wearable;
         private float _lastPlayPauseClickTime;
+        private ColorTarget _colorTarget = ColorTarget.Hair;
+        private AvatarColors _pickerColors;
 
         private void OnEnable()
         {
@@ -70,6 +87,28 @@ namespace Preview
             _muteEmoteButton = _emoteControls.Q<Button>("MuteButton");
             _playEmoteButton.clicked += OnPlayPauseEmoteClicked;
             _muteEmoteButton.clicked += OnMuteEmoteClicked;
+
+            _colorPicker = root.Q("ColorPicker");
+            _colorPickerButton = _colorPicker.Q<Button>("ColorPickerButton");
+            _colorPickerButtonIcon = _colorPickerButton.Q("Icon");
+            _colorPickerPanel = _colorPicker.Q("ColorPickerPanel");
+            _hairTab = _colorPickerPanel.Q<Button>("HairTab");
+            _eyesTab = _colorPickerPanel.Q<Button>("EyesTab");
+            _skinTab = _colorPickerPanel.Q<Button>("SkinTab");
+            _colorSwatch = _colorPickerPanel.Q("Swatch");
+            _hueSlider = _colorPickerPanel.Q<Slider>("HueSlider");
+            _saturationSlider = _colorPickerPanel.Q<Slider>("SaturationSlider");
+            _valueSlider = _colorPickerPanel.Q<Slider>("ValueSlider");
+            _colorPickerButton.clicked += ToggleColorPickerPanel;
+            _hairTab.clicked += () => SelectColorTarget(ColorTarget.Hair);
+            _eyesTab.clicked += () => SelectColorTarget(ColorTarget.Eyes);
+            _skinTab.clicked += () => SelectColorTarget(ColorTarget.Skin);
+            _hueSlider.RegisterValueChangedCallback(_ => OnColorSliderChanged());
+            _saturationSlider.RegisterValueChangedCallback(_ => OnColorSliderChanged());
+            _valueSlider.RegisterValueChangedCallback(_ => OnColorSliderChanged());
+            // The DragManipulator on Controls captures the pointer on any bubbling PointerDown,
+            // which would steal slider drags and rotate the avatar behind the panel
+            _colorPickerPanel.RegisterCallback<PointerDownEvent>(evt => evt.StopPropagation());
 
             _controls = root.Q("Controls");
             _loader = root.Q("Loader");
@@ -103,6 +142,23 @@ namespace Preview
         public void EnableZoom(bool enable)
         {
             _zoomControls.style.display = enable ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
+        public void EnableColorPicker(bool enable)
+        {
+            _colorPicker.style.display = enable ? DisplayStyle.Flex : DisplayStyle.None;
+
+            if (!enable)
+            {
+                _colorPickerPanel.style.display = DisplayStyle.None;
+                _colorPickerButton.EnableInClassList(USS_COLOR_PICKER_BUTTON_ACTIVE, false);
+            }
+        }
+
+        public void SetColorPickerColors(AvatarColors colors)
+        {
+            _pickerColors = colors;
+            SelectColorTarget(_colorTarget);
         }
 
         public void EnableEmoteControls(bool enable)
@@ -150,6 +206,68 @@ namespace Preview
 
             _playEmoteButton.EnableInClassList("emote-controls__button-play--stopped", !_animationPlaying);
             _playEmoteLabel.text = _animationPlaying ? "STOP EMOTE" : "PLAY EMOTE";
+        }
+
+        private void ToggleColorPickerPanel()
+        {
+            var open = _colorPickerPanel.style.display == DisplayStyle.None;
+            _colorPickerPanel.style.display = open ? DisplayStyle.Flex : DisplayStyle.None;
+            _colorPickerButton.EnableInClassList(USS_COLOR_PICKER_BUTTON_ACTIVE, open);
+
+            if (open)
+            {
+                // Re-sync sliders with the current colors
+                SelectColorTarget(_colorTarget);
+            }
+        }
+
+        private void SelectColorTarget(ColorTarget target)
+        {
+            _colorTarget = target;
+
+            _hairTab.EnableInClassList(USS_COLOR_PICKER_TAB_SELECTED, target == ColorTarget.Hair);
+            _eyesTab.EnableInClassList(USS_COLOR_PICKER_TAB_SELECTED, target == ColorTarget.Eyes);
+            _skinTab.EnableInClassList(USS_COLOR_PICKER_TAB_SELECTED, target == ColorTarget.Skin);
+
+            var color = GetPickerColor(target);
+            Color.RGBToHSV(color, out var h, out var s, out var v);
+
+            // Without notify - switching tabs must not fire color change events
+            _hueSlider.SetValueWithoutNotify(h * 360f);
+            _saturationSlider.SetValueWithoutNotify(s * 100f);
+            _valueSlider.SetValueWithoutNotify(v * 100f);
+
+            _colorSwatch.style.backgroundColor = color;
+            _colorPickerButtonIcon.style.backgroundColor = color;
+        }
+
+        private void OnColorSliderChanged()
+        {
+            var color = Color.HSVToRGB(_hueSlider.value / 360f, _saturationSlider.value / 100f,
+                _valueSlider.value / 100f);
+
+            _colorSwatch.style.backgroundColor = color;
+            _colorPickerButtonIcon.style.backgroundColor = color;
+
+            _pickerColors = new AvatarColors(
+                _colorTarget == ColorTarget.Eyes ? color : GetPickerColor(ColorTarget.Eyes),
+                _colorTarget == ColorTarget.Hair ? color : GetPickerColor(ColorTarget.Hair),
+                _colorTarget == ColorTarget.Skin ? color : GetPickerColor(ColorTarget.Skin));
+
+            AvatarColorChanged?.Invoke(_colorTarget, color);
+        }
+
+        private Color GetPickerColor(ColorTarget target)
+        {
+            if (_pickerColors == null) return Color.white;
+
+            return target switch
+            {
+                ColorTarget.Hair => _pickerColors.Hair,
+                ColorTarget.Eyes => _pickerColors.Eyes,
+                ColorTarget.Skin => _pickerColors.Skin,
+                _ => throw new ArgumentOutOfRangeException(nameof(target), target, null)
+            };
         }
 
         private void OnAvatarButtonClicked()
@@ -296,6 +414,13 @@ namespace Preview
             Wearable,
             Avatar,
             WearableLocked
+        }
+
+        public enum ColorTarget
+        {
+            Hair,
+            Eyes,
+            Skin
         }
     }
 }
