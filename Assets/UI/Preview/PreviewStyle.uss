@@ -138,16 +138,9 @@
 .color-picker__button-icon {
     width: 18px;
     height: 18px;
-    border-top-left-radius: 9px;
-    border-top-right-radius: 9px;
-    border-bottom-right-radius: 9px;
-    border-bottom-left-radius: 9px;
-    border-top-width: 2px;
-    border-right-width: 2px;
-    border-bottom-width: 2px;
-    border-left-width: 2px;
-    border-color: rgb(255, 255, 255);
-    background-color: rgb(255, 255, 255);
+    background-image: url("project://database/Assets/UI/Sprites/ColorIcn.png?fileID=2800000&guid=937d80ad3b8894fcfb0efe192a0c1f9e&type=3#ColorIcn");
+    -unity-background-scale-mode: scale-to-fit;
+    -unity-background-image-tint-color: rgb(255, 255, 255);
 }
 
 .color-picker__panel {
@@ -250,17 +243,24 @@
     border-right-width: 0;
     border-bottom-width: 0;
     border-left-width: 0;
+    overflow: hidden;
+}
+
+.gradient-slider__gradient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
 }
 
 .color-picker__slider .unity-base-slider__dragger {
-    width: 14px;
-    height: 14px;
-    margin-top: -7px;
-    border-top-left-radius: 7px;
-    border-top-right-radius: 7px;
-    border-bottom-right-radius: 7px;
-    border-bottom-left-radius: 7px;
-    background-color: rgb(252, 252, 252);
+    width: 12px;
+    height: 22px;
+    margin-top: -11px;
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("project://database/Assets/UI/Sprites/Handle.png?fileID=2800000&guid=90ae4aef45654461cbcca51850af865e&type=3#Handle");
+    -unity-background-scale-mode: scale-to-fit;
     border-top-width: 0;
     border-right-width: 0;
     border-bottom-width: 0;

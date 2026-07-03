@@ -21,9 +21,9 @@
                     <engine:Button name="SkinTab" text="SKIN" class="color-picker__tab dcl-clickable" />
                     <engine:VisualElement name="Swatch" class="color-picker__swatch" />
                 </engine:VisualElement>
-                <engine:Slider name="HueSlider" label="H" high-value="360" class="color-picker__slider" />
-                <engine:Slider name="SaturationSlider" label="S" high-value="100" class="color-picker__slider" />
-                <engine:Slider name="ValueSlider" label="V" high-value="100" class="color-picker__slider" />
+                <UI.Elements.GradientSliderElement name="HueSlider" label="H" high-value="360" class="color-picker__slider" />
+                <UI.Elements.GradientSliderElement name="SaturationSlider" label="S" high-value="100" class="color-picker__slider" />
+                <UI.Elements.GradientSliderElement name="ValueSlider" label="V" high-value="100" class="color-picker__slider" />
             </engine:VisualElement>
         </engine:VisualElement>
         <engine:VisualElement name="EmoteControls" class="emote-controls">

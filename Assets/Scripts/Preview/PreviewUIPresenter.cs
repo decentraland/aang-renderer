@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Data;
+using UI.Elements;
 using UI.Manipulators;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -46,15 +47,14 @@ namespace Preview
 
         private VisualElement _colorPicker;
         private Button _colorPickerButton;
-        private VisualElement _colorPickerButtonIcon;
         private VisualElement _colorPickerPanel;
         private Button _hairTab;
         private Button _eyesTab;
         private Button _skinTab;
         private VisualElement _colorSwatch;
-        private Slider _hueSlider;
-        private Slider _saturationSlider;
-        private Slider _valueSlider;
+        private GradientSliderElement _hueSlider;
+        private GradientSliderElement _saturationSlider;
+        private GradientSliderElement _valueSlider;
 
         private VisualElement _controls;
         private VisualElement _loader;
@@ -90,15 +90,15 @@ namespace Preview
 
             _colorPicker = root.Q("ColorPicker");
             _colorPickerButton = _colorPicker.Q<Button>("ColorPickerButton");
-            _colorPickerButtonIcon = _colorPickerButton.Q("Icon");
             _colorPickerPanel = _colorPicker.Q("ColorPickerPanel");
             _hairTab = _colorPickerPanel.Q<Button>("HairTab");
             _eyesTab = _colorPickerPanel.Q<Button>("EyesTab");
             _skinTab = _colorPickerPanel.Q<Button>("SkinTab");
             _colorSwatch = _colorPickerPanel.Q("Swatch");
-            _hueSlider = _colorPickerPanel.Q<Slider>("HueSlider");
-            _saturationSlider = _colorPickerPanel.Q<Slider>("SaturationSlider");
-            _valueSlider = _colorPickerPanel.Q<Slider>("ValueSlider");
+            _hueSlider = _colorPickerPanel.Q<GradientSliderElement>("HueSlider");
+            _saturationSlider = _colorPickerPanel.Q<GradientSliderElement>("SaturationSlider");
+            _valueSlider = _colorPickerPanel.Q<GradientSliderElement>("ValueSlider");
+            _hueSlider.SetHueGradient();
             _colorPickerButton.clicked += ToggleColorPickerPanel;
             _hairTab.clicked += () => SelectColorTarget(ColorTarget.Hair);
             _eyesTab.clicked += () => SelectColorTarget(ColorTarget.Eyes);
@@ -237,8 +237,9 @@ namespace Preview
             _saturationSlider.SetValueWithoutNotify(s * 100f);
             _valueSlider.SetValueWithoutNotify(v * 100f);
 
+            UpdateSliderGradients();
+
             _colorSwatch.style.backgroundColor = color;
-            _colorPickerButtonIcon.style.backgroundColor = color;
         }
 
         private void OnColorSliderChanged()
@@ -246,8 +247,9 @@ namespace Preview
             var color = Color.HSVToRGB(_hueSlider.value / 360f, _saturationSlider.value / 100f,
                 _valueSlider.value / 100f);
 
+            UpdateSliderGradients();
+
             _colorSwatch.style.backgroundColor = color;
-            _colorPickerButtonIcon.style.backgroundColor = color;
 
             _pickerColors = new AvatarColors(
                 _colorTarget == ColorTarget.Eyes ? color : GetPickerColor(ColorTarget.Eyes),
@@ -255,6 +257,16 @@ namespace Preview
                 _colorTarget == ColorTarget.Skin ? color : GetPickerColor(ColorTarget.Skin));
 
             AvatarColorChanged?.Invoke(_colorTarget, color);
+        }
+
+        private void UpdateSliderGradients()
+        {
+            var h = _hueSlider.value / 360f;
+            var s = _saturationSlider.value / 100f;
+            var v = _valueSlider.value / 100f;
+
+            _saturationSlider.SetGradient(Color.HSVToRGB(h, 0f, v), Color.HSVToRGB(h, 1f, v));
+            _valueSlider.SetGradient(Color.black, Color.HSVToRGB(h, s, 1f));
         }
 
         private Color GetPickerColor(ColorTarget target)
