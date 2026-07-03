@@ -16,9 +16,18 @@
             </engine:Button>
             <engine:VisualElement name="ColorPickerPanel" class="color-picker__panel" style="display: none;">
                 <engine:VisualElement name="Tabs" class="color-picker__tabs">
-                    <engine:Button name="HairTab" text="HAIR" class="color-picker__tab color-picker__tab--selected dcl-clickable" />
-                    <engine:Button name="EyesTab" text="EYES" class="color-picker__tab dcl-clickable" />
-                    <engine:Button name="SkinTab" text="SKIN" class="color-picker__tab dcl-clickable" />
+                    <engine:Button name="HairTab" class="color-picker__tab color-picker__tab--selected dcl-clickable">
+                        <engine:VisualElement name="Icon" picking-mode="Ignore" class="color-picker__tab-icon" style="background-image: url(&quot;project://database/Assets/UI/Sprites/HairIcon.png?fileID=2800000&amp;guid=55b82f3911a2a4799b0253d600b45be8&amp;type=3#HairIcon&quot;);" />
+                        <engine:Label text="HAIR" name="Title" picking-mode="Ignore" class="color-picker__tab-label" />
+                    </engine:Button>
+                    <engine:Button name="EyesTab" class="color-picker__tab dcl-clickable">
+                        <engine:VisualElement name="Icon" picking-mode="Ignore" class="color-picker__tab-icon" style="background-image: url(&quot;project://database/Assets/UI/Sprites/EyesIcon.png?fileID=2800000&amp;guid=daddfe018ce5d47df96479e8bd325fea&amp;type=3#EyesIcon&quot;);" />
+                        <engine:Label text="EYES" name="Title" picking-mode="Ignore" class="color-picker__tab-label" />
+                    </engine:Button>
+                    <engine:Button name="SkinTab" class="color-picker__tab dcl-clickable">
+                        <engine:VisualElement name="Icon" picking-mode="Ignore" class="color-picker__tab-icon" style="background-image: url(&quot;project://database/Assets/UI/Sprites/BodyIcon.png?fileID=2800000&amp;guid=c6339aa049f3a42c6b337d3822bf7118&amp;type=3#BodyIcon&quot;);" />
+                        <engine:Label text="SKIN" name="Title" picking-mode="Ignore" class="color-picker__tab-label" />
+                    </engine:Button>
                     <engine:VisualElement name="Swatch" class="color-picker__swatch" />
                 </engine:VisualElement>
                 <UI.Elements.GradientSliderElement name="HueSlider" label="H" high-value="360" class="color-picker__slider" />
