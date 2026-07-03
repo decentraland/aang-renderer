@@ -11,7 +11,7 @@ namespace UI.Elements
     {
         private const string USS_BLOCK = "gradient-slider";
         private const string USS_GRADIENT = USS_BLOCK + "__gradient";
-        private const int HUE_STOPS = 13; // every 30 degrees
+        private const int HUE_STOPS = 13;
 
         private readonly VisualElement _gradient;
         private Color[] _stops;
@@ -49,7 +49,6 @@ namespace UI.Elements
             var rect = _gradient.contentRect;
             if (_stops == null || _stops.Length < 2 || rect.width <= 0f || rect.height <= 0f) return;
 
-            // Horizontal quad strip with one vertex column per stop, the GPU interpolates the colors in between
             var segments = _stops.Length - 1;
             var mesh = mgc.Allocate((segments + 1) * 2, segments * 6);
 

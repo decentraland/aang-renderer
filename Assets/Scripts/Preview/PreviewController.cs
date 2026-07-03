@@ -343,7 +343,6 @@ namespace Preview
             var avatar = await APIService.GetAvatar(profileID);
             var avatarBodyShape = avatar.GetBodyShape();
 
-            // Keep user-picked colors across wearable reloads within the same profile
             var avatarColors = _marketplaceColors != null && _marketplaceColorsProfile == profileID
                 ? _marketplaceColors
                 : avatar.GetAvatarColors();

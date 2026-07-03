@@ -249,11 +249,7 @@ namespace Utils
             }
         }
 
-        /// <summary>
-        /// Re-applies skin/hair colors to the materials of an already set-up wearable.
-        /// Color-only fast path for live color changes — no bone remapping or outline setup.
-        /// </summary>
-        public static void ApplyWearableColors(GameObject go, AvatarColors colors)
+        public static void ApplySkinHairColors(GameObject go, AvatarColors colors)
         {
             foreach (var renderer in go.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
@@ -271,10 +267,6 @@ namespace Utils
             }
         }
 
-        /// <summary>
-        /// Re-applies facial feature colors (eyebrows→hair, eyes→eyes, mouth→skin) to an
-        /// already set-up body. Color-only fast path — textures are left untouched.
-        /// </summary>
         public static void ApplyFacialFeatureColors(GameObject bodyGO, AvatarColors colors)
         {
             foreach (var cat in WearableCategories.FACIAL_FEATURES)

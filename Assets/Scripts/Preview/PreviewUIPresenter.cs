@@ -106,8 +106,6 @@ namespace Preview
             _hueSlider.RegisterValueChangedCallback(_ => OnColorSliderChanged());
             _saturationSlider.RegisterValueChangedCallback(_ => OnColorSliderChanged());
             _valueSlider.RegisterValueChangedCallback(_ => OnColorSliderChanged());
-            // The DragManipulator on Controls captures the pointer on any bubbling PointerDown,
-            // which would steal slider drags and rotate the avatar behind the panel
             _colorPickerPanel.RegisterCallback<PointerDownEvent>(evt => evt.StopPropagation());
 
             _controls = root.Q("Controls");
@@ -216,7 +214,6 @@ namespace Preview
 
             if (open)
             {
-                // Re-sync sliders with the current colors
                 SelectColorTarget(_colorTarget);
             }
         }
@@ -232,7 +229,6 @@ namespace Preview
             var color = GetPickerColor(target);
             Color.RGBToHSV(color, out var h, out var s, out var v);
 
-            // Without notify - switching tabs must not fire color change events
             _hueSlider.SetValueWithoutNotify(h * 360f);
             _saturationSlider.SetValueWithoutNotify(s * 100f);
             _valueSlider.SetValueWithoutNotify(v * 100f);
