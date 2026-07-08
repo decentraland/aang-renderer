@@ -25,6 +25,16 @@ namespace Loading
         private static readonly int METALLIC_GLOSS_MAP_ID = Shader.PropertyToID("_MetallicGlossMap");
         private static readonly int METALLIC_GLOSS_ARR_ID = Shader.PropertyToID("_MetallicGlossMapArr_ID");
 
+        private static readonly int MATCAP_SAMPLER_ID = Shader.PropertyToID("_MatCap_Sampler");
+        private static readonly int MATCAP_ARR_ID = Shader.PropertyToID("_MatCap_SamplerArr_ID");
+
+        // Default matcap that provides the stylized-metal "look". Loaded from
+        // Assets/Textures/Resources/MatCaps/Matcap_01 (path relative to a Resources folder, no
+        // extension) so it resolves in a build, not just the editor.
+        private const string DEFAULT_MATCAP_RESOURCE_PATH = "MatCaps/Matcap_01";
+        private static Texture2D _defaultMatcap;
+        private static bool _defaultMatcapLoaded;
+
         // Cache of 1x1 masks keyed by quantized metallic value, so a uniform metallicFactor can flow
         // through the same .b mask-sampling path without allocating a texture per material. Bounded to
         // <= 256 tiny textures for the session; shared, so no per-material leak.
@@ -99,10 +109,10 @@ namespace Loading
                 //   - metallicRoughnessTexture  -> per-texel mask, metallic in the .b channel (glTF ORM);
                 //   - else metallicFactor > 0   -> uniform amount, baked into a flat mask so it flows
                 //                                  through the same .b path (honors 0..1).
-                // Non-metal materials carry an explicit metallicFactor = 0, so they stay off. And since
-                // the shader also needs _MatCap_SamplerArr_ID >= 0, nothing shows until a matcap is bound
-                // (production leaves that unset), so existing avatars are visually unchanged regardless.
-                // The matcap (the "look") is supplied separately by the debug harness / project matcap.
+                // Non-metal materials carry an explicit metallicFactor = 0, so they stay off. The shader
+                // also needs _MatCap_SamplerArr_ID >= 0 to render metal, so metallic materials get the
+                // default matcap (Matcap_01) bound here (see ApplyDefaultMatcap); the debug harness can
+                // still override it at the renderer level for look-dev.
                 var pbr = gltfMaterial.pbrMetallicRoughness;
                 var hasMetalTex = pbr.metallicRoughnessTexture != null && pbr.metallicRoughnessTexture.index != -1;
 
@@ -111,12 +121,14 @@ namespace Loading
                     mat.SetTexture(METALLIC_GLOSS_MAP_ID, gltf.GetTexture(pbr.metallicRoughnessTexture.index));
                     mat.SetInteger(METALLIC_GLOSS_ARR_ID, 0);
                     mat.SetInteger(IS_STYLIZED_METALLIC_ID, 1);
+                    ApplyDefaultMatcap(mat);
                 }
                 else if (pbr.metallicFactor > 0f)
                 {
                     mat.SetTexture(METALLIC_GLOSS_MAP_ID, GetUniformMetallicMask(pbr.metallicFactor));
                     mat.SetInteger(METALLIC_GLOSS_ARR_ID, 0);
                     mat.SetInteger(IS_STYLIZED_METALLIC_ID, 1);
+                    ApplyDefaultMatcap(mat);
                 }
                 else
                 {
@@ -161,6 +173,29 @@ namespace Loading
             mat.SetInt(CULL_MODE_ID, (int)CullMode.Back);
 
             return mat;
+        }
+
+
+        // Binds the default stylized-metal matcap and opens the shader gate (_MatCap_SamplerArr_ID >= 0)
+        // so metallic materials render without an external matcap being supplied. The texture is loaded
+        // once (lazily) and cached; a missing asset degrades gracefully (metal simply stays unlit).
+        private static void ApplyDefaultMatcap(Material mat)
+        {
+            if (!_defaultMatcapLoaded)
+            {
+                _defaultMatcap = Resources.Load<Texture2D>(DEFAULT_MATCAP_RESOURCE_PATH);
+                _defaultMatcapLoaded = true;
+
+                if (_defaultMatcap == null)
+                    Debug.LogWarning($"[ToonMaterialGenerator] Default metallic matcap not found at " +
+                                     $"Resources/{DEFAULT_MATCAP_RESOURCE_PATH}; stylized metallic will " +
+                                     "not render until a matcap is bound.");
+            }
+
+            if (_defaultMatcap == null) return;
+
+            mat.SetTexture(MATCAP_SAMPLER_ID, _defaultMatcap);
+            mat.SetInteger(MATCAP_ARR_ID, 0);
         }
 
 

@@ -13,11 +13,11 @@
       "hash": "e4587451389b6cf93b084ae434d0cc3d32a45076"
     },
     "com.decentraland.unity-shared-dependencies": {
-      "version": "git@github.com:decentraland/unity-shared-dependencies.git#main",
+      "version": "git@github.com:decentraland/unity-shared-dependencies.git#feat/toon-normalmap-stylized-metallic",
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "f040030e82c51bdddce67ae18149e22b5b4c4c0d"
+      "hash": "42b44e4a02fda9fc444501a4e261e9d5af01693b"
     },
     "com.unity.burst": {
       "version": "1.8.28",
