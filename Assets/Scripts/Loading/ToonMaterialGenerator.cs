@@ -27,13 +27,11 @@ namespace Loading
 
         private static readonly int MATCAP_SAMPLER_ID = Shader.PropertyToID("_MatCap_Sampler");
         private static readonly int MATCAP_ARR_ID = Shader.PropertyToID("_MatCap_SamplerArr_ID");
+        private static readonly int MATCAP_COLOR_ID = Shader.PropertyToID("_MatCapColor");
+        private static readonly int BLUR_LEVEL_MATCAP_ID = Shader.PropertyToID("_BlurLevelMatcap");
 
-        // Default matcap that provides the stylized-metal "look". Loaded from
-        // Assets/Textures/Resources/MatCaps/Matcap_01 (path relative to a Resources folder, no
-        // extension) so it resolves in a build, not just the editor.
-        private const string DEFAULT_MATCAP_RESOURCE_PATH = "MatCaps/Matcap_01";
-        private static Texture2D _defaultMatcap;
-        private static bool _defaultMatcapLoaded;
+        // Warn only once when the shared matcap library isn't wired up, to avoid per-material spam.
+        private static bool _warnedMissingPresets;
 
         // Cache of 1x1 masks keyed by quantized metallic value, so a uniform metallicFactor can flow
         // through the same .b mask-sampling path without allocating a texture per material. Bounded to
@@ -111,8 +109,8 @@ namespace Loading
                 //                                  through the same .b path (honors 0..1).
                 // Non-metal materials carry an explicit metallicFactor = 0, so they stay off. The shader
                 // also needs _MatCap_SamplerArr_ID >= 0 to render metal, so metallic materials get the
-                // default matcap (Matcap_01) bound here (see ApplyDefaultMatcap); the debug harness can
-                // still override it at the renderer level for look-dev.
+                // default matcap from the shared MatcapPresets library bound here (see ApplyDefaultMatcap);
+                // the debug harness (LocalWearableOverride) can still override it at the renderer level.
                 var pbr = gltfMaterial.pbrMetallicRoughness;
                 var hasMetalTex = pbr.metallicRoughnessTexture != null && pbr.metallicRoughnessTexture.index != -1;
 
@@ -177,25 +175,33 @@ namespace Loading
 
 
         // Binds the default stylized-metal matcap and opens the shader gate (_MatCap_SamplerArr_ID >= 0)
-        // so metallic materials render without an external matcap being supplied. The texture is loaded
-        // once (lazily) and cached; a missing asset degrades gracefully (metal simply stays unlit).
+        // so metallic materials render without an external matcap being supplied. The matcap (and its
+        // tint/blur) come from the shared MatcapPresets library (CommonAssets.MatcapPresets), resolved
+        // by name (CommonAssets.DefaultMatcapName) with a fall back to the first preset. A missing or
+        // empty library degrades gracefully (metal simply stays unlit) with a one-time warning.
         private static void ApplyDefaultMatcap(Material mat)
         {
-            if (!_defaultMatcapLoaded)
+            var presets = CommonAssets.MatcapPresets;
+            if (presets == null || presets.Count == 0)
             {
-                _defaultMatcap = Resources.Load<Texture2D>(DEFAULT_MATCAP_RESOURCE_PATH);
-                _defaultMatcapLoaded = true;
+                if (!_warnedMissingPresets)
+                {
+                    Debug.LogWarning("[ToonMaterialGenerator] No MatcapPresets assigned " +
+                                     "(CommonAssets.MatcapPresets is null/empty); stylized metallic will " +
+                                     "not render until one is set on the Bootstrap component.");
+                    _warnedMissingPresets = true;
+                }
 
-                if (_defaultMatcap == null)
-                    Debug.LogWarning($"[ToonMaterialGenerator] Default metallic matcap not found at " +
-                                     $"Resources/{DEFAULT_MATCAP_RESOURCE_PATH}; stylized metallic will " +
-                                     "not render until a matcap is bound.");
+                return;
             }
 
-            if (_defaultMatcap == null) return;
+            if (!presets.TryGet(CommonAssets.DefaultMatcapName, out var preset))
+                preset = presets[0];
 
-            mat.SetTexture(MATCAP_SAMPLER_ID, _defaultMatcap);
+            mat.SetTexture(MATCAP_SAMPLER_ID, preset.texture);
             mat.SetInteger(MATCAP_ARR_ID, 0);
+            mat.SetColor(MATCAP_COLOR_ID, preset.tint);
+            mat.SetFloat(BLUR_LEVEL_MATCAP_ID, preset.blur);
         }
 
 
