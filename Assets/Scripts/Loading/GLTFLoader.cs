@@ -234,7 +234,11 @@ namespace Loading
                     child.SetParent(root, true);
                 }
 
-                Object.Destroy(sceneChild.gameObject);
+                // DestroyImmediate is required outside play mode (editor previews); Destroy would error
+                if (Application.isPlaying)
+                    Object.Destroy(sceneChild.gameObject);
+                else
+                    Object.DestroyImmediate(sceneChild.gameObject);
             }
 
         }

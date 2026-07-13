@@ -297,7 +297,7 @@ namespace Preview
 
             var colors = new AvatarColors(eyeColor ?? Color.black, hairColor ?? Color.black, skinColor ?? Color.black);
 
-            var emoteEntity = base64Emote ?? (emoteName == "idle" ? null : EntityDefinition.FromEmbeddedEmote(emoteName, true));
+            var emoteEntity = base64Emote ?? await ResolveBuilderEmote(emoteName);
 
             await avatarLoader.LoadAvatar(bodyShape,
                 wearableEntities,
@@ -309,6 +309,23 @@ namespace Preview
             {
                 avatarLoader.HideFacialFeatures();
             }
+        }
+
+        /// <summary>
+        /// Resolves the builder-mode emote: null for idle, an active entity for emote URNs
+        /// (e.g. picked from the marketplace) or an embedded StreamingAssets emote otherwise.
+        /// </summary>
+        private static async Awaitable<EntityDefinition> ResolveBuilderEmote(string emoteName)
+        {
+            if (string.IsNullOrEmpty(emoteName) || emoteName == "idle") return null;
+
+            if (emoteName.StartsWith("urn:", StringComparison.OrdinalIgnoreCase))
+            {
+                var entities = await EntityService.GetEntities(new[] { emoteName });
+                return entities.FirstOrDefault(e => e.Type == EntityType.Emote);
+            }
+
+            return EntityDefinition.FromEmbeddedEmote(emoteName, true);
         }
 
         private async Awaitable<(bool emoteOverride, bool emoteOverrideAudio, bool validRepresentation, BodyShape avatarBodyShape)> LoadForMarketplace(string profileID, string urn,
