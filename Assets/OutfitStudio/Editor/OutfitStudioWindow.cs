@@ -405,9 +405,11 @@ namespace OutfitStudio.Editor
             };
             tile.Add(label);
 
+            // No panel-attachment check: cached textures invoke the callback synchronously,
+            // before the tile is added to the grid, and setting .image while detached is fine
             LoadThumbnail(item.thumbnail, tex =>
             {
-                if (tex != null && image.panel != null) image.image = tex;
+                if (tex != null) image.image = tex;
             });
 
             tile.RegisterCallback<ClickEvent>(_ => OnItemClicked(item));
@@ -425,8 +427,14 @@ namespace OutfitStudio.Editor
 
             if (THUMBNAIL_CACHE.TryGetValue(url, out var cached))
             {
-                callback(cached);
-                return;
+                // Unity-null means the texture was destroyed since caching — re-download
+                if (cached != null)
+                {
+                    callback(cached);
+                    return;
+                }
+
+                THUMBNAIL_CACHE.Remove(url);
             }
 
             var request = UnityWebRequestTexture.GetTexture(url);
@@ -729,7 +737,7 @@ namespace OutfitStudio.Editor
                 {
                     LoadThumbnail(known.thumbnail, tex =>
                     {
-                        if (tex != null && thumb.panel != null) thumb.image = tex;
+                        if (tex != null) thumb.image = tex;
                     });
                 }
 
