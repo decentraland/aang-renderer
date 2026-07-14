@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Preview;
 using Services;
 using UnityEditor;
@@ -72,6 +73,7 @@ namespace OutfitStudio.Editor
         [SerializeField] private bool transparentBackground = true;
         [SerializeField] private string outputFolder = OutfitCapture.DEFAULT_OUTPUT_FOLDER;
         [SerializeField] private float turntableDuration = 6f;
+        [SerializeField] private bool cleanGameView = true;
 
         // Browser state (session only)
         private readonly CatalogQuery _query = new() { First = PAGE_SIZE };
@@ -86,6 +88,9 @@ namespace OutfitStudio.Editor
 
         // UI references
         private VisualElement _grid;
+        private VisualElement _browserContent;
+        private VisualElement _debugPane;
+        private TextField _configField;
         private Label _pageLabel;
         private Button _prevButton, _nextButton;
         private VisualElement _slotsContainer;
@@ -159,6 +164,57 @@ namespace OutfitStudio.Editor
             RefreshShareCode();
             UpdatePlayModeUI();
             RunSearch();
+
+            // PreviewController re-enables the overlay controls after every reload,
+            // so Clean View re-enforces suppression on a cadence instead of one-shot
+            root.schedule.Execute(EnforceCleanGameView).Every(500);
+        }
+
+        // ---------------------------------------------------------------- Game overlay suppression
+
+        /// <summary>
+        /// Hides the renderer's built-in play-mode overlay (debug panel, zoom, switcher, emote
+        /// controls). The loader spinner and the drag surface (the Controls element itself,
+        /// which carries the DragManipulator) are left untouched.
+        /// </summary>
+        private void EnforceCleanGameView()
+        {
+            if (!Application.isPlaying || !cleanGameView) return;
+
+            var root = FindOverlayRoot();
+            if (root == null) return;
+
+            SetOverlayElementVisible(root, "DebugPanel", false);
+            SetOverlayElementVisible(root, "ZoomControls", false);
+            SetOverlayElementVisible(root, "Switcher", false);
+            SetOverlayElementVisible(root, "EmoteControls", false);
+        }
+
+        private void RestoreGameOverlay()
+        {
+            if (!Application.isPlaying) return;
+
+            var root = FindOverlayRoot();
+            if (root == null) return;
+
+            // Mirror the presenter: the debug panel is editor-only
+            SetOverlayElementVisible(root, "DebugPanel", Application.isEditor);
+
+            // Zoom/switcher/emote visibility is mode-dependent — a reload lets
+            // PreviewController re-apply the canonical states
+            SendToJSBridge("Reload", autoReload: false);
+        }
+
+        private static VisualElement FindOverlayRoot()
+        {
+            var presenter = FindFirstObjectByType<PreviewUIPresenter>();
+            return presenter == null ? null : presenter.GetComponent<UIDocument>()?.rootVisualElement;
+        }
+
+        private static void SetOverlayElementVisible(VisualElement root, string name, bool visible)
+        {
+            var element = root.Q(name);
+            if (element != null) element.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         // ---------------------------------------------------------------- Toolbar
@@ -177,6 +233,15 @@ namespace OutfitStudio.Editor
             bar.Add(envPopup);
 
             bar.Add(new ToolbarSpacer { style = { flexGrow = 1 } });
+
+            var cleanViewToggle = new ToolbarToggle { text = "Clean View", value = cleanGameView };
+            cleanViewToggle.tooltip = "Hide the renderer's built-in overlay (debug panel, zoom, switcher) in play mode";
+            cleanViewToggle.RegisterValueChangedCallback(evt =>
+            {
+                cleanGameView = evt.newValue;
+                if (!cleanGameView) RestoreGameOverlay();
+            });
+            bar.Add(cleanViewToggle);
 
             var autoToggle = new ToolbarToggle { text = "Auto apply", value = autoApply };
             autoToggle.RegisterValueChangedCallback(evt => autoApply = evt.newValue);
@@ -223,23 +288,40 @@ namespace OutfitStudio.Editor
             var tabs = new VisualElement { style = { flexDirection = FlexDirection.Row, marginTop = 4, marginLeft = 4 } };
             var wearablesTab = new Button { text = "Wearables" };
             var emotesTab = new Button { text = "Emotes / Poses" };
+            var debugTab = new Button { text = "Debug" };
 
-            void SelectTab(string category)
+            void SelectTab(string tab)
             {
-                _query.Category = category;
+                wearablesTab.SetEnabled(tab != "wearable");
+                emotesTab.SetEnabled(tab != "emote");
+                debugTab.SetEnabled(tab != "debug");
+
+                var isDebug = tab == "debug";
+                _browserContent.style.display = isDebug ? DisplayStyle.None : DisplayStyle.Flex;
+                _debugPane.style.display = isDebug ? DisplayStyle.Flex : DisplayStyle.None;
+
+                if (isDebug) return;
+
+                _query.Category = tab;
                 _query.WearableCategory = null;
                 _query.EmoteCategory = null;
-                wearablesTab.SetEnabled(category != "wearable");
-                emotesTab.SetEnabled(category != "emote");
                 ResetAndSearch();
             }
 
             wearablesTab.clicked += () => SelectTab("wearable");
             emotesTab.clicked += () => SelectTab("emote");
+            debugTab.clicked += () => SelectTab("debug");
             wearablesTab.SetEnabled(false);
             tabs.Add(wearablesTab);
             tabs.Add(emotesTab);
+            tabs.Add(debugTab);
             pane.Add(tabs);
+
+            _browserContent = new VisualElement { style = { flexGrow = 1 } };
+            pane.Add(_browserContent);
+            _debugPane = BuildDebugPane();
+            _debugPane.style.display = DisplayStyle.None;
+            pane.Add(_debugPane);
 
             // Search
             var search = new ToolbarSearchField { style = { marginLeft = 4, marginTop = 4, width = Length.Percent(95) } };
@@ -251,7 +333,7 @@ namespace OutfitStudio.Editor
                 pendingSearch = search.schedule.Execute(ResetAndSearch);
                 pendingSearch.StartingIn(500);
             });
-            pane.Add(search);
+            _browserContent.Add(search);
 
             // Filters
             var filters = new VisualElement { style = { flexDirection = FlexDirection.Row, flexWrap = Wrap.Wrap, marginLeft = 4 } };
@@ -295,7 +377,7 @@ namespace OutfitStudio.Editor
             wearablesTab.clicked += () => { slotPopup.choices = WEARABLE_SLOTS; slotPopup.index = 0; };
             emotesTab.clicked += () => { slotPopup.choices = EMOTE_CATEGORIES; slotPopup.index = 0; };
 
-            pane.Add(filters);
+            _browserContent.Add(filters);
 
             // Results grid
             var scroll = new ScrollView { style = { flexGrow = 1 } };
@@ -304,7 +386,7 @@ namespace OutfitStudio.Editor
                 style = { flexDirection = FlexDirection.Row, flexWrap = Wrap.Wrap, paddingLeft = 4, paddingTop = 4 }
             };
             scroll.Add(_grid);
-            pane.Add(scroll);
+            _browserContent.Add(scroll);
 
             // Pagination
             var pager = new VisualElement { style = { flexDirection = FlexDirection.Row, justifyContent = Justify.Center, paddingBottom = 4 } };
@@ -314,9 +396,135 @@ namespace OutfitStudio.Editor
             pager.Add(_prevButton);
             pager.Add(_pageLabel);
             pager.Add(_nextButton);
-            pane.Add(pager);
+            _browserContent.Add(pager);
 
             return pane;
+        }
+
+        /// <summary>
+        /// Replicates the renderer's built-in play-mode debug overlay (PreviewUIPresenter's
+        /// DebugPanel) so it can live in the window instead of covering the Game view.
+        /// </summary>
+        private VisualElement BuildDebugPane()
+        {
+            var pane = new ScrollView { style = { flexGrow = 1, paddingLeft = 6, paddingRight = 6, paddingTop = 4 } };
+
+            pane.Add(new Label($"Renderer version: {Application.version}")
+            {
+                style = { unityFontStyleAndWeight = FontStyle.Bold, marginBottom = 6 }
+            });
+
+            pane.Add(new Label("These actions drive the play-mode renderer via JSBridge — enter play mode to use them.")
+            {
+                style = { whiteSpace = WhiteSpace.Normal, marginBottom = 6 }
+            });
+
+            // --- JSBridge invoke (mirrors MethodNameDropdown/Parameter/InvokeButton)
+            pane.Add(Header("Invoke JSBridge method"));
+
+            var methodNames = typeof(JSBridge)
+                .GetMethods(BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.Instance)
+                .Select(m => m.Name)
+                .ToList();
+
+            var methodPopup = new PopupField<string>("Method", methodNames, 0);
+            pane.Add(methodPopup);
+
+            var parameterField = new TextField("Parameter");
+            pane.Add(parameterField);
+
+            pane.Add(new Button(() =>
+            {
+                SendToJSBridge(methodPopup.value, parameterField.value);
+                SetStatus($"Invoked {methodPopup.value}");
+            }) { text = "Invoke" });
+
+            // --- URL presets (mirrors URLDropdown; same list, hoisted to a shared static)
+            pane.Add(Header("Load from URL preset"));
+
+            var presets = PreviewUIPresenter.DEBUG_URL_PRESETS;
+            var presetPopup = new PopupField<string>(presets.Select(p => p.name).ToList(), 0);
+            presetPopup.RegisterValueChangedCallback(evt =>
+            {
+                var selected = presets.Find(p => p.name == evt.newValue);
+                if (selected.url == null) return;
+
+                SendToJSBridge("ParseFromString", selected.url);
+                SetStatus($"Loaded preset: {selected.name}");
+            });
+            pane.Add(presetPopup);
+
+            // --- Misc debug actions
+            pane.Add(Header("Actions"));
+
+            var actionsRow = new VisualElement { style = { flexDirection = FlexDirection.Row, flexWrap = Wrap.Wrap } };
+
+            actionsRow.Add(new Button(() =>
+            {
+                var config = AangConfiguration.Instance.ToString();
+                Debug.Log(config);
+                _configField.value = config;
+            }) { text = "Print Config" });
+
+            actionsRow.Add(new Button(() =>
+            {
+                SendToJSBridge("SetProfile", $"default{UnityEngine.Random.Range(1, 160)}");
+                SetStatus("Loading random profile...");
+            }) { text = "Random Profile" });
+
+            actionsRow.Add(new Button(() => WithCamera(c => c.ZoomIn())) { text = "Zoom In" });
+            actionsRow.Add(new Button(() => WithCamera(c => c.ZoomOut())) { text = "Zoom Out" });
+
+            pane.Add(actionsRow);
+
+            _configField = new TextField { multiline = true, isReadOnly = true };
+            _configField.style.whiteSpace = WhiteSpace.Normal;
+            _configField.style.marginTop = 4;
+            pane.Add(_configField);
+
+            return pane;
+        }
+
+        /// <summary>
+        /// Same invocation contract as the overlay's Invoke button: SendMessage to the JSBridge
+        /// GameObject, then auto-Reload unless the method manages loading itself.
+        /// </summary>
+        private void SendToJSBridge(string method, string parameter = null, bool autoReload = true)
+        {
+            if (!Application.isPlaying)
+            {
+                SetStatus("Enter play mode first", true);
+                return;
+            }
+
+            var bridge = GameObject.Find("JSBridge");
+            if (bridge == null)
+            {
+                SetStatus("JSBridge object not found in the scene", true);
+                return;
+            }
+
+            if (string.IsNullOrEmpty(parameter))
+                bridge.SendMessage(method);
+            else
+                bridge.SendMessage(method, parameter);
+
+            if (autoReload && method != "Reload" && method != "TakeScreenshot" && method != "Cleanup")
+            {
+                bridge.SendMessage("Reload");
+            }
+        }
+
+        private void WithCamera(Action<PreviewCameraController> action)
+        {
+            if (!Application.isPlaying)
+            {
+                SetStatus("Enter play mode first", true);
+                return;
+            }
+
+            var cameraController = FindFirstObjectByType<PreviewCameraController>();
+            if (cameraController != null) action(cameraController);
         }
 
         private void ResetAndSearch()

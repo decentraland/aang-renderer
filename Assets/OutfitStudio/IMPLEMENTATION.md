@@ -32,6 +32,9 @@ Menu entry: **Decentraland ▸ Outfit Studio** (`OutfitStudioWindow`, UI Toolkit
      when the catalyst returns fewer entities than requested (e.g. third-party/linked wearables).
      The graceful shortfall handling below it (warn + return resolved subset) was already there
      and now actually runs. Assertions are stripped from production builds, so prod is unchanged.
+  5. `Assets/Scripts/Preview/PreviewUIPresenter.cs` — the debug URL presets list was hoisted
+     from a local variable in `EnableDebug()` to `public static readonly DEBUG_URL_PRESETS`
+     (same content) so the window's Debug tab shares one source of truth. Behavior-neutral.
 
 ## 3. File map
 
@@ -257,7 +260,13 @@ No renderer API changes needed.
 skin weights to 4 outside play mode (minor deformation differences possible). Play mode is ground
 truth for capture.
 
-## Status as of 2026-07-13 (commit 24f0ca7)
+## Status as of 2026-07-14
+
+**Added 2026-07-14, not yet verified:** thumbnail fix (blank thumbnails when revisiting a
+browser page — cached textures were delivered synchronously and dropped by a panel-attachment
+guard); Debug tab + Clean View (§12).
+
+## Status as of 2026-07-13 (commit cd2afbb)
 
 **Verified working (by Mauricio):**
 - Catalog browsing (search/filters/pagination, ~429 items), equipping into slots, share-code UI.
@@ -279,7 +288,31 @@ truth for capture.
 - Presets (save/load/save-as), Load from share code, body-shape switching, `dev (zone)` env,
   emote-URN poses via the Emotes/Poses tab, emote scrubbing.
 
-## 12. Verification checklist (first run after checkout)
+## 12. Debug tab & Clean View (iteration 3)
+
+The renderer auto-shows its built-in debug overlay in editor play mode (`PreviewUIPresenter.
+OnEnable` → `EnableDebug()` when `Application.isEditor`; unlocked in builds by typing
+`debugmesilly` — that gating is untouched). The window replicates that functionality in a
+third **Debug** tab and hides the overlay for a clean, avatar-only Game view:
+
+- **Debug tab** (`BuildDebugPane`): JSBridge method dropdown (same reflection as the overlay:
+  `typeof(JSBridge).GetMethods(DeclaredOnly|Public|Instance)`) + Parameter + Invoke with the
+  identical auto-Reload rule (skip for `Reload`/`TakeScreenshot`/`Cleanup`); URL presets from
+  `PreviewUIPresenter.DEBUG_URL_PRESETS`; Print Config (logs + fills a read-only field);
+  Random Profile (`SetProfile("default"+Random(1,160))`); Zoom In/Out via
+  `PreviewCameraController.ZoomIn/ZoomOut`. All actions require play mode (status warning
+  otherwise) and go through `SendToJSBridge` (`GameObject.Find("JSBridge").SendMessage`).
+- **Clean View** (toolbar toggle, default ON): a 500 ms scheduled loop
+  (`EnforceCleanGameView`) hides `DebugPanel`, `ZoomControls`, `Switcher`, `EmoteControls`
+  on the runtime UIDocument while playing. Re-enforcement is needed because
+  `PreviewController.Reload()` re-enables controls after every load (so the overlay may flash
+  briefly post-reload). **Important:** the `Controls` element itself must NEVER be hidden —
+  it carries the `DragManipulator` for mouse rotation; only its child widgets are hidden.
+  The loader spinner stays visible. Toggling Clean View off restores the debug panel
+  (editor-only, mirroring the presenter) and triggers a `Reload` so `PreviewController`
+  re-applies the mode-dependent control visibility.
+
+## 13. Verification checklist (first run after checkout)
 
 1. Focus Unity (project open on `feat/outfit-studio`) → Recorder package installs, scripts
    compile, `.meta` files generate for `Assets/OutfitStudio/`.

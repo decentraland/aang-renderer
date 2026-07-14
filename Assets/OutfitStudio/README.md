@@ -35,6 +35,14 @@ Open via **Decentraland ▸ Outfit Studio**.
   the deployed web renderer (builder mode).
 - **Presets** — save named `OutfitPreset` assets in the project for a local outfit library.
 
+## Debug tab & Clean View
+
+The renderer's built-in play-mode debug overlay (JSBridge invoke, URL presets, Print Config,
+Random Profile, zoom) lives in the window's **Debug** tab. The **Clean View** toolbar toggle
+(on by default) hides that overlay in the Game view so only the avatar is visible — mouse-drag
+rotation and the loading spinner keep working. Toggle it off to get the classic in-game overlay
+back (plain play mode without the window is unaffected either way).
+
 ## Notes
 
 - Browsing, preset editing **and 3D outfit preview** work in edit mode; emote playback and
