@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
+using Newtonsoft.Json.Linq;
 using Preview;
 using Services;
 using UnityEditor;
@@ -482,7 +484,269 @@ namespace OutfitStudio.Editor
             _configField.style.marginTop = 4;
             pane.Add(_configField);
 
+            // --- Load from Collection (draft UUID via signed builder-api, or published 0x contract)
+            pane.Add(Header("Load from Collection"));
+
+            _identityStatusLabel = new Label { style = { whiteSpace = WhiteSpace.Normal } };
+            pane.Add(_identityStatusLabel);
+
+            var identityField = new TextField("Identity JSON") { isPasswordField = true };
+            identityField.tooltip = "Paste your Decentraland identity from builder.decentraland.org " +
+                                    "(devtools > Application > Local Storage). Stored in EditorPrefs only.";
+            pane.Add(identityField);
+
+            var identityButtons = new VisualElement { style = { flexDirection = FlexDirection.Row } };
+            identityButtons.Add(new Button(() =>
+            {
+                try
+                {
+                    _identity = BuilderIdentity.Parse(identityField.value);
+                    _identity.Save();
+                    identityField.value = string.Empty;
+                    RefreshIdentityStatus();
+                    SetStatus("Identity saved");
+                }
+                catch (Exception e)
+                {
+                    SetStatus($"Invalid identity: {e.Message}", true);
+                }
+            }) { text = "Save Identity" });
+            identityButtons.Add(new Button(() =>
+            {
+                BuilderIdentity.Clear();
+                _identity = null;
+                RefreshIdentityStatus();
+                SetStatus("Identity cleared");
+            }) { text = "Clear" });
+            pane.Add(identityButtons);
+
+            var collectionRow = new VisualElement { style = { flexDirection = FlexDirection.Row, marginTop = 4 } };
+            _collectionIdField = new TextField("Collection ID") { style = { flexGrow = 1 } };
+            _collectionIdField.tooltip = "Draft collection UUID (needs identity) or published 0x contract address";
+            collectionRow.Add(_collectionIdField);
+            collectionRow.Add(new Button(LoadCollection) { text = "Load" });
+            pane.Add(collectionRow);
+
+            _collectionGrid = new VisualElement
+            {
+                style = { flexDirection = FlexDirection.Row, flexWrap = Wrap.Wrap, marginTop = 4 }
+            };
+            pane.Add(_collectionGrid);
+
+            var collectionPager = new VisualElement
+            {
+                style = { flexDirection = FlexDirection.Row, justifyContent = Justify.Center, marginTop = 2 }
+            };
+            _collectionPrevButton = new Button(() => { _collectionSkip = Mathf.Max(0, _collectionSkip - PAGE_SIZE); ShowCollectionPage(); }) { text = "◀" };
+            _collectionNextButton = new Button(() => { _collectionSkip += PAGE_SIZE; ShowCollectionPage(); }) { text = "▶" };
+            _collectionPageLabel = new Label("") { style = { unityTextAlign = TextAnchor.MiddleCenter, marginLeft = 8, marginRight = 8 } };
+            collectionPager.Add(_collectionPrevButton);
+            collectionPager.Add(_collectionPageLabel);
+            collectionPager.Add(_collectionNextButton);
+            collectionPager.style.display = DisplayStyle.None;
+            _collectionPager = collectionPager;
+            pane.Add(collectionPager);
+
+            RefreshIdentityStatus();
+
             return pane;
+        }
+
+        // ---------------------------------------------------------------- Load from Collection
+
+        private BuilderIdentity _identity;
+        private Label _identityStatusLabel;
+        private TextField _collectionIdField;
+        private VisualElement _collectionGrid;
+        private VisualElement _collectionPager;
+        private Button _collectionPrevButton, _collectionNextButton;
+        private Label _collectionPageLabel;
+        private List<BuilderCollectionService.DraftItem> _draftItems;
+        private int _collectionSkip;
+
+        private void RefreshIdentityStatus()
+        {
+            _identity ??= BuilderIdentity.Load();
+
+            if (_identityStatusLabel == null) return;
+
+            if (_identity == null)
+            {
+                _identityStatusLabel.text = "No identity saved — needed for draft (UUID) collections only.";
+            }
+            else
+            {
+                var state = _identity.IsExpired ? "EXPIRED" : "valid";
+                _identityStatusLabel.text = $"Identity: {_identity.WalletAddress} — {state} until {_identity.Expiration:yyyy-MM-dd}";
+            }
+        }
+
+        private void LoadCollection()
+        {
+            var id = _collectionIdField.value?.Trim();
+
+            if (string.IsNullOrEmpty(id))
+            {
+                SetStatus("Enter a collection ID", true);
+                return;
+            }
+
+            SetStatus("Loading collection...");
+            _draftItems = null;
+            _collectionSkip = 0;
+
+            if (id.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+            {
+                // Published collection: unauthenticated marketplace catalog, server-paged
+                LoadPublishedCollectionPage(id);
+            }
+            else
+            {
+                RefreshIdentityStatus();
+                BuilderCollectionService.LoadDraftCollection(id, _identity,
+                    items =>
+                    {
+                        _draftItems = items;
+                        ShowCollectionPage();
+                        SetStatus($"Collection loaded: {items.Count} items");
+                    },
+                    error => SetStatus(error, true));
+            }
+        }
+
+        private void LoadPublishedCollectionPage(string contractAddress)
+        {
+            var query = new CatalogQuery
+            {
+                ContractAddress = contractAddress,
+                Category = null, // collections can mix wearables and emotes
+                First = PAGE_SIZE,
+                Skip = _collectionSkip
+            };
+
+            CatalogService.Search(query,
+                page =>
+                {
+                    _collectionGrid.Clear();
+                    foreach (var item in page.data)
+                    {
+                        _collectionGrid.Add(BuildTile(item)); // published items equip via the normal URN flow
+                    }
+
+                    var from = _collectionSkip + 1;
+                    var to = _collectionSkip + page.data.Length;
+                    _collectionPageLabel.text = page.total > 0 ? $"{from}–{to} of {page.total}" : "no items";
+                    _collectionPrevButton.SetEnabled(_collectionSkip > 0);
+                    _collectionNextButton.SetEnabled(to < page.total);
+                    _collectionPager.style.display = DisplayStyle.Flex;
+                    SetStatus($"Collection loaded: {page.total} items");
+                },
+                error => SetStatus($"Catalog error: {error}", true));
+        }
+
+        private void ShowCollectionPage()
+        {
+            // Published (0x) collections page server-side
+            if (_draftItems == null)
+            {
+                var id = _collectionIdField.value?.Trim();
+                if (!string.IsNullOrEmpty(id) && id.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                    LoadPublishedCollectionPage(id);
+                return;
+            }
+
+            _collectionGrid.Clear();
+
+            foreach (var item in _draftItems.Skip(_collectionSkip).Take(PAGE_SIZE))
+            {
+                _collectionGrid.Add(BuildDraftTile(item));
+            }
+
+            var from = _collectionSkip + 1;
+            var to = Mathf.Min(_collectionSkip + PAGE_SIZE, _draftItems.Count);
+            _collectionPageLabel.text = _draftItems.Count > 0 ? $"{from}–{to} of {_draftItems.Count}" : "no items";
+            _collectionPrevButton.SetEnabled(_collectionSkip > 0);
+            _collectionNextButton.SetEnabled(to < _draftItems.Count);
+            _collectionPager.style.display = DisplayStyle.Flex;
+        }
+
+        private VisualElement BuildDraftTile(BuilderCollectionService.DraftItem item)
+        {
+            var tile = new VisualElement
+            {
+                tooltip = $"{item.Name}\n{item.Rarity} · {item.Category} · {item.Type} (draft)",
+                style =
+                {
+                    width = THUMB_SIZE + 8,
+                    marginRight = 4,
+                    marginBottom = 4,
+                    paddingTop = 4,
+                    paddingLeft = 4,
+                    paddingRight = 4,
+                    paddingBottom = 2,
+                    backgroundColor = new Color(0, 0, 0, 0.25f),
+                    borderBottomWidth = 3,
+                    borderBottomColor = RARITY_COLORS.GetValueOrDefault(item.Rarity ?? "", Color.gray)
+                }
+            };
+
+            var image = new Image
+            {
+                scaleMode = ScaleMode.ScaleToFit,
+                style = { width = THUMB_SIZE, height = THUMB_SIZE }
+            };
+            tile.Add(image);
+
+            tile.Add(new Label(item.Name)
+            {
+                style =
+                {
+                    fontSize = 10,
+                    overflow = Overflow.Hidden,
+                    whiteSpace = WhiteSpace.NoWrap,
+                    textOverflow = TextOverflow.Ellipsis,
+                    unityTextAlign = TextAnchor.MiddleCenter
+                }
+            });
+
+            LoadThumbnail(item.ThumbnailUrl, tex =>
+            {
+                if (tex != null) image.image = tex;
+            });
+
+            tile.RegisterCallback<ClickEvent>(_ => EquipDraft(item));
+
+            return tile;
+        }
+
+        private void EquipDraft(BuilderCollectionService.DraftItem item)
+        {
+            if (item.Type == "emote")
+            {
+                RemoveDraftEmote();
+                outfit.base64Items.Add(item.Base64Entity);
+                outfit.emote = "idle"; // the base64 emote takes pose priority in builder mode
+                _poseLabel.text = $"Pose: {item.Name} (draft)";
+                SetStatus($"Pose set: {item.Name} (draft, play mode only)");
+            }
+            else
+            {
+                // One item per slot: displace both draft and catalog occupants of this category
+                outfit.base64Items.RemoveAll(base64 =>
+                {
+                    var (_, category, isEmote) = DescribeDraft(base64);
+                    return !isEmote && category == item.Category;
+                });
+                outfit.urns.RemoveAll(urn =>
+                    _knownItems.TryGetValue(urn, out var known) && known.Slot == item.Category);
+
+                outfit.base64Items.Add(item.Base64Entity);
+                SetStatus($"Equipped {item.Name} ({item.Category}, draft)");
+                RefreshSlots();
+            }
+
+            RefreshShareCode();
+            ScheduleApply();
         }
 
         /// <summary>
@@ -676,6 +940,7 @@ namespace OutfitStudio.Editor
             if (item.category == "emote")
             {
                 outfit.emote = item.urn;
+                RemoveDraftEmote();
                 _poseLabel.text = $"Pose: {item.name}";
                 SetStatus($"Pose set: {item.name}");
             }
@@ -738,6 +1003,7 @@ namespace OutfitStudio.Editor
             emotePopup.RegisterValueChangedCallback(_ =>
             {
                 outfit.emote = emotePopup.value;
+                RemoveDraftEmote(); // an equipped draft emote would override the pose
                 _poseLabel.text = $"Pose: {outfit.emote}";
                 RefreshShareCode();
                 ScheduleApply();
@@ -921,7 +1187,34 @@ namespace OutfitStudio.Editor
 
             _slotsContainer.Clear();
 
-            if (outfit.urns.Count == 0)
+            // Draft (builder collection) items — shown above the catalog ones
+            foreach (var base64 in outfit.base64Items.ToList())
+            {
+                var (name, category, isEmote) = DescribeDraft(base64);
+                if (isEmote) continue; // the pose row covers draft emotes
+
+                var row = new VisualElement
+                {
+                    style = { flexDirection = FlexDirection.Row, alignItems = Align.Center, marginTop = 2 }
+                };
+
+                row.Add(new Label($"[{category}] {name} (draft)")
+                {
+                    style = { flexGrow = 1, overflow = Overflow.Hidden, textOverflow = TextOverflow.Ellipsis, marginLeft = 4 }
+                });
+
+                row.Add(new Button(() =>
+                {
+                    outfit.base64Items.Remove(base64);
+                    RefreshSlots();
+                    RefreshShareCode();
+                    ScheduleApply();
+                }) { text = "✕" });
+
+                _slotsContainer.Add(row);
+            }
+
+            if (outfit.urns.Count == 0 && outfit.base64Items.Count == 0)
             {
                 _slotsContainer.Add(new Label("No wearables equipped — pick items from the browser")
                 {
@@ -973,6 +1266,37 @@ namespace OutfitStudio.Editor
         {
             _shareCodeField?.SetValueWithoutNotify(outfit.ToShareCode());
         }
+
+        // ---------------------------------------------------------------- Draft (builder) items
+
+        private readonly Dictionary<string, (string name, string category, bool isEmote)> _draftDescriptions = new();
+
+        /// <summary>Reads name/category/type from a base64 RawActiveEntity without full parsing.</summary>
+        private (string name, string category, bool isEmote) DescribeDraft(string base64)
+        {
+            if (_draftDescriptions.TryGetValue(base64, out var cached)) return cached;
+
+            (string, string, bool) description;
+            try
+            {
+                var json = JObject.Parse(Encoding.UTF8.GetString(OutfitDefinition.DecodeBase64(base64)));
+                var isEmote = json["emoteDataADR74"] is JObject;
+                description = (
+                    json["name"]?.Value<string>() ?? "draft item",
+                    isEmote ? "emote" : json["data"]?["category"]?.Value<string>() ?? "?",
+                    isEmote);
+            }
+            catch
+            {
+                description = ("invalid draft item", "?", false);
+            }
+
+            _draftDescriptions[base64] = description;
+            return description;
+        }
+
+        private void RemoveDraftEmote() =>
+            outfit.base64Items.RemoveAll(base64 => DescribeDraft(base64).isEmote);
 
         private void LoadOutfit(OutfitDefinition loaded)
         {
@@ -1053,6 +1377,21 @@ namespace OutfitStudio.Editor
             config.SetHairColor(ColorUtility.ToHtmlStringRGB(outfit.hairColor));
             config.SetEyeColor(ColorUtility.ToHtmlStringRGB(outfit.eyeColor));
             config.Emote = string.IsNullOrEmpty(outfit.emote) ? "idle" : outfit.emote;
+
+            // Draft (builder) items — LoadForBuilder gives base64 per-category priority
+            // and a base64 emote overrides the pose
+            config.Base64.Clear();
+            foreach (var base64 in outfit.base64Items)
+            {
+                try
+                {
+                    config.AddBase64(base64);
+                }
+                catch (Exception e)
+                {
+                    SetStatus($"Invalid draft item skipped: {e.Message}", true);
+                }
+            }
 
             previewController.gameObject.SetActive(true);
             previewController.InvokeReload();

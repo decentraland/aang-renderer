@@ -71,6 +71,8 @@ namespace OutfitStudio
                 return sb.ToString();
             }
 
+            if (!string.IsNullOrEmpty(query.ContractAddress))
+                sb.AppendFormat("&contractAddress={0}", query.ContractAddress);
             if (!string.IsNullOrEmpty(query.Category))
                 sb.AppendFormat("&category={0}", query.Category);
             if (!string.IsNullOrEmpty(query.Search))

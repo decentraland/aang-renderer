@@ -43,6 +43,19 @@ Random Profile, zoom) lives in the window's **Debug** tab. The **Clean View** to
 rotation and the loading spinner keep working. Toggle it off to get the classic in-game overlay
 back (plain play mode without the window is unaffected either way).
 
+## Load from Collection (Debug tab)
+
+Preview a whole collection like the explorer's `--self-preview-builder-collections`:
+- **Published collection**: paste the `0x...` contract address → Load. No login needed.
+- **Draft (unpublished) collection**: paste the collection UUID from the Builder URL. This needs
+  your Decentraland identity once (~30 days): log into builder.decentraland.org, open devtools →
+  Application → Local Storage, copy the entry containing `ephemeralIdentity`/`authChain`, and
+  paste it into the Identity field. It's stored in Unity's EditorPrefs (outside the repo).
+  **Never commit or share that JSON — it contains a temporary private key.**
+
+Click grid items to equip; draft items ride along in share codes as `base64=` params. Draft
+emotes play in play mode only.
+
 ## Notes
 
 - Browsing, preset editing **and 3D outfit preview** work in edit mode; emote playback and

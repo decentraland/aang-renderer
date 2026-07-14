@@ -32,6 +32,9 @@ namespace OutfitStudio
         /// <summary>Specific URNs to look up (used to hydrate slot names/thumbnails).</summary>
         public string[] Urns;
 
+        /// <summary>Filter by published collection contract address (0x...).</summary>
+        public string ContractAddress;
+
         public int First = 24;
         public int Skip;
     }

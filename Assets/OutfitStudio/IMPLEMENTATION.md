@@ -264,7 +264,9 @@ truth for capture.
 
 **Added 2026-07-14, not yet verified:** thumbnail fix (blank thumbnails when revisiting a
 browser page — cached textures were delivered synchronously and dropped by a panel-attachment
-guard); Debug tab + Clean View (§12).
+guard); Debug tab + Clean View (§12); Load from Collection incl. signed builder-api access and
+draft equipping via base64 (§13 — the signing format is untested against the live API; first
+200 response is the acceptance test).
 
 ## Status as of 2026-07-13 (commit cd2afbb)
 
@@ -312,7 +314,53 @@ third **Debug** tab and hides the overlay for a clean, avatar-only Game view:
   (editor-only, mirroring the presenter) and triggers a `Reload` so `PreviewController`
   re-applies the mode-dependent control visibility.
 
-## 13. Verification checklist (first run after checkout)
+## 13. Load from Collection (iteration 4)
+
+Debug-tab section mirroring the explorer's `--self-preview-builder-collections` flag: paste a
+collection ID → **Load** → paginated grid → click to equip.
+
+**Two ID kinds:**
+- **`0x` contract address (published)** — unauthenticated `marketplace-api /v1/items?
+  contractAddress=...` via `CatalogService` (`CatalogQuery.ContractAddress`), server-paged.
+  Tiles reuse the normal URN equip flow.
+- **UUID (draft/unpublished)** — `GET builder-api.decentraland.{env}/v1/collections/{id}/items`
+  (`BuilderCollectionService`), which **requires a signed auth chain**. Whole collection returned
+  at once; client-side paging (24/page).
+
+**Auth (drafts):** `BuilderIdentity` — the user pastes their Decentraland identity JSON from
+builder.decentraland.org localStorage (parser is tolerant: finds the
+`ephemeralIdentity/expiration/authChain` object anywhere in the pasted JSON, including
+stringified nesting). Stored in **EditorPrefs only** (`OutfitStudio.BuilderIdentity`) — the
+ephemeral private key must never reach project files or logs. Signing mirrors the explorer
+exactly (unity-explorer refs: `WebRequestSignInfo.NewFromRaw`, `WebRequestHeadersInfo.WithSign`,
+`RequestEnvelope.SignRequest`, `DecentralandIdentity.Sign`, `NethereumAccount.Sign`):
+string-to-sign `"{method}:{path}:{unixMs}:{metadata}"` lowercased (metadata `{}`), personal-sign
+with the ephemeral key (`EthereumMessageSigner.EncodeUTF8AndSign`), headers
+`x-identity-auth-chain-{i}` (stored chain + appended `ECDSA_SIGNED_ENTITY` link),
+`x-identity-timestamp`, `x-identity-metadata`.
+
+**Crypto DLLs:** `Editor/Plugins/` vendors Nethereum.Signer + Hex/RLP/Util/Model +
+BouncyCastle + Microsoft.Extensions.Logging.Abstractions, copied from
+`unity-explorer/Explorer/Assets/Plugins/Nethereum/net472UnityCommonAOT` (aang's
+`apiCompatibilityLevel: 6` = .NET Framework, so the net472 builds match). Their `.meta` files
+are hand-written with **editor-only** PluginImporter settings — verify Nethereum never appears
+in a WebGL build report.
+
+**Equipping drafts — the renderer's base64 mechanism, zero renderer changes:**
+`BuilderCollectionService` converts each draft item into a `RawActiveEntity` JSON
+(`Assets/Scripts/Data/RawActiveEntity.cs` shape; representation contents → `{key, url}` against
+the public `.../v1/storage/contents/{hash}`; emotes under `emoteDataADR74` with `data` omitted
+since `IsEmote` keys off empty `data.category`), base64-encoded into
+`OutfitDefinition.base64Items`. Play mode: `Apply()` fills `AangConfiguration.Base64` →
+`LoadForBuilder` gives base64 per-category priority; a base64 emote overrides the pose.
+Edit mode: `EditModeAvatarPreview` parses them via `EntityDefinition.FromBase64` into the slot
+dict (emotes skipped — static pose). Share codes carry drafts as `&base64=` params
+(`Uri.EscapeDataString`-escaped because `HttpUtility.UrlDecode` would eat `+`); they round-trip
+through `Bootstrap.debugUrl` and the web renderer. Draft-vs-catalog slot conflicts are resolved
+on equip (both lists purged for the category); picking an embedded/catalog emote removes any
+draft emote (which would otherwise take priority).
+
+## 14. Verification checklist (first run after checkout)
 
 1. Focus Unity (project open on `feat/outfit-studio`) → Recorder package installs, scripts
    compile, `.meta` files generate for `Assets/OutfitStudio/`.

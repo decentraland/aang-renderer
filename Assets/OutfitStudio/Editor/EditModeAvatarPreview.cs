@@ -145,6 +145,30 @@ namespace OutfitStudio.Editor
                     slots[entity.Category] = entity;
                 }
 
+                // Draft (builder) items — base64 wins per category, same as LoadForBuilder.
+                // Draft emotes are play-mode-only (edit mode is a static pose) and skipped here.
+                foreach (var base64 in outfit.base64Items)
+                {
+                    try
+                    {
+                        var entity = EntityDefinition.FromBase64(OutfitDefinition.DecodeBase64(base64));
+
+                        if (entity.Type == EntityType.Emote) continue;
+
+                        if (!entity.HasRepresentation(bodyShape))
+                        {
+                            status($"Skipped draft {entity.URN}: no {bodyShape} representation", true);
+                            continue;
+                        }
+
+                        slots[entity.Category] = entity;
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogWarning($"[OutfitStudio] Failed to parse draft item: {e.Message}");
+                    }
+                }
+
                 var definitions = new List<EntityDefinition> { EntityService.GetBodyEntity(bodyShape) };
                 definitions.AddRange(slots.Values);
 

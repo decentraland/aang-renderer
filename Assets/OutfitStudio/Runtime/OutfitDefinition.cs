@@ -25,6 +25,13 @@ namespace OutfitStudio
         /// <summary>Embedded emote name (idle, clap, dance, ...) or an emote URN.</summary>
         public string emote = "idle";
 
+        /// <summary>
+        /// Draft (unpublished Builder) items as base64-encoded RawActiveEntity JSONs — the same
+        /// format as the renderer's base64 query param, so share codes stay compatible.
+        /// May include one emote, which takes pose priority in builder mode.
+        /// </summary>
+        public List<string> base64Items = new();
+
         public OutfitDefinition Clone()
         {
             return new OutfitDefinition
@@ -34,8 +41,23 @@ namespace OutfitStudio
                 skinColor = skinColor,
                 hairColor = hairColor,
                 eyeColor = eyeColor,
-                emote = emote
+                emote = emote,
+                base64Items = new List<string>(base64Items)
             };
+        }
+
+        /// <summary>Base64 decode tolerating missing padding (mirrors AangConfiguration.AddBase64).</summary>
+        public static byte[] DecodeBase64(string value)
+        {
+            var sanitized = (value.Length % 4) switch
+            {
+                2 => value + "==",
+                3 => value + "=",
+                0 => value,
+                _ => throw new FormatException("Invalid Base64 string")
+            };
+
+            return Convert.FromBase64String(sanitized);
         }
 
         public string ToShareCode()
@@ -53,6 +75,11 @@ namespace OutfitStudio
 
             if (!string.IsNullOrEmpty(emote) && emote != "idle")
                 sb.AppendFormat("&emote={0}", emote);
+
+            // Escaped because base64 may contain '+', which HttpUtility.UrlDecode
+            // (used by AangConfiguration.RecreateFrom) would turn into a space
+            foreach (var base64 in base64Items)
+                sb.AppendFormat("&base64={0}", Uri.EscapeDataString(base64));
 
             return sb.ToString();
         }
@@ -95,6 +122,9 @@ namespace OutfitStudio
                         break;
                     case "emote":
                         outfit.emote = value;
+                        break;
+                    case "base64":
+                        outfit.base64Items.Add(value);
                         break;
                 }
             }
