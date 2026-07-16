@@ -72,6 +72,7 @@ namespace OutfitStudio.Editor
     public static class StudioAvatarShaderSwitcher
     {
         private const string EDITOR_PREFS_KEY = "OutfitStudio.Shader";
+        private const string MATCAP_KEY = "OutfitStudio.Matcap";
         private const string MATCAP_PRESETS_PATH = "Assets/OutfitStudio/Shaders/Matcaps/MatcapPresets.asset";
         private const string DEFAULT_MATCAP_NAME = "matcap_01";
 
@@ -81,6 +82,16 @@ namespace OutfitStudio.Editor
 
         private static double _nextCheck;
         private static string _warnedMissingShader;
+
+        // Metal-gate diagnostic property ids (see the verbose dump in Apply).
+        private static readonly int IsStylizedMetallicId = Shader.PropertyToID("_IsStylizedMetallic");
+        private static readonly int MatcapArrId = Shader.PropertyToID("_MatCap_SamplerArr_ID");
+        private static readonly int MatcapSamplerId = Shader.PropertyToID("_MatCap_Sampler");
+        private static readonly int MetallicGlossArrId = Shader.PropertyToID("_MetallicGlossMapArr_ID");
+        private static readonly int MetallicGlossMapId = Shader.PropertyToID("_MetallicGlossMap");
+        private static readonly int StylizedMetalStrengthId = Shader.PropertyToID("_StylizedMetalStrength");
+        private static readonly int MatcapMetalBlendId = Shader.PropertyToID("_MatcapMetalBlend");
+        private static readonly int MetallicId = Shader.PropertyToID("_Metallic");
 
         // --- Tuning knobs (single source of truth: the window builds sliders from these) --------
 
@@ -93,7 +104,9 @@ namespace OutfitStudio.Editor
             new("Rim Color", "_RimLightColor", Color.white, "Rim tint (a cool blue reads as the Fortnite back light)."),
             new("Ambient (GI)", "_GI_Intensity", 0f, 2f, 0f, "Flat ambient fill from the environment SH."),
             new("Normal Strength", "_BumpScale", 0f, 2f, 1f, "Global normal-map intensity (overrides per-wearable scale)."),
-            new("Metal Strength", "_StylizedMetalStrength", 0f, 1f, 1f, "Blend of the matcap metallic reflection.")
+            new("Metal Strength", "_StylizedMetalStrength", 0f, 1f, 1f, "Blend of the matcap metallic reflection."),
+            new("Matcap Tint", "_MatCapColor", Color.white, "Colors the matcap metal reflection (white = untinted)."),
+            new("Matcap Blur", "_BlurLevelMatcap", 0f, 4f, 0f, "Softens the matcap reflection (mip LOD).")
         };
 
         /// <summary>DCL_Stylized_PBR — the full principled + stylization control set.</summary>
@@ -113,7 +126,10 @@ namespace OutfitStudio.Editor
             new("Clearcoat", "_Clearcoat", 0f, 1f, 0f, "Glossy secondary coat (the action-figure finish)."),
             new("Clearcoat Gloss", "_ClearcoatGloss", 0f, 1f, 0.8f, "Sharpness of the clearcoat lobe."),
             new("Ambient (GI)", "_GI_Intensity", 0f, 5f, 1f, "Flat ambient fill from the environment SH."),
-            new("Matcap Metal Blend", "_MatcapMetalBlend", 0f, 1f, 1f, "How much the matcap stands in for metal reflections."),
+            new("Matcap Metal Blend", "_MatcapMetalBlend", 0f, 1f, 1f, "0 = physical edge-only reflection (dark front), 1 = flat matcap that matches DCL_Toon_Studio chrome."),
+            new("Metal Strength", "_StylizedMetalStrength", 0f, 4f, 1f, "How strongly the matcap replaces the metal surface (1 = full, matches toon; >1 over-drives)."),
+            new("Matcap Tint", "_MatCapColor", Color.white, "Colors the matcap metal reflection (white = untinted)."),
+            new("Matcap Blur", "_BlurLevelMatcap", 0f, 4f, 0f, "Softens the matcap reflection (mip LOD)."),
             new("Normal Strength", "_BumpScale", 0f, 2f, 1f, "Global normal-map intensity (overrides per-wearable scale).")
         };
 
@@ -132,6 +148,32 @@ namespace OutfitStudio.Editor
                 EditorPrefs.SetInt(EDITOR_PREFS_KEY, (int)value);
                 Apply(verbose: true); // user clicked a button — report the outcome
             }
+        }
+
+        /// <summary>
+        /// The matcap preset (by name) bound to stylized-metal materials. Applies globally in the
+        /// studio: newly generated materials pick it up via CommonAssets.DefaultMatcapName, and the
+        /// poll pushes it onto every already-loaded metal material so a change is live. Persisted.
+        /// </summary>
+        public static string ActiveMatcapName
+        {
+            get => EditorPrefs.GetString(MATCAP_KEY, DEFAULT_MATCAP_NAME);
+            set
+            {
+                EditorPrefs.SetString(MATCAP_KEY, value);
+                CommonAssets.DefaultMatcapName = value; // future ApplyDefaultMatcap() calls use it
+                Apply();
+            }
+        }
+
+        /// <summary>Preset names from the loaded matcap library (empty until it's bootstrapped).</summary>
+        public static string[] GetMatcapNames()
+        {
+            var presets = CommonAssets.MatcapPresets;
+            if (presets == null || presets.Count == 0) return Array.Empty<string>();
+            var names = new string[presets.Count];
+            for (var i = 0; i < presets.Count; i++) names[i] = presets[i].name;
+            return names;
         }
 
         static StudioAvatarShaderSwitcher()
@@ -233,8 +275,17 @@ namespace OutfitStudio.Editor
             var knobs = KnobsFor(mode);
             var activeScene = SceneManager.GetActiveScene();
 
+            // Resolve the selected matcap preset once — pushed onto every metal material below so the
+            // window's matcap dropdown is live (the generator only binds it at material-creation time).
+            var presets = CommonAssets.MatcapPresets;
+            var haveMatcap = presets != null && presets.Count > 0;
+            var activeMatcap = default(MatcapPresets.Preset);
+            if (haveMatcap && !presets.TryGet(ActiveMatcapName, out activeMatcap))
+                activeMatcap = presets[0];
+
             var avatarMats = 0;
             var swapped = 0;
+            var metalDiag = verbose ? new System.Text.StringBuilder() : null;
 
             // Resources.FindObjectsOfTypeAll finds EVERY loaded renderer including HideFlags.DontSave
             // ones (the edit-mode preview uses that flag; FindObjectsByType would miss them) and
@@ -276,6 +327,53 @@ namespace OutfitStudio.Editor
                         else
                             mat.SetColor(knob.PropId, GetColor(mode, knob));
                     }
+
+                    // Re-assert the stylized-metal gate flag. The material is born on the stock
+                    // DCL/DCL_Toon package shader, which on this branch does NOT declare the
+                    // metallic-branch property _IsStylizedMetallic. Setting a real Integer property
+                    // the active shader doesn't declare doesn't survive the later mat.shader swap to
+                    // the studio shader — it falls back to the shader default (0) — so the generator's
+                    // _IsStylizedMetallic=1 is lost and the shader's `_IsStylizedMetallic > 0` gate
+                    // never opens (metal invisible, though normals — never gated on it — still show).
+                    // The mask id _MetallicGlossMapArr_ID DOES survive (>= 0 when the generator
+                    // detected metal, -1 otherwise), so use it as the "metal was detected" signal and
+                    // re-set the flag now that the active studio shader actually declares it.
+                    if (mat.HasProperty(IsStylizedMetallicId) && mat.HasProperty(MetallicGlossArrId))
+                        mat.SetInteger(IsStylizedMetallicId, mat.GetInteger(MetallicGlossArrId) >= 0 ? 1 : 0);
+
+                    // Push the selected matcap TEXTURE onto metal materials (those the generator flagged
+                    // with a mask, _MetallicGlossMapArr_ID >= 0) so the window's dropdown switches it
+                    // live. Tint (_MatCapColor) and blur (_BlurLevelMatcap) are deliberately NOT set
+                    // here — they're tuning knobs now (pushed by the knob loop above), so the preset
+                    // only supplies the texture. Non-metal materials keep the gate shut, so they're
+                    // left alone.
+                    if (haveMatcap && mat.HasProperty(MatcapSamplerId) &&
+                        mat.HasProperty(MetallicGlossArrId) && mat.GetInteger(MetallicGlossArrId) >= 0)
+                    {
+                        mat.SetTexture(MatcapSamplerId, activeMatcap.texture);
+                        if (mat.HasProperty(MatcapArrId)) mat.SetInteger(MatcapArrId, 0);
+                    }
+
+                    // DIAGNOSTIC (verbose only): dump the metal-gate state per material so we can see
+                    // which condition fails — detection (_IsStylizedMetallic), the matcap gate
+                    // (_MatCap_SamplerArr_ID >= 0 + a bound _MatCap_Sampler), or the mask id.
+                    // Every read is HasProperty-guarded — properties differ between the toon/PBR
+                    // shaders, and an unguarded Get logs an error and returns 0.
+                    if (metalDiag != null)
+                    {
+                        string I(int id) => mat.HasProperty(id) ? mat.GetInteger(id).ToString() : "n/a";
+                        string F(int id) => mat.HasProperty(id) ? mat.GetFloat(id).ToString("0.##") : "n/a";
+                        string T(int id) => !mat.HasProperty(id) ? "n/a" : (mat.GetTexture(id) != null ? "SET" : "null");
+                        metalDiag.AppendLine(
+                            $"    • {mat.name}: _IsStylizedMetallic={I(IsStylizedMetallicId)} " +
+                            $"_MatCap_SamplerArr_ID={I(MatcapArrId)} " +
+                            $"_MatCap_Sampler={T(MatcapSamplerId)} " +
+                            $"_MetallicGlossMapArr_ID={I(MetallicGlossArrId)} " +
+                            $"_MetallicGlossMap={T(MetallicGlossMapId)} " +
+                            $"_StylizedMetalStrength={F(StylizedMetalStrengthId)} " +
+                            $"_MatcapMetalBlend={F(MatcapMetalBlendId)} " +
+                            $"_Metallic={F(MetallicId)}");
+                    }
                 }
             }
 
@@ -285,7 +383,9 @@ namespace OutfitStudio.Editor
                     Debug.LogWarning($"[OutfitStudio] {targetName}: 0 avatar materials in the scene — " +
                                      "load an outfit into the preview (or enter play mode) first, then click again.");
                 else
-                    Debug.Log($"[OutfitStudio] {targetName}: {avatarMats} avatar material(s), {swapped} swapped.");
+                    Debug.Log($"[OutfitStudio] {targetName}: {avatarMats} avatar material(s), {swapped} swapped.\n" +
+                              $"Metal gate diagnostic (MatcapPresets={(CommonAssets.MatcapPresets != null ? CommonAssets.MatcapPresets.Count + " presets" : "NULL")}):\n" +
+                              metalDiag);
             }
 
             if (swapped > 0)
@@ -305,7 +405,7 @@ namespace OutfitStudio.Editor
             if (CommonAssets.MatcapPresets != null) return;
 
             CommonAssets.MatcapPresets = AssetDatabase.LoadAssetAtPath<MatcapPresets>(MATCAP_PRESETS_PATH);
-            CommonAssets.DefaultMatcapName = DEFAULT_MATCAP_NAME;
+            CommonAssets.DefaultMatcapName = ActiveMatcapName; // honor the window's selection for new materials
         }
     }
 }

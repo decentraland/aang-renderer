@@ -1236,6 +1236,29 @@ namespace OutfitStudio.Editor
                 return;
             }
 
+            // Matcap selector — the metal reflection texture bound to stylized-metal materials.
+            // Both studio shaders use it; the list comes from the loaded MatcapPresets library.
+            var matcapNames = StudioAvatarShaderSwitcher.GetMatcapNames();
+            if (matcapNames.Length == 0)
+            {
+                container.Add(new Label("Matcap: library not loaded yet — load an outfit first.")
+                {
+                    style = { unityFontStyleAndWeight = FontStyle.Italic, marginTop = 4, opacity = 0.7f }
+                });
+            }
+            else
+            {
+                var active = StudioAvatarShaderSwitcher.ActiveMatcapName;
+                if (Array.IndexOf(matcapNames, active) < 0) active = matcapNames[0];
+                var matcapField = new PopupField<string>("Matcap", matcapNames.ToList(), active)
+                {
+                    tooltip = "Which matcap texture the stylized metal reflects (from MatcapPresets)."
+                };
+                matcapField.RegisterValueChangedCallback(evt =>
+                    StudioAvatarShaderSwitcher.ActiveMatcapName = evt.newValue);
+                container.Add(matcapField);
+            }
+
             foreach (var knob in knobs)
             {
                 if (knob.Kind == StudioKnobKind.Float)

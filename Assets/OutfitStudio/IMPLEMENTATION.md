@@ -538,8 +538,11 @@ tool; tooltip says so). A dedicated `_RimLightIntensity` scalar was **added to b
 shaders** (neither had a rim-strength multiplier — rim was color+power only): in
 `DCL_Toon_Studio` it scales `Set_RimLight` in the composition; in `DCL_Stylized_PBR` it scales
 the fresnel rim term. Toon Studio knobs: rim intensity/power/mask/color, ambient GI, normal
-strength, metal strength. PBR knobs add: rim sharpness, diffuse wrap, shadow sharpness,
-specular softness, specular F0, sheen (+tint), clearcoat (+gloss), matcap metal blend.
+strength, metal strength, matcap tint, matcap blur. PBR knobs add: rim sharpness, diffuse wrap,
+shadow sharpness, specular softness, specular F0, sheen (+tint), clearcoat (+gloss), matcap
+metal blend, metal strength, matcap tint, matcap blur. Above the sliders both studio shaders
+show a **Matcap dropdown** (the reflection texture; see the 2026-07-16 update). Matcap blur is
+capped 0–4. (Metal strength/blend semantics: see the iteration-6 update at the end of §16.)
 
 ### How switching works — `Editor/StudioAvatarShaderSwitcher.cs`
 Poll-based (`[InitializeOnLoad]`, 0.5 s on `EditorApplication.update`, ticks in play mode too —
@@ -643,3 +646,56 @@ optionally delete `Shaders/DCL_Toon_Studio/` in favor of upstreamed unlocks.
 5. PBR mode: normals shade; metallic masks specular; clipped hair correct in shadows/depth;
    outline toggle works.
 6. Prod safety: no diffs on `Avatar_Toon.mat` / `Main.unity` / `Bootstrap.cs` / manifest.
+
+### Update 2026-07-16 (iteration 6) — stylized-metal fixes + matcap controls (CONFIRMED working)
+
+First real in-editor test of stylized metallic via **Load from Collection** (draft PuffyJacket,
+the same asset QA'd in unity-explorer). Normals rendered but metal didn't; three fixes landed,
+all in studio-only code (the verbatim `ToonMaterialGenerator` was NOT touched):
+
+1. **The metal gate never opened (root cause).** The switcher's diagnostic (see below) showed the
+   jacket material with `_MetallicGlossMap`/`_MatCap_Sampler` bound, both `*Arr_ID = 0`, but
+   `_IsStylizedMetallic = 0` — so the shader gate `_IsStylizedMetallic > 0 && _MatCap_SamplerArr_ID
+   >= 0` stayed shut (normals were never gated on it, hence "normals yes, metal no"). Cause:
+   avatar materials are born on the **stock `DCL/DCL_Toon`** package shader, which on this branch
+   does NOT declare the metallic-branch `_IsStylizedMetallic`. Setting a real `Integer` property
+   the *active* shader doesn't declare does not survive the later `mat.shader` swap to the studio
+   shader — it falls back to the shader default (0). (The neighbouring `_MetallicGlossMapArr_ID`
+   DID survive, because stock DCL_Toon declares it.) **Fix:** in `StudioAvatarShaderSwitcher.Apply`,
+   after the swap, re-assert `_IsStylizedMetallic = (_MetallicGlossMapArr_ID >= 0) ? 1 : 0` — using
+   the surviving mask id as the "metal was detected" signal, now that the active shader declares the
+   flag. Data-driven, so it's correct regardless of the exact persistence mechanism. This also fixed
+   DCL_Stylized_PBR (same gate).
+2. **Matcap selector + live tint/blur.** New `ActiveMatcapName` (EditorPrefs `OutfitStudio.Matcap`)
+   + a **Matcap dropdown** at the top of the tuning panel (both studio shaders; names from
+   `GetMatcapNames()` over the loaded library). The switcher pushes the selected matcap **texture**
+   onto metal materials each poll (`_MetallicGlossMapArr_ID >= 0` signal) so switching is live.
+   `_MatCapColor` (tint) and `_BlurLevelMatcap` (blur, capped 0–4 in knobs AND both shaders' Range)
+   are now **tuning knobs on both shaders** — so the knob loop owns them and the matcap push sets
+   texture-only (preset tint/blur no longer applied live; all presets are white/0 anyway).
+   `EnsureMatcapPresets` now seeds `CommonAssets.DefaultMatcapName` from `ActiveMatcapName`.
+3. **PBR metal now matches DCL_Toon_Studio.** PBR was adding the matcap as a Fresnel/F0-weighted
+   reflection (`color += envRefl * envF * metallic * ...`) → bright only at grazing edges, tinted by
+   the dark metal albedo, layered over a diffuse-free (dark) base = dark jacket with lit edges. Toon
+   does a flat *replace*. Rewrote the PBR metal block (`DCL_StylizedPBR_ForwardPass.hlsl`) to
+   `reflWeight = lerp(envF, 1, _MatcapMetalBlend); color = lerp(color, envRefl*reflWeight,
+   saturate(metallic) * _StylizedMetalStrength)`. So `_MatcapMetalBlend` is now a **physical(0) ↔
+   flat/toon-match(1)** dial and `_StylizedMetalStrength` (added to the PBR shader: cbuffer +
+   Property `Range(0,4)`) is the replace amount (1 = full, matches toon; >1 over-drives, like toon).
+   Defaults (blend 1, strength 1) match toon out of the box. Only remaining gap vs toon: toon also
+   multiplies the matcap by the main light colour; PBR doesn't (invisible under a ~white key).
+
+Updated knob lists: **Toon Studio** adds Matcap Tint + Matcap Blur; **PBR** adds Metal Strength +
+Matcap Tint + Matcap Blur (and the Matcap Metal Blend tooltip now describes the physical↔flat dial).
+
+**Diagnostic** (kept, verbose-only): `Apply(verbose:true)` — fired on a shader **button click** —
+dumps per-material metal-gate state (`_IsStylizedMetallic`, `_MatCap_SamplerArr_ID`,
+`_MatCap_Sampler` bound?, `_MetallicGlossMapArr_ID`, `_MetallicGlossMap` bound?, strengths) plus the
+`MatcapPresets` load state. All reads are `HasProperty`-guarded (toon vs PBR expose different
+props). The per-material lines are in the log entry's expanded detail pane, not the collapsed list.
+Note: the "No MatcapPresets assigned" warning only fires if metal was *detected* (it's inside
+`ApplyDefaultMatcap`), so its absence is not proof the library is loaded — read the dump's
+`MatcapPresets=N presets` header instead.
+
+**Blur caveat:** `_BlurLevelMatcap` samples the matcap by mip LOD, so it only softens visibly if the
+6 matcap PNGs are imported **with mipmaps enabled** — check their import settings if blur looks inert.

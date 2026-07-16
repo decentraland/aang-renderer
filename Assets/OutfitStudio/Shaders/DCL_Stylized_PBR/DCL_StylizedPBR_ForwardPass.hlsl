@@ -220,8 +220,17 @@ half4 StylizedPBRFragment(Varyings input) : SV_Target
         {
             envRefl = SampleSH(reflect(-viewDirWS, normalWS));
         }
+        // Two ways to apply the metal reflection, dialed by _MatcapMetalBlend:
+        //   physical (0) — Fresnel/F0-weighted (envF): bright only at grazing edges, tinted by the
+        //                  (often dark) albedo, so the front reads dark. Physically correct.
+        //   flat     (1) — reflection weight = 1 everywhere: the matcap fills the whole surface
+        //                  uniformly, matching DCL_Toon_Studio's flat chrome look.
+        // We then REPLACE the (metal-diffuse-free, dark) base toward that reflection by
+        // metallic * _StylizedMetalStrength — a lerp, not an add, so it doesn't just layer over a
+        // dark surface. Strength 1 = full replace (matches toon); >1 over-drives brighter.
         half3 envF = f0 + (max(half3(1, 1, 1) * (1.0 - perceptualRoughness), f0) - f0) * SchlickWeight(NoV);
-        color += envRefl * envF * metallic * _MatcapMetalBlend;
+        half3 reflWeight = lerp(envF, half3(1, 1, 1), _MatcapMetalBlend);
+        color = lerp(color, envRefl * reflWeight, saturate(metallic) * _StylizedMetalStrength);
     }
 
     // Artist rim: fresnel band, same exponent mapping as DCL_Toon so carried values feel familiar

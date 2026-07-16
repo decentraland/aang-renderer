@@ -142,7 +142,7 @@ Shader "DCL/DCL_Toon_Studio"
         // the frag reads the metallic (.b) channel. Default black => no metal when no map is bound.
         _MetallicGlossMap ("MetallicGlossMap (stylized metal mask)", 2D) = "black" {}
         //v.2.0.6
-        _BlurLevelMatcap ("Blur Level of MatCap_Sampler", Range(0, 10)) = 0
+        _BlurLevelMatcap ("Blur Level of MatCap_Sampler", Range(0, 4)) = 0
         _MatCapColor ("MatCapColor", Color) = (1,1,1,1)
         [Toggle(_)] _Is_LightColor_MatCap ("Is_LightColor_MatCap", Float ) = 1
         [Toggle(_)] _Is_BlendAddToMatCap ("Is_BlendAddToMatCap", Float ) = 1

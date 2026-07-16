@@ -47,8 +47,9 @@ Shader "DCL/DCL_Stylized_PBR"
         _GI_Intensity ("GI_Intensity", Range(0, 5)) = 1
         _MatCap_Sampler ("MatCap (metal env)", 2D) = "black" {}
         _MatCapColor ("MatCapColor", Color) = (1,1,1,1)
-        _BlurLevelMatcap ("Blur Level Matcap", Range(0, 10)) = 0
+        _BlurLevelMatcap ("Blur Level Matcap", Range(0, 4)) = 0
         _MatcapMetalBlend ("Matcap Metal Blend", Range(0, 1)) = 1
+        _StylizedMetalStrength ("Metal Strength", Range(0, 4)) = 1
 
         // --- Emission
         _Emissive_Tex ("Emissive", 2D) = "black" {}
