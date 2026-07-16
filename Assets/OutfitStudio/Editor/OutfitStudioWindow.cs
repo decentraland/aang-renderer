@@ -52,6 +52,16 @@ namespace OutfitStudio.Editor
             "love", "money", "fist-pump", "head-explode"
         };
 
+        // Single-frame screenshot poses, kept fully inside the tool folder (Assets/OutfitStudio/Poses/)
+        // so nothing spills into the rest of the repo. They still ride the stock embedded-emote path
+        // with ZERO renderer changes: the emote name is resolved as Path.Combine(streamingAssetsPath,
+        // name + ".glb"), so a name that walks back out of StreamingAssets with ".." lands in the tool
+        // folder — "../OutfitStudio/Poses/<file>" → <project>/Assets/OutfitStudio/Poses/<file>.glb.
+        // The ".." is normalised by the OS/URI when the loader opens the file (same bare-path handling
+        // the StreamingAssets emotes already rely on). Editor-only (poses aren't in production builds).
+        private const string POSES_DIR_UNDER_ASSETS = "OutfitStudio/Poses";       // for the file scan
+        private const string POSES_EMBEDDED_PREFIX = "../OutfitStudio/Poses";      // relative to StreamingAssets
+
         private static readonly Dictionary<string, Color> RARITY_COLORS = new()
         {
             ["common"] = new Color(0.67f, 0.79f, 0.85f),
@@ -1061,6 +1071,14 @@ namespace OutfitStudio.Editor
             _poseLabel = new Label($"Pose: {outfit.emote}");
             pane.Add(_poseLabel);
 
+            // Quick-pose buttons — one per single-frame GLB in StreamingAssets/poses/, auto-discovered.
+            var poseGrid = new VisualElement
+            {
+                style = { flexDirection = FlexDirection.Row, flexWrap = Wrap.Wrap, marginTop = 2, marginBottom = 2 }
+            };
+            BuildPoseButtons(poseGrid);
+            pane.Add(poseGrid);
+
             var emotePopup = new PopupField<string>("Embedded", EMBEDDED_EMOTES,
                 Mathf.Max(0, EMBEDDED_EMOTES.IndexOf(outfit.emote)));
             emotePopup.RegisterValueChangedCallback(_ =>
@@ -1292,6 +1310,58 @@ namespace OutfitStudio.Editor
                 StudioAvatarShaderSwitcher.ResetKnobs(mode);
                 BuildShaderTuning(container); // reflect reset values back into the fields
             }) { text = "Reset shader defaults", style = { marginTop = 4 } });
+        }
+
+        // One button per single-frame GLB in StreamingAssets/poses/. Clicking sets the pose as the
+        // active emote (it holds its one frame in play mode — where stills are captured). The active
+        // pose's button is disabled (= selected), same convention as the shader buttons. Rebuilt in
+        // place so the selection highlight and a fresh folder scan (⟳) both refresh live.
+        private void BuildPoseButtons(VisualElement grid)
+        {
+            grid.Clear();
+
+            var names = GetPoseNames();
+            foreach (var name in names)
+            {
+                var emoteName = $"{POSES_EMBEDDED_PREFIX}/{name}";
+                var btn = new Button(() =>
+                {
+                    outfit.emote = emoteName;
+                    RemoveDraftEmote(); // an equipped draft emote would override the pose
+                    _poseLabel.text = $"Pose: {name}";
+                    RefreshShareCode();
+                    ScheduleApply();
+                    BuildPoseButtons(grid); // refresh the selected-highlight
+                }) { text = name, style = { marginRight = 2, marginBottom = 2 } };
+                btn.SetEnabled(outfit.emote != emoteName); // disabled = selected
+                grid.Add(btn);
+            }
+
+            if (names.Count == 0)
+                grid.Add(new Label($"No poses — drop single-frame GLBs in Assets/{POSES_DIR_UNDER_ASSETS}/")
+                {
+                    style = { unityFontStyleAndWeight = FontStyle.Italic, opacity = 0.7f, marginRight = 4 }
+                });
+
+            grid.Add(new Button(() => BuildPoseButtons(grid))
+            {
+                text = "⟳",
+                tooltip = "Rescan the poses folder",
+                style = { marginBottom = 2 }
+            });
+        }
+
+        // Base names (no extension) of the pose GLBs in Assets/OutfitStudio/Poses/, sorted.
+        // Editor-time file scan (Application.dataPath = <project>/Assets), valid outside play mode.
+        private static List<string> GetPoseNames()
+        {
+            var dir = System.IO.Path.Combine(Application.dataPath, POSES_DIR_UNDER_ASSETS);
+            if (!System.IO.Directory.Exists(dir)) return new List<string>();
+
+            return System.IO.Directory.GetFiles(dir, "*.glb")
+                .Select(System.IO.Path.GetFileNameWithoutExtension)
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .ToList();
         }
 
         private static Label Header(string text)
