@@ -265,7 +265,16 @@ float4 fragDoubleShadeFeather(VertexOutput i, half facing : VFACE) : SV_TARGET
         // REPLACE (active): the matcap reflection BECOMES the surface where metalAmt = 1, so metal
         // areas read as bright chrome/silver instead of a darkened base. lerp so the mask/strength
         // fade cleanly back to the lit toon colour where there's no metal.
-        finalColor = lerp(finalColor, matcapRefl, saturate(metalAmt) * _StylizedMetalStrength);
+        float metalFactor = saturate(metalAmt) * _StylizedMetalStrength;
+        finalColor = lerp(finalColor, matcapRefl, metalFactor);
+
+        // The rim lives INSIDE finalColor (baked into _RimLight_var above), so the replace lerp
+        // wipes it out on metal areas. Add the rim term back on top proportional to how much the
+        // matcap replaced it, so metal catches the rim too — matching DCL_Stylized_PBR, which adds
+        // rim after the metal reflection. Non-metal (metalFactor 0) is unchanged; the rim it already
+        // carries stays intact.
+        float3 rimTerm = lerp(float3(0, 0, 0), Set_RimLight * _RimLightIntensity, _RimLight);
+        finalColor += rimTerm * saturate(metalFactor);
 
         // --- Alternative looks (swap the line above for ONE of these) --------------------------
         // Colored metal (replace, but tint the reflection by the base colour so hue is kept — gold etc.):

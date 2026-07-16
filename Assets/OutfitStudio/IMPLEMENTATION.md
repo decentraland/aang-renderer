@@ -685,6 +685,14 @@ all in studio-only code (the verbatim `ToonMaterialGenerator` was NOT touched):
    Defaults (blend 1, strength 1) match toon out of the box. Only remaining gap vs toon: toon also
    multiplies the matcap by the main light colour; PBR doesn't (invisible under a ~white key).
 
+4. **Rim on metal (toon).** In `DCL_Toon_Studio` the rim is baked INTO `finalColor` (via
+   `_RimLight_var = Set_HighColor + Set_RimLight * _RimLightIntensity`), so the metal replace-lerp
+   (`finalColor = lerp(finalColor, matcapRefl, metalFactor)`) wiped the rim out on metal areas —
+   metal jackets got no rim while cloth did. PBR was fine (it adds rim *after* the metal). Fix in
+   `DCL_ToonBodyDoubleShadeWithFeather.hlsl`: after the metal lerp, add the rim term back on top,
+   `finalColor += rimTerm * saturate(metalFactor)` (rimTerm = the same `lerp(0, Set_RimLight *
+   _RimLightIntensity, _RimLight)`), so metal catches the rim too; non-metal is unchanged.
+
 Updated knob lists: **Toon Studio** adds Matcap Tint + Matcap Blur; **PBR** adds Metal Strength +
 Matcap Tint + Matcap Blur (and the Matcap Metal Blend tooltip now describes the physical↔flat dial).
 
