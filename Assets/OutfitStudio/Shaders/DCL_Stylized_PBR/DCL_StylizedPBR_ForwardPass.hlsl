@@ -244,9 +244,12 @@ half4 StylizedPBRFragment(Varyings input) : SV_Target
         color += rim * rimColor * _RimLightIntensity;
     }
 
-    // Emission: generator bakes x5 into _Emissive_Color; DCL_Toon multiplies a further x2.5 — match it
+    // Emission: generator bakes x5 into _Emissive_Color; DCL_Toon multiplies a further x2.5 — match it.
+    // _EmissionStrength (studio knob, default 1) lets the artist pull emissive back down: PBR's
+    // emissive sits on a brighter additive base (ambient + rim) than toon's, so with bloom on it reads
+    // hotter for the same texel — lower this (~0.4-0.6) to match the DCL_Toon look without touching post.
     half3 emissive = SAMPLE_TEXTURE2D(_Emissive_Tex, sampler_Emissive_Tex, TRANSFORM_TEX(input.uv, _Emissive_Tex)).rgb
-                     * _Emissive_Color.rgb * 2.5;
+                     * _Emissive_Color.rgb * 2.5 * _EmissionStrength;
     color += emissive;
 
     color = MixFog(color, input.fogFactor);

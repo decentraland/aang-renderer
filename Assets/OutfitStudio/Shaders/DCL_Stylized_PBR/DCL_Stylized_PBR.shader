@@ -50,6 +50,7 @@ Shader "DCL/DCL_Stylized_PBR"
         _BlurLevelMatcap ("Blur Level Matcap", Range(0, 4)) = 0
         _MatcapMetalBlend ("Matcap Metal Blend", Range(0, 1)) = 1
         _StylizedMetalStrength ("Metal Strength", Range(0, 4)) = 1
+        _EmissionStrength ("Emission Strength", Range(0, 2)) = 0.19
 
         // --- Emission
         _Emissive_Tex ("Emissive", 2D) = "black" {}

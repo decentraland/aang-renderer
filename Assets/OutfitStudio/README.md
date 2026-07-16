@@ -14,9 +14,10 @@ Open via **Decentraland ▸ Outfit Studio**.
    Search, filter by slot / rarity / body and click items to equip them.
    **The avatar assembles live in the Scene/Game view in edit mode** — no play mode needed for
    outfit selection (static idle pose; use **Clear Preview** in the toolbar to remove it).
-3. Pick a pose: an embedded emote from the dropdown, or any marketplace emote from the
-   **Emotes / Poses** tab. Emote playback needs play mode; use ▶ / ❚❚ / ■ and the scrubber to
-   freeze a specific frame.
+3. Pick a pose: a **quick-pose button** (one per GLB in `Assets/OutfitStudio/Poses/` — drop your
+   single-frame pose GLBs there and they appear as buttons under the **Pose** header; `⟳` rescans),
+   an embedded emote from the dropdown, or any marketplace emote from the **Emotes / Poses** tab.
+   Poses/emotes play in play mode; use ▶ / ❚❚ / ■ and the scrubber to freeze a specific frame.
 4. Press **▶ Enter Play** for animation and capture (or Apply while playing). The edit-mode
    preview clears itself automatically and the renderer's builder mode loads the same outfit;
    changes keep auto-applying while you pick items.
@@ -56,11 +57,16 @@ Switching is lossless — all three share the same material inputs. Eyes/eyebrow
 keep their own shader. Only the dedicated studio scene is affected; the shipping renderer never
 sees these shaders.
 
-**Tuning sliders:** picking DCL_Toon_Studio or DCL_Stylized_PBR reveals live art-direction
-sliders under the buttons — rim intensity/power/color, ambient, and (for PBR) diffuse wrap,
-shadow sharpness, specular softness, sheen, clearcoat and more. They apply instantly to the
-avatar in the viewport (edit and play mode), persist between sessions, and **Reset shader
-defaults** clears them. Stock DCL_Toon has no sliders — it's the fixed official look.
+**Tuning controls:** picking DCL_Toon_Studio or DCL_Stylized_PBR reveals a **Matcap dropdown**
+(which reflection texture the stylized metal uses) plus live art-direction sliders under the
+buttons — rim intensity/power/mask/color, ambient, metal strength, matcap tint/blur, and (for
+PBR) diffuse wrap, shadow sharpness, specular softness, sheen, clearcoat and an **Emission
+Strength** control. They apply instantly in the viewport (edit and play mode), persist between
+sessions, and **Reset shader defaults** clears them. Both shaders ship with a tuned default look
+(warm-gold rim); stock DCL_Toon has no controls — it's the fixed official look.
+
+Both shaders read the same wearable metallic data, so a **metallic wearable shows chrome/matcap
+metal** — pick a matcap and tune Metal Strength / Matcap Metal Blend (PBR) to match the look.
 
 ## Debug tab & Clean View
 

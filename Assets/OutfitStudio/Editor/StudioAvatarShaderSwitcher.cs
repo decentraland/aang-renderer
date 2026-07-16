@@ -95,13 +95,16 @@ namespace OutfitStudio.Editor
 
         // --- Tuning knobs (single source of truth: the window builds sliders from these) --------
 
+        // Shared default rim tint: warm gold #CCB777 (RGB 204,183,119) — used by both studio shaders.
+        private static readonly Color RimGold = new(204f / 255f, 183f / 255f, 119f / 255f);
+
         /// <summary>DCL_Toon_Studio — the knobs unlocked over the stock toon shader.</summary>
         public static readonly StudioShaderKnob[] StudioKnobs =
         {
-            new("Rim Intensity", "_RimLightIntensity", 0f, 10f, 1f, "Overall strength of the rim/back light band."),
-            new("Rim Power", "_RimLight_Power", 0f, 1f, 0.3f, "Rim falloff/width — higher wraps further onto the front."),
-            new("Rim Inside Mask", "_RimLight_InsideMask", 0f, 0.95f, 0.15f, "Pushes the rim toward the silhouette edge."),
-            new("Rim Color", "_RimLightColor", Color.white, "Rim tint (a cool blue reads as the Fortnite back light)."),
+            new("Rim Intensity", "_RimLightIntensity", 0f, 10f, 10f, "Overall strength of the rim/back light band."),
+            new("Rim Power", "_RimLight_Power", 0f, 1f, 0.8f, "Rim falloff/width — higher wraps further onto the front."),
+            new("Rim Inside Mask", "_RimLight_InsideMask", 0f, 0.95f, 0.5f, "Pushes the rim toward the silhouette edge."),
+            new("Rim Color", "_RimLightColor", RimGold, "Rim tint."),
             new("Ambient (GI)", "_GI_Intensity", 0f, 2f, 0f, "Flat ambient fill from the environment SH."),
             new("Normal Strength", "_BumpScale", 0f, 2f, 1f, "Global normal-map intensity (overrides per-wearable scale)."),
             new("Metal Strength", "_StylizedMetalStrength", 0f, 1f, 1f, "Blend of the matcap metallic reflection."),
@@ -116,16 +119,17 @@ namespace OutfitStudio.Editor
             new("Rim Power", "_RimLight_Power", 0f, 1f, 0.3f, "Rim falloff/width."),
             new("Rim Inside Mask", "_RimLight_InsideMask", 0f, 0.95f, 0.15f, "Pushes the rim toward the silhouette edge."),
             new("Rim Sharpness", "_RimSharpness", 0f, 1f, 0f, "0 = soft gradient rim, 1 = hard band."),
-            new("Rim Color", "_RimLightColor", Color.white, "Rim tint."),
-            new("Diffuse Wrap", "_DiffuseWrap", 0f, 1f, 0.35f, "Wraps light past the terminator for softer shading."),
-            new("Shadow Sharpness", "_ShadowSharpness", 0f, 1f, 0.35f, "0 = smooth lambert, 1 = hard two-tone break."),
-            new("Specular Softness", "_SpecularSoftness", 0f, 4f, 0.5f, "Compresses the highlight into a broad stylized gleam."),
-            new("Specular (F0)", "_Specular", 0f, 1f, 0.5f, "Dielectric reflectance (non-metal surfaces)."),
+            new("Rim Color", "_RimLightColor", RimGold, "Rim tint."),
+            new("Diffuse Wrap", "_DiffuseWrap", 0f, 1f, 0.5f, "Wraps light past the terminator for softer shading."),
+            new("Shadow Sharpness", "_ShadowSharpness", 0f, 1f, 0.55f, "0 = smooth lambert, 1 = hard two-tone break."),
+            new("Specular Softness", "_SpecularSoftness", 0f, 4f, 2.2f, "Compresses the highlight into a broad stylized gleam."),
+            new("Specular (F0)", "_Specular", 0f, 1f, 0.4f, "Dielectric reflectance (non-metal surfaces)."),
             new("Sheen", "_Sheen", 0f, 1f, 0f, "Cloth-like grazing-edge gleam."),
-            new("Sheen Tint", "_SheenTint", 0f, 1f, 0.5f, "White vs albedo-tinted sheen."),
+            new("Sheen Tint", "_SheenTint", 0f, 1f, 0f, "White vs albedo-tinted sheen."),
             new("Clearcoat", "_Clearcoat", 0f, 1f, 0f, "Glossy secondary coat (the action-figure finish)."),
             new("Clearcoat Gloss", "_ClearcoatGloss", 0f, 1f, 0.8f, "Sharpness of the clearcoat lobe."),
-            new("Ambient (GI)", "_GI_Intensity", 0f, 5f, 1f, "Flat ambient fill from the environment SH."),
+            new("Ambient (GI)", "_GI_Intensity", 0f, 5f, 2.5f, "Flat ambient fill from the environment SH."),
+            new("Emission Strength", "_EmissionStrength", 0f, 2f, 0.19f, "Scales emissive output. PBR emissives bloom hotter than toon; default 0.19 matches the DCL_Toon look."),
             new("Matcap Metal Blend", "_MatcapMetalBlend", 0f, 1f, 1f, "0 = physical edge-only reflection (dark front), 1 = flat matcap that matches DCL_Toon_Studio chrome."),
             new("Metal Strength", "_StylizedMetalStrength", 0f, 4f, 1f, "How strongly the matcap replaces the metal surface (1 = full, matches toon; >1 over-drives)."),
             new("Matcap Tint", "_MatCapColor", Color.white, "Colors the matcap metal reflection (white = untinted)."),

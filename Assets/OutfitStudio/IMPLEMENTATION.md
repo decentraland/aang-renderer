@@ -540,9 +540,10 @@ shaders** (neither had a rim-strength multiplier — rim was color+power only): 
 the fresnel rim term. Toon Studio knobs: rim intensity/power/mask/color, ambient GI, normal
 strength, metal strength, matcap tint, matcap blur. PBR knobs add: rim sharpness, diffuse wrap,
 shadow sharpness, specular softness, specular F0, sheen (+tint), clearcoat (+gloss), matcap
-metal blend, metal strength, matcap tint, matcap blur. Above the sliders both studio shaders
-show a **Matcap dropdown** (the reflection texture; see the 2026-07-16 update). Matcap blur is
-capped 0–4. (Metal strength/blend semantics: see the iteration-6 update at the end of §16.)
+metal blend, metal strength, emission strength, matcap tint, matcap blur. Above the sliders both
+studio shaders show a **Matcap dropdown** (the reflection texture; see the 2026-07-16 update).
+Matcap blur is capped 0–4. (Metal strength/blend, emission strength, and the dialed-in default
+look values: see the iteration-6 update at the end of §16.)
 
 ### How switching works — `Editor/StudioAvatarShaderSwitcher.cs`
 Poll-based (`[InitializeOnLoad]`, 0.5 s on `EditorApplication.update`, ticks in play mode too —
@@ -693,8 +694,28 @@ all in studio-only code (the verbatim `ToonMaterialGenerator` was NOT touched):
    `finalColor += rimTerm * saturate(metalFactor)` (rimTerm = the same `lerp(0, Set_RimLight *
    _RimLightIntensity, _RimLight)`), so metal catches the rim too; non-metal is unchanged.
 
-Updated knob lists: **Toon Studio** adds Matcap Tint + Matcap Blur; **PBR** adds Metal Strength +
-Matcap Tint + Matcap Blur (and the Matcap Metal Blend tooltip now describes the physical↔flat dial).
+5. **Emission Strength (PBR).** PBR emissives read much hotter than toon under the studio's HDR
+   bloom — NOT because emission differs (both shaders use the identical `_Emissive_Tex *
+   _Emissive_Color * 2.5`), but because PBR's emissive pixels sit on a brighter additive base
+   (ambient on + additive rim on the same silhouette edges), so more of them cross the bloom
+   threshold. Bloom is off-limits, so a `_EmissionStrength` scalar was added to the PBR shader
+   (cbuffer + Property + multiplied into the emissive term) and exposed as the **Emission Strength**
+   knob. **Default 0.19** — the value that visually matches DCL_Toon under the studio bloom.
+
+Updated knob lists: **Toon Studio** adds Matcap Tint + Matcap Blur; **PBR** adds Metal Strength,
+Emission Strength, Matcap Tint + Matcap Blur (and the Matcap Metal Blend tooltip now describes the
+physical↔flat dial).
+
+**Dialed-in default look (2026-07-16, confirmed by Mauricio).** The knob defaults were tuned to a
+finished look so a fresh studio scene reads right without fiddling. Shared: rim tint `#CCB777` warm
+gold (a single `RimGold` field in `StudioAvatarShaderSwitcher`, referenced by both shaders).
+- **DCL_Toon_Studio:** Rim Intensity 10, Rim Power 0.8, Rim Inside Mask 0.5, Rim Color gold.
+- **DCL_Stylized_PBR:** Rim Color gold, Diffuse Wrap 0.5, Shadow Sharpness 0.55, Specular Softness
+  2.2, Specular (F0) 0.4, Sheen Tint 0, Ambient (GI) 2.5, Emission Strength 0.19 (others unchanged:
+  Rim Intensity 1 / Power 0.3 / Inside Mask 0.15 / Sharpness 0, Metal Strength 1, Matcap Metal
+  Blend 1, Matcap Blur 0, Normal Strength 1).
+Changing a C# default does NOT move a knob whose value is already stored in EditorPrefs — press
+**Reset shader defaults** for that shader once to adopt new defaults; fresh installs get them.
 
 **Diagnostic** (kept, verbose-only): `Apply(verbose:true)` — fired on a shader **button click** —
 dumps per-material metal-gate state (`_IsStylizedMetallic`, `_MatCap_SamplerArr_ID`,
@@ -707,3 +728,29 @@ Note: the "No MatcapPresets assigned" warning only fires if metal was *detected*
 
 **Blur caveat:** `_BlurLevelMatcap` samples the matcap by mip LOD, so it only softens visibly if the
 6 matcap PNGs are imported **with mipmaps enabled** — check their import settings if blur looks inert.
+
+## 17. Screenshot poses (iteration 6, 2026-07-16)
+
+Single-frame "poses" for stills: drop GLBs (1-frame skeletal animations) into
+**`Assets/OutfitStudio/Poses/`** and a **button per pose** appears under the **Pose** header
+(`OutfitStudioWindow.BuildPoseButtons` / `GetPoseNames`), auto-discovered by a file scan of
+`Application.dataPath + "/OutfitStudio/Poses"`. Click → sets `outfit.emote`, clears any draft emote,
+applies; the active pose's button is disabled (= selected, same convention as the shader buttons);
+a `⟳` button rescans the folder without reopening the window.
+
+**Kept inside the tool folder with ZERO renderer changes** (the whole point — no files spilled into
+StreamingAssets). Poses ride the stock embedded-emote path: the emote name is
+`"../OutfitStudio/Poses/<file>"`, and `Representation.ForEmbeddedEmote` resolves it as
+`Path.Combine(streamingAssetsPath, name + ".glb")` = `.../Assets/StreamingAssets/../OutfitStudio/
+Poses/<file>.glb`. The `..` walks back out of StreamingAssets into the tool folder; the OS/URI
+normalises it when the loader opens the file (same bare-path handling the built-in emotes use). The
+name is project-relative, so it's machine-independent (share codes / persistence work for any
+teammate with the same `Poses/` folder), and because it points outside StreamingAssets it never
+resolves in production builds — which is fine, poses are an editor-only screenshot tool.
+
+**Apply in play mode** (like all emotes — a 1-frame emote holds its frame): equip → Enter Play →
+click a pose → Capture Still. Edit mode still shows the static idle pose (poses aren't sampled onto
+the edit-mode skeleton). Constants live in `OutfitStudioWindow`: `POSES_DIR_UNDER_ASSETS`
+(`OutfitStudio/Poses`, for the scan) and `POSES_EMBEDDED_PREFIX` (`../OutfitStudio/Poses`, the emote
+name). A future v2 could sample the pose clip onto the edit-mode skeleton (like `SampleIdlePose`) so
+shots can be framed without entering play.

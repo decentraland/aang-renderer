@@ -32,6 +32,7 @@ float _GI_Intensity;
 float _BlurLevelMatcap;
 float _MatcapMetalBlend;
 float _StylizedMetalStrength;
+float _EmissionStrength;
 float _RimLight;
 float _RimLightIntensity;
 float _RimLight_Power;
