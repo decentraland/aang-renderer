@@ -7,7 +7,9 @@ Open via **Decentraland ▸ Outfit Studio**.
 
 ## Workflow
 
-1. Open `Assets/Scenes/Main.unity`.
+1. Open the studio scene via **Decentraland ▸ Open Outfit Studio Scene** (a dedicated copy of
+   Main with set dressing — custom lighting/backdrop/post), or `Assets/Scenes/Main.unity`;
+   the tool works in either.
 2. Open the Outfit Studio window and browse the marketplace catalog (left pane).
    Search, filter by slot / rarity / body and click items to equip them.
    **The avatar assembles live in the Scene/Game view in edit mode** — no play mode needed for
@@ -34,6 +36,31 @@ Open via **Decentraland ▸ Outfit Studio**.
   **Load from code**. The same string works as `Bootstrap.debugUrl` and as URL parameters for
   the deployed web renderer (builder mode).
 - **Presets** — save named `OutfitPreset` assets in the project for a local outfit library.
+
+## Shader buttons (studio scene)
+
+At the top of the outfit pane, three buttons pick the avatar's shader — applied to everything
+in the viewport (edit AND play mode) and kept across reloads until you pick another:
+
+- **DCL_Toon** — the official Decentraland shader, exactly as shipped. Default.
+- **DCL_Toon_Studio** — same look, unlocked: rim light (`RimLight_Power`, color, mask...),
+  ambient (`GI_Intensity`) and normal-map strength are live material properties, spot/point
+  lights affect the avatar (per-pixel, studio scene only), and the metallic-branch features
+  (normal maps + stylized matcap metallics) are included. Select a wearable's material instance
+  in play mode to tweak the knobs live.
+- **DCL_Stylized_PBR** — a stylized physically-based look (Fortnite/Overwatch direction):
+  wrapped stylized diffuse, soft GGX specular, cloth sheen, clearcoat, artist rim, matcap-based
+  metal reflections, plus an on/off outline toggle on the material.
+
+Switching is lossless — all three share the same material inputs. Eyes/eyebrows/mouth always
+keep their own shader. Only the dedicated studio scene is affected; the shipping renderer never
+sees these shaders.
+
+**Tuning sliders:** picking DCL_Toon_Studio or DCL_Stylized_PBR reveals live art-direction
+sliders under the buttons — rim intensity/power/color, ambient, and (for PBR) diffuse wrap,
+shadow sharpness, specular softness, sheen, clearcoat and more. They apply instantly to the
+avatar in the viewport (edit and play mode), persist between sessions, and **Reset shader
+defaults** clears them. Stock DCL_Toon has no sliders — it's the fixed official look.
 
 ## Debug tab & Clean View
 

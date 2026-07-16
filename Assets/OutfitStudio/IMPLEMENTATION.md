@@ -47,12 +47,21 @@ Assets/OutfitStudio/
 │   ├── CatalogService.cs          # GET /v1/items (marketplace browse + URN lookup)
 │   ├── OutfitDefinition.cs        # the outfit model + share-code round-trip
 │   ├── OutfitPreset.cs            # ScriptableObject preset asset
-│   └── TurntableDriver.cs         # deterministic 360° spin MonoBehaviour
+│   ├── TurntableDriver.cs         # deterministic 360° spin MonoBehaviour
+│   └── MatcapPresets.cs           # LOCAL COPY of the package type — delete at integration (§16)
+├── Shaders/
+│   ├── Matcaps/                   # 6 matcap PNGs + MatcapPresets.asset (local copies, §16)
+│   ├── DCL_Toon_Studio/           # unlocked copy of the metallic-branch DCL_Toon (§16)
+│   └── DCL_Stylized_PBR/          # new Disney-principled stylized PBR shader (§16)
 └── Editor/
     ├── OutfitCapture.cs           # still (RenderPipeline request) + video (Unity Recorder)
     ├── EditModeAvatarPreview.cs   # edit-mode outfit assembly on the scene skeleton (§11)
+    ├── StudioAvatarShaderSwitcher.cs # 3-way shader enforcement + matcap bootstrap (§16)
     └── OutfitStudioWindow.cs      # the EditorWindow (all UI + orchestration)
 ```
+(Plus `Editor/StudioSceneOverlayHider.cs`, `Editor/StudioRenderPipelineSwitcher.cs`,
+`Editor/BuilderIdentity.cs`, `Editor/BuilderCollectionService.cs`, `Editor/Plugins/` (vendored
+DLLs), `Scenes/OutfitStudio.unity`, `Settings/URP_Asset_Studio.asset` — see §13/§14.)
 
 ## 4. How it drives the renderer (the key idea)
 
@@ -260,13 +269,71 @@ No renderer API changes needed.
 skin weights to 4 outside play mode (minor deformation differences possible). Play mode is ground
 truth for capture.
 
-## Status as of 2026-07-14
+## Status as of 2026-07-15
 
-**Added 2026-07-14, not yet verified:** thumbnail fix (blank thumbnails when revisiting a
-browser page — cached textures were delivered synchronously and dropped by a panel-attachment
-guard); Debug tab + Clean View (§12); Load from Collection incl. signed builder-api access and
-draft equipping via base64 (§13 — the signing format is untested against the live API; first
-200 response is the acceptance test).
+**New (iteration 5, untested in-editor):** the 3-way shader switcher (§16) — Shader section in
+the outfit pane, `DCL_Toon_Studio` (metallic-branch copy + rim/lights/GI unlocks),
+`DCL_Stylized_PBR` (new Disney-principled stylized PBR), `StudioAvatarShaderSwitcher`
+enforcement, and the verbatim `ToonMaterialGenerator`/`CommonAssets` metallic port + local
+`MatcapPresets`. First editor focus needs to compile both shaders — run §16's verification
+list. Everything from the 2026-07-14 status below still applies.
+
+## Status as of 2026-07-14 (end of day)
+
+**Verified working by Mauricio on 2026-07-14:**
+- Edit-mode 3D preview (after the inactive-rig + orphan-sweep fixes), thumbnail pagination fix,
+  Debug tab + Clean View (§12).
+- **Load from Collection (§13) — confirmed working end-to-end**, including the signed
+  builder-api access (identity paste + auth-chain signing) and equipping draft items via base64.
+
+**Not yet tested:** capture paths (Still / Video / Record Emote / Turntable — Recorder 5.1.2
+installed, code unexercised), presets save/load, share-code load round-trip, body-shape
+switching, `dev (zone)` env, emote-URN poses from the Emotes/Poses tab.
+
+**In progress:** dedicated studio scene (§14) — raw copy + menu shortcut + overlay hider +
+studio render pipeline (per-pixel additional lights for set geometry) all in place; Mauricio is
+mid set-dressing (own CinemachineCamera added; stock vcams to disable, Configurator to strip).
+Target look = Fortnite-style item cards; see §14 for the lighting findings (avatar = 1
+directional only, rim compiled off) and the planned shared-dependencies shader session
+(rim promotion + optional additional lights), to be bundled with the metallic integration.
+Untried: the back-key + post-lift interim recipe; the studio renderer-data duplicate for
+tweakable gradient background colors (Route A).
+
+## Metallic/normals branch — integration options (deliberately NOT done yet)
+
+The normals + stylized-metallic matcap work lives on `feat/avatar-toon-shader-metallic-normals`
+and is intentionally kept OFF this branch. Facts for whenever we want to see it in the Outfit
+Studio (verified 2026-07-14):
+
+- The shader HLSL lives in the **`unity-shared-dependencies` package**; the metallic branch
+  repoints the package to `#feat/toon-normalmap-stylized-metallic` (NOT merged to the package's
+  main) via `Packages/manifest.json` + lock.
+- Aang-side changes committed on that branch (diff vs main): `Assets/Scripts/Loading/
+  ToonMaterialGenerator.cs` (+123 — maps GLB normal/metallic data + matcaps into DCL_Toon),
+  `Bootstrap.cs` + `CommonAssets.cs` (+9 each — matcap preset wiring), `Assets/Scenes/Main.unity`
+  (serialized refs), `Assets/StreamingAssets/character/PuffyJacket.glb` (test asset).
+- The `git stash` ("WIP metallic/normals test harness") holds only the optional
+  `LocalWearableOverride` local-GLB harness — NOT required to see the effect.
+- **Repointing the package alone is not enough** — the `ToonMaterialGenerator` changes are what
+  feed the new shader features.
+
+**Update 2026-07-15 (iteration 5, §16):** the `ToonMaterialGenerator` + `CommonAssets` diffs
+have now been ported onto THIS branch verbatim (prod-safe — the stock package shader ignores
+the extra properties), and the metallic shader itself was copied locally into
+`DCL/DCL_Toon_Studio`. Remaining "integration" with the metallic branch is therefore only the
+package repoint (option 1/2 below) plus deleting the local duplicates flagged in §16.
+
+Options, in recommendation order:
+1. **Integration branch** — `feat/outfit-studio-metallic` = this branch + `git merge
+   feat/avatar-toon-shader-metallic-normals`. Both source branches stay pure for upstream PRs.
+   Expect one small conflict in `manifest.json`/`packages-lock.json` (keep BOTH the
+   `com.unity.recorder` line and the shared-deps branch repoint). Bonus: metallic draft
+   wearables can then be QA'd through Load from Collection.
+2. **Merge metallic into `feat/outfit-studio`** — simplest daily workflow, but entangles the
+   histories (outfit-studio PR would carry the shader work).
+3. **Working-tree quick look (no commits)** — `git checkout
+   feat/avatar-toon-shader-metallic-normals -- <the files listed above>`; revert with
+   `git restore`. Minutes to see, fragile to keep (don't commit the manifest/lock repoint).
 
 ## Status as of 2026-07-13 (commit cd2afbb)
 
@@ -360,7 +427,79 @@ through `Bootstrap.debugUrl` and the web renderer. Draft-vs-catalog slot conflic
 on equip (both lists purged for the category); picking an embedded/catalog emote removes any
 draft emote (which would otherwise take priority).
 
-## 14. Verification checklist (first run after checkout)
+## 14. Dedicated studio scene
+
+`Assets/OutfitStudio/Scenes/OutfitStudio.unity` is a **copy of Main.unity** (fresh GUID, never
+in Build Settings → zero build impact) meant to become the "studio set": custom backdrop,
+lighting and post-processing for beauty shots, authored with the normal scene workflow. Open it
+via **Decentraland ▸ Open Outfit Studio Scene**. The tool is scene-agnostic (all lookups are
+`FindFirstObjectByType`), so it works identically in either scene.
+
+**Stripping rules (as of the copy, still un-stripped):** only the **Configurator branch** (its
+rig, second `AvatarLoader`, cameras, UI) is safe to delete. Everything else in the Preview
+branch must STAY even if unused, because `PreviewController.Reload()` dereferences it
+unconditionally every reload: `wearableLoader`, `confirmationVFX`, `animationReference`,
+`platform`, `previewUIPresenter`. Also keep the `UI` GameObject — mouse-drag rotation runs
+through its `DragManipulator` (Clean View hides its visuals anyway). Lighting/post are free:
+replace the directional light, add a global URP `Volume`, enable post-processing on the camera
+directly in the scene.
+
+**Overlay in the studio scene:** `StudioSceneOverlayHider` ([InitializeOnLoad], cadence like
+Clean View) force-hides `DebugPanel/ZoomControls/Switcher/EmoteControls/Loader` whenever the
+studio scene is active — edit and play mode, window open or not. The `UI` GameObject must stay
+alive (PreviewController dereferences the presenter unconditionally; drag rotation runs through
+the panel).
+
+**Cameras in the studio scene:** keep the real `Main Camera` (with `CinemachineBrain`) and the
+`PreviewCameraController` component — `PreviewController.Reload()` calls `SetMode()`
+unconditionally, and it `Prioritize()`s its serialized vcams every reload. To use a custom
+CinemachineCamera: **disable (don't delete) the stock vcam GameObjects** (authProfile/
+marketplaceWearable/marketplaceAvatar/builder/jesus) — disabled vcams don't compete in the
+brain, so the custom camera wins regardless of priority, and `Prioritize()` on a disabled vcam
+is a harmless field write. Deleting them NREs `SetMode`.
+
+**Studio lighting — IMPORTANT limitation:** the avatar's shader (`DCL/DCL_Toon`) is lit by
+**exactly one light — the main directional**. Its additional-lights loop is **commented out**
+in the fragment code (`DCL_ToonBodyDoubleShadeWithFeather.hlsl:~304`, package
+`unity-shared-dependencies`; `CalculateAdditionalLightingColour` in `DCL_ToonLighting.hlsl` is
+dead code). Point/spot lights do NOT affect the avatar regardless of URP settings. Ambient/GI
+is also compiled out (`#define _GI_Intensity 0.0f` in `DCL_ToonVariables.hlsl`); ambient only
+leaks via the SH fallback light color when no main light is present.
+
+`Assets/OutfitStudio/Settings/URP_Asset_Studio.asset` (Additional Lights **Per Pixel / limit 8**,
+same renderer data + volume profile by GUID) + `StudioRenderPipelineSwitcher`
+([InitializeOnLoad], overrides `QualitySettings.renderPipeline` while the studio scene is
+active, restores on leave) therefore benefit the **set geometry/props only** (standard URP
+shaders take per-pixel spots/points + shadows). Caveat: saving the project *while in the studio
+scene* diffs `ProjectSettings/QualitySettings.asset`; self-reverts after leaving + saving —
+don't commit.
+
+Avatar light-rig reality: 1 directional (color/intensity/angle = the cel bands), set/post for
+mood. The shader's built-in rim light is compiled to near-invisible
+(`DCL_ToonVariables.hlsl`: `_RimLight 1.0` but `_RimLight_Power 0.3`,
+`_Tweak_RimLightMaskLevel -0.9` — compile-time constants, not tweakable from materials).
+
+**Goal look (Fortnite-style item cards):** gradient background + glow (the renderer's
+`BackgroundRendererFeature` ships exactly this — for studio-only tweakable colors, duplicate
+the renderer data asset and point `URP_Asset_Studio.m_RendererDataList` at the copy), bloom on
+emissives, and a strong cool **top-back rim light** — which is NOT currently reproducible as
+light (no additional lights, rim compiled off). Interim technique that works today: use the
+single directional AS the back/rim key (top-behind, cool tint → the toon lit band becomes the
+rim) and lift the front with post (Shadows/Lift, warm) — see the 2-Ball reference; its front is
+mid-dark too.
+
+**Shader session — DONE LOCALLY (2026-07-15, iteration 5, see §16):** all three unlocks (rim
+promotion, additional-lights loop, `_GI_Intensity`) now exist in the local
+`DCL/DCL_Toon_Studio` shader copy under `Assets/OutfitStudio/Shaders/`. A future
+`unity-shared-dependencies` session is now only about **upstreaming** that promotion diff into
+the package (the studio copy is the reference implementation).
+
+**Sync ritual:** this copy does NOT receive upstream `Main.unity` changes. After merging main
+into the branch, if avatar loading/rig behavior changed: `git diff <old>..<new> --
+Assets/Scenes/Main.unity` and re-apply relevant changes (or re-copy Main and re-strip/re-dress).
+Renderer *script* changes flow automatically — only scene-serialized wiring drifts.
+
+## 15. Verification checklist (first run after checkout)
 
 1. Focus Unity (project open on `feat/outfit-studio`) → Recorder package installs, scripts
    compile, `.meta` files generate for `Assets/OutfitStudio/`.
@@ -369,3 +508,138 @@ draft emote (which would otherwise take priority).
 4. Capture Still (transparent on/off), Record Emote, Record Turntable → files in `Captures/`.
 5. Copy share code → Load from code → identical avatar. Same string pasted into
    `Bootstrap.debugUrl` reproduces it without the window.
+
+## 16. Shader switcher & studio shaders (iteration 5, 2026-07-15)
+
+A "Shader" section at the top of the outfit pane with 3 buttons. The selection persists
+(EditorPrefs `OutfitStudio.Shader`) and is enforced on every avatar material in edit AND play
+mode, across reloads, until another shader is picked. Studio-scene-gated — outside
+`OutfitStudio.unity` nothing is touched.
+
+| Button | Shader | What it is |
+|---|---|---|
+| DCL_Toon | `DCL/DCL_Toon` | Stock package shader — the official look, untouched. |
+| DCL_Toon_Studio | `DCL/DCL_Toon_Studio` | Local unlocked copy (see below). |
+| DCL_Stylized_PBR | `DCL/DCL_Stylized_PBR` | New Disney-principled stylized PBR (see below). |
+
+### Live tuning panel (art direction)
+Below the 3 buttons the outfit pane shows sliders/color fields for the **selected** shader
+(stock `DCL_Toon` has none — it's the fixed official look). The knob list is defined ONCE in
+`StudioAvatarShaderSwitcher` (`StudioKnobs` / `PbrKnobs`, a `StudioShaderKnob[]`) and is the
+single source of truth: the window builds the UI from it, and `Apply()` pushes the values onto
+every active-shader avatar material each poll + immediately on change. Values persist in
+EditorPrefs keyed `OutfitStudio.Knob.{modeIndex}.{property}` (rim power for toon vs PBR are
+independent entries). "Reset shader defaults" clears the current shader's keys.
+
+Knobs are **global look controls** (rim, ambient, stylization) — deliberately not per-wearable
+identity (textures/base color/gates are left alone). `_BumpScale` and `_StylizedMetalStrength`
+are the exceptions: they override the per-wearable value with a global one (fine for a debug
+tool; tooltip says so). A dedicated `_RimLightIntensity` scalar was **added to both studio
+shaders** (neither had a rim-strength multiplier — rim was color+power only): in
+`DCL_Toon_Studio` it scales `Set_RimLight` in the composition; in `DCL_Stylized_PBR` it scales
+the fresnel rim term. Toon Studio knobs: rim intensity/power/mask/color, ambient GI, normal
+strength, metal strength. PBR knobs add: rim sharpness, diffuse wrap, shadow sharpness,
+specular softness, specular F0, sheen (+tint), clearcoat (+gloss), matcap metal blend.
+
+### How switching works — `Editor/StudioAvatarShaderSwitcher.cs`
+Poll-based (`[InitializeOnLoad]`, 0.5 s on `EditorApplication.update`, ticks in play mode too —
+same pattern as the overlay hider / pipeline switcher). Every avatar reload creates fresh
+material clones with the stock shader; the next tick scans every renderer in the studio scene via
+`Resources.FindObjectsOfTypeAll<Renderer>()` (filtered to the active scene) and acts on any whose
+`sharedMaterial.shader.name` is one of the three avatar shaders. Important: it must NOT use
+`FindObjectsByType<Renderer>` — that skips `HideFlags.DontSave` objects, and the edit-mode preview
+builds its avatar with exactly that flag, so the scan would find zero renderers in edit mode.
+`Resources.FindObjectsOfTypeAll` returns DontSave/inactive/hidden objects too, so it's independent
+of avatar hierarchy and covers play-mode wearables the same way. If the target shader can't be
+resolved (compile error / not imported) it logs one warning and skips; on a button click it logs
+the outcome (materials found / swapped) so a no-op is never silent — `0 avatar materials` means no
+outfit is loaded into the preview yet. **Swap mechanics:** named properties survive by name;
+`renderQueue` resets on shader assignment (the generator sets it for cutout/transparent
+wearables) and keywords are restored defensively — both saved/restored around the swap.
+Materials are filtered by shader name (one of the 3 above), which naturally excludes
+`DCL/DCL_Avatar_Facial_Features` (eyes/brows/mouth stay stock in all modes) — plus an
+`EditorUtility.IsPersistent` guard so `Avatar_Toon.mat` can never be dirtied. In PBR mode the
+carried `_GI_Intensity 0` is nudged to 1 once per swap (toon compiles ambient off; PBR needs it).
+
+**Outline contract:** `AvatarUtils` collects outline renderers by `shader.name ==
+"DCL/DCL_Toon"` at LOAD time (always before our first swap — materials are born stock), and the
+outline feature draws each renderer's *current* material via `FindPass("Outline")`. So no
+renderer change was needed — but **every switchable shader MUST have a pass named "Outline"**
+(both new shaders do; the PBR one is gated by its `_OutlineEnabled` toggle).
+
+### DCL_Toon_Studio — `Shaders/DCL_Toon_Studio/`
+Copied from the **metallic branch** of `unity-shared-dependencies` (local clone
+`/mnt/d/GIT/unity-shared-dependencies` @ `feat/toon-normalmap-stylized-metallic` = `9eda18fb`,
+the exact commit the aang metallic branch pins) — so normals + stylized matcap metallic are
+included without waiting for that branch to merge. Edits on top of the copy:
+- Renamed `Shader "DCL/DCL_Toon_Studio"`, dropped the package-bound `CustomEditor` line, fresh
+  .meta GUIDs everywhere (never reuse package GUIDs).
+- **Promoted from compile-time constants to material properties** (the branch's own
+  `_MatCapColor`/`_BlurLevelMatcap` promotion was the template; CBUFFER + DOTS-instancing
+  mirrors in `DCL_ToonInput.hlsl`): `_RimLight`, `_RimLight_Power`, `_RimLight_InsideMask`,
+  `_RimLight_FeatherOff`, `_Is_LightColor_RimLight`, `_Tweak_RimLightMaskLevel`,
+  `_RimLightColor`, `_GI_Intensity`, `_BumpScale`, `_StylizedMetalStrength` (was a local
+  const). `Avatar_Toon.mat` already serialized the old constant values, so the default look is
+  IDENTICAL until you tweak — the promotion just makes the knobs live (the Fortnite-card rim!).
+- **Re-enabled the UTS additional-lights loop** in `DCL_ToonBodyDoubleShadeWithFeather.hlsl`
+  (was commented out pending a Forward+ rework). Its helpers were all still live; the
+  referenced shade-map/high-color textures do NOT exist in this trimmed DCL variant, so the
+  loop body was stubbed exactly like the main-light path (base-as-shademap, masks = 1). The
+  studio pipeline (classic Forward, per-pixel additional lights) uses the `UTS_LIGHT_LOOP`
+  path; spot/point lights now hit the avatar with banded UTS-style cel additions (that's the
+  point — it's stylized, not physical).
+
+### DCL_Stylized_PBR — `Shaders/DCL_Stylized_PBR/`
+New hand-written URP shader (`.shader` + `_Input.hlsl` + `_ForwardPass.hlsl`). The OW2 GitHub
+reference was inspected and discarded (Built-in RP, plain Unity Standard + texture packing);
+the model is instead the **Disney Principled BRDF** (Burley SIGGRAPH 2012 — the
+parameterization Unreal/Fortnite shading derives from), implemented fresh:
+- Burley diffuse with retro-reflection, over a stylization layer: `_DiffuseWrap` +
+  `_ShadowSharpness` (wrapped, smoothstep-sharpened falloff).
+- GGX + height-correlated Smith specular; Disney `_Specular` F0 scale for dielectrics;
+  `_SpecularSoftness` compression for the broad stylized gleam.
+- `_Sheen`/`_SheenTint` (cloth edge gleam) and `_Clearcoat`/`_ClearcoatGloss` (GTR1 lobe —
+  the glossy "action figure" finish).
+- Metallic from `_MetallicGlossMap.b`, roughness from `.g` (glTF ORM, same convention as the
+  toon metallic work; `_Metallic`/`_Smoothness` scalars as fallback when no map).
+- Additional lights (Forward and Forward+), SH ambient via the shared `_GI_Intensity`, artist
+  rim on the shared `_RimLight*` names (same exponent mapping as toon so carried values feel
+  familiar, plus `_RimSharpness`), **matcap as environment reflection for metals** (SH
+  fallback), emission ×2.5 to match toon's magic number, same `_IS_CLIPPING_*` dynamic-branch
+  clipping contract, and ShadowCaster/DepthOnly/DepthNormals passes with alpha clip.
+- `_OutlineEnabled` toggle (default on) on the mandatory inverted-hull "Outline" pass.
+Property names match DCL_Toon everywhere they overlap — switching is lossless in both
+directions.
+
+### Renderer touches (prod-safe, documented)
+- `Assets/Scripts/Loading/ToonMaterialGenerator.cs` + `Assets/Scripts/CommonAssets.cs`: the
+  metallic branch's diffs applied VERBATIM (`git diff main...feat/avatar-toon-shader-metallic-
+  normals` on those two files applies cleanly — keep it that way for a trivial future merge).
+  Feeds GLB `normalTexture` → `_NormalMap`, `metallicRoughnessTexture`/`metallicFactor` →
+  `_MetallicGlossMap`/`_IsStylizedMetallic`, matcap from `CommonAssets.MatcapPresets`. The
+  stock package shader ignores all of these properties → play/WebGL behavior unchanged.
+- Bootstrap/Main.unity NOT touched: `StudioAvatarShaderSwitcher` assigns
+  `CommonAssets.MatcapPresets` (from `Shaders/Matcaps/MatcapPresets.asset`) +
+  `DefaultMatcapName = "matcap_01"` on its poll instead.
+
+### ⚠ Delete-at-integration tripwire
+`Runtime/MatcapPresets.cs` is a verbatim copy of the package type (same namespace
+`DCL.Rendering.DCL_Toon`, kept identical so the ported generator code needs zero edits). When
+the metallic branch merges into the package and the package is repointed/updated, the duplicate
+type will fail compilation with **CS0433** — that's the intentional signal to: delete
+`Runtime/MatcapPresets.cs` + `Shaders/Matcaps/`, wire Bootstrap per the metallic branch, and
+optionally delete `Shaders/DCL_Toon_Studio/` in favor of upstreamed unlocks.
+
+### Verification (not yet run — needs the editor)
+1. Focus Unity → both new shaders compile, no CS errors.
+2. Studio scene, edit mode: apply an outfit → each button swaps all body/wearable renderers
+   within ~0.5 s; facial features unaffected; 2→1 and 3→1 restores look pixel-identical
+   (check hair alpha-clip edges / transparent wearables → renderQueue restored).
+3. Persistence: re-apply outfit / change body shape / enter play / restart editor → selection
+   re-applies.
+4. Studio mode: `_RimLight_Power` etc. live-tweakable on a material instance; spot/point
+   lights affect the avatar; `_GI_Intensity > 0` lifts ambient; a metallic wearable shows
+   matcap metal.
+5. PBR mode: normals shade; metallic masks specular; clipped hair correct in shadows/depth;
+   outline toggle works.
+6. Prod safety: no diffs on `Avatar_Toon.mat` / `Main.unity` / `Bootstrap.cs` / manifest.

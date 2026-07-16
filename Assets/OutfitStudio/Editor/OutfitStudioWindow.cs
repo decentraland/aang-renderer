@@ -106,11 +106,38 @@ namespace OutfitStudio.Editor
         private ColorField _skinField, _hairField, _eyeField;
         private IVisualElementScheduledItem _pendingApply;
 
+        public const string STUDIO_SCENE_PATH = "Assets/OutfitStudio/Scenes/OutfitStudio.unity";
+
         [MenuItem("Decentraland/Outfit Studio")]
         public static void Open()
         {
             var window = GetWindow<OutfitStudioWindow>("Outfit Studio");
             window.minSize = new Vector2(760, 480);
+        }
+
+        /// <summary>
+        /// Opens the dedicated studio scene (a stripped copy of Main.unity with set dressing —
+        /// see IMPLEMENTATION.md). The tool works in whichever scene is open; this is a shortcut.
+        /// </summary>
+        [MenuItem("Decentraland/Open Outfit Studio Scene")]
+        public static void OpenStudioScene()
+        {
+            if (Application.isPlaying)
+            {
+                Debug.LogWarning("[OutfitStudio] Exit play mode before switching scenes");
+                return;
+            }
+
+            if (!System.IO.File.Exists(STUDIO_SCENE_PATH))
+            {
+                Debug.LogError($"[OutfitStudio] Studio scene not found at {STUDIO_SCENE_PATH}");
+                return;
+            }
+
+            if (UnityEditor.SceneManagement.EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            {
+                UnityEditor.SceneManagement.EditorSceneManager.OpenScene(STUDIO_SCENE_PATH);
+            }
         }
 
         private void OnEnable()
@@ -209,7 +236,7 @@ namespace OutfitStudio.Editor
 
         private static VisualElement FindOverlayRoot()
         {
-            var presenter = FindFirstObjectByType<PreviewUIPresenter>();
+            var presenter = FindAnyObjectByType<PreviewUIPresenter>();
             return presenter == null ? null : presenter.GetComponent<UIDocument>()?.rootVisualElement;
         }
 
@@ -787,7 +814,7 @@ namespace OutfitStudio.Editor
                 return;
             }
 
-            var cameraController = FindFirstObjectByType<PreviewCameraController>();
+            var cameraController = FindAnyObjectByType<PreviewCameraController>();
             if (cameraController != null) action(cameraController);
         }
 
@@ -967,6 +994,42 @@ namespace OutfitStudio.Editor
         private VisualElement BuildOutfitPane()
         {
             var pane = new ScrollView { style = { paddingLeft = 6, paddingRight = 6, paddingTop = 4 } };
+
+            // --- Shader (selection persists via StudioAvatarShaderSwitcher and re-applies after
+            // every avatar reload, edit and play mode, until another shader is picked)
+            pane.Add(Header("Shader"));
+
+            var shaderRow = new VisualElement { style = { flexDirection = FlexDirection.Row } };
+            var shaderButtons = new Button[3];
+            var shaderLabels = new[] { "DCL_Toon", "DCL_Toon_Studio", "DCL_Stylized_PBR" };
+
+            // Tuning panel (rebuilt per selected shader; empty for the stock DCL_Toon)
+            var shaderTuning = new VisualElement();
+
+            void RefreshShaderButtons()
+            {
+                var current = (int)StudioAvatarShaderSwitcher.Mode;
+                for (var i = 0; i < shaderButtons.Length; i++)
+                    shaderButtons[i].SetEnabled(i != current); // disabled = selected, same as the tabs
+            }
+
+            for (var i = 0; i < shaderButtons.Length; i++)
+            {
+                var mode = (StudioShaderMode)i;
+                shaderButtons[i] = new Button(() =>
+                {
+                    StudioAvatarShaderSwitcher.Mode = mode;
+                    RefreshShaderButtons();
+                    BuildShaderTuning(shaderTuning);
+                }) { text = shaderLabels[i], style = { flexGrow = 1 } };
+                shaderRow.Add(shaderButtons[i]);
+            }
+
+            RefreshShaderButtons();
+            pane.Add(shaderRow);
+
+            BuildShaderTuning(shaderTuning);
+            pane.Add(shaderTuning);
 
             // --- Outfit
             pane.Add(Header("Outfit"));
@@ -1153,6 +1216,59 @@ namespace OutfitStudio.Editor
             pane.Add(turntableRow);
 
             return pane;
+        }
+
+        // Rebuilds the live tuning sliders for the currently selected shader. Values are stored
+        // and applied by StudioAvatarShaderSwitcher (the knob list is its single source of truth),
+        // so a change pushes onto every avatar material immediately, in edit and play mode.
+        private void BuildShaderTuning(VisualElement container)
+        {
+            container.Clear();
+
+            var mode = StudioAvatarShaderSwitcher.Mode;
+            var knobs = StudioAvatarShaderSwitcher.KnobsFor(mode);
+            if (knobs.Length == 0)
+            {
+                container.Add(new Label("Stock shader — no tunable properties.")
+                {
+                    style = { unityFontStyleAndWeight = FontStyle.Italic, marginTop = 4, opacity = 0.7f }
+                });
+                return;
+            }
+
+            foreach (var knob in knobs)
+            {
+                if (knob.Kind == StudioKnobKind.Float)
+                {
+                    var slider = new Slider(knob.Label, knob.Min, knob.Max)
+                    {
+                        value = StudioAvatarShaderSwitcher.GetFloat(mode, knob),
+                        showInputField = true,
+                        tooltip = knob.Tooltip
+                    };
+                    slider.RegisterValueChangedCallback(evt =>
+                        StudioAvatarShaderSwitcher.SetFloat(mode, knob, evt.newValue));
+                    container.Add(slider);
+                }
+                else
+                {
+                    var color = new ColorField(knob.Label)
+                    {
+                        value = StudioAvatarShaderSwitcher.GetColor(mode, knob),
+                        showAlpha = false,
+                        tooltip = knob.Tooltip
+                    };
+                    color.RegisterValueChangedCallback(evt =>
+                        StudioAvatarShaderSwitcher.SetColor(mode, knob, evt.newValue));
+                    container.Add(color);
+                }
+            }
+
+            container.Add(new Button(() =>
+            {
+                StudioAvatarShaderSwitcher.ResetKnobs(mode);
+                BuildShaderTuning(container); // reflect reset values back into the fields
+            }) { text = "Reset shader defaults", style = { marginTop = 4 } });
         }
 
         private static Label Header(string text)
@@ -1426,7 +1542,7 @@ namespace OutfitStudio.Editor
         }
 
         private static PreviewController FindPreviewController() =>
-            FindFirstObjectByType<PreviewController>(FindObjectsInactive.Include);
+            FindAnyObjectByType<PreviewController>(FindObjectsInactive.Include);
 
         private static void WithPreview(Action<PreviewController> action)
         {
@@ -1502,7 +1618,7 @@ namespace OutfitStudio.Editor
         {
             if (!EnsurePlaying() || OutfitCapture.IsRecording) return;
 
-            var avatarLoader = FindFirstObjectByType<AvatarLoader>();
+            var avatarLoader = FindAnyObjectByType<AvatarLoader>();
             if (avatarLoader == null)
             {
                 SetStatus("No avatar loaded", true);

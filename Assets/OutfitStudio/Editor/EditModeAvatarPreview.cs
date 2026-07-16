@@ -74,10 +74,10 @@ namespace OutfitStudio.Editor
             try
             {
                 // --- Locate the preview rig (scene must be open)
-                var previewController = Object.FindFirstObjectByType<PreviewController>(FindObjectsInactive.Include);
+                var previewController = Object.FindAnyObjectByType<PreviewController>(FindObjectsInactive.Include);
                 if (previewController == null)
                 {
-                    status("Open Assets/Scenes/Main.unity first", true);
+                    status("Open the Outfit Studio scene (Decentraland menu) or Main.unity first", true);
                     return;
                 }
 
@@ -299,7 +299,7 @@ namespace OutfitStudio.Editor
             // Name-based sweep catches orphans whose tracking state died in a domain reload —
             // critical before play mode so the runtime loader starts on a clean rig
             foreach (var loader in Object.FindObjectsByType<AvatarLoader>(
-                         FindObjectsInactive.Include, FindObjectsSortMode.None))
+                         FindObjectsInactive.Include))
             {
                 var container = loader.transform.Find(PREVIEW_CONTAINER_NAME);
                 if (container != null) Object.DestroyImmediate(container.gameObject);
@@ -377,10 +377,11 @@ namespace OutfitStudio.Editor
         {
             if (CommonAssets.AvatarMaterial == null || CommonAssets.FacialFeaturesMaterial == null)
             {
-                var bootstrap = Object.FindFirstObjectByType<Bootstrap>(FindObjectsInactive.Include);
+                var bootstrap = Object.FindAnyObjectByType<Bootstrap>(FindObjectsInactive.Include);
                 if (bootstrap == null)
                 {
-                    throw new InvalidOperationException("No Bootstrap in the scene — open Assets/Scenes/Main.unity");
+                    throw new InvalidOperationException(
+                        "No Bootstrap in the scene — open the Outfit Studio scene or Main.unity");
                 }
 
                 var serialized = new SerializedObject(bootstrap);
