@@ -1006,7 +1006,9 @@ namespace OutfitStudio.Editor
             var pane = new ScrollView { style = { paddingLeft = 6, paddingRight = 6, paddingTop = 4 } };
 
             // --- Shader (selection persists via StudioAvatarShaderSwitcher and re-applies after
-            // every avatar reload, edit and play mode, until another shader is picked)
+            // every avatar reload, edit and play mode, until another shader is picked). The 3 selector
+            // buttons stay visible for quick access; only the tuning panel is tucked into a
+            // collapsible "Shader Settings" foldout (matching the Card frame section below).
             pane.Add(Header("Shader"));
 
             var shaderRow = new VisualElement { style = { flexDirection = FlexDirection.Row } };
@@ -1038,8 +1040,13 @@ namespace OutfitStudio.Editor
             RefreshShaderButtons();
             pane.Add(shaderRow);
 
+            var shaderFold = new Foldout { text = "Shader Settings", value = false, style = { marginTop = 4 } };
             BuildShaderTuning(shaderTuning);
-            pane.Add(shaderTuning);
+            shaderFold.Add(shaderTuning);
+            pane.Add(shaderFold);
+
+            // --- Card Frame (Fortnite-style item-card composite; studio-scene only, captured for free)
+            BuildCardFrame(pane);
 
             // --- Outfit
             pane.Add(Header("Outfit"));
@@ -1310,6 +1317,85 @@ namespace OutfitStudio.Editor
                 StudioAvatarShaderSwitcher.ResetKnobs(mode);
                 BuildShaderTuning(container); // reflect reset values back into the fields
             }) { text = "Reset shader defaults", style = { marginTop = 4 } });
+        }
+
+        // Fortnite-style "item card" frame around the avatar (background gradient → rounded card →
+        // avatar → bottom fade), composed by StudioCardFrame as camera-parented quads so it renders
+        // through the capture camera. Studio scene only; a collapsible section since it's beauty-shot
+        // dressing, not part of the outfit. See IMPLEMENTATION.md §18.
+        private void BuildCardFrame(VisualElement pane)
+        {
+            var fold = new Foldout { text = "Card frame (beauty shot)", value = false, style = { marginTop = 4 } };
+
+            var enable = new Toggle("Enable") { value = StudioCardFrame.Enabled };
+            enable.RegisterValueChangedCallback(evt => StudioCardFrame.Enabled = evt.newValue);
+            fold.Add(enable);
+
+            var sideMask = new Toggle("Mask avatar to card sides")
+            {
+                value = StudioCardFrame.SideMask,
+                tooltip = "Clip arms/hands that spill past the card's sides/bottom (the head still " +
+                          "overflows the top), like the Fortnite cards."
+            };
+            sideMask.RegisterValueChangedCallback(evt => StudioCardFrame.SideMask = evt.newValue);
+            fold.Add(sideMask);
+
+            var body = new VisualElement();
+            BuildCardBody(body);
+            fold.Add(body);
+
+            pane.Add(fold);
+        }
+
+        private static void BuildCardBody(VisualElement c)
+        {
+            c.Clear();
+
+            Label Section(string t) => new(t) { style = { unityFontStyleAndWeight = FontStyle.Bold, marginTop = 6 } };
+
+            c.Add(Section("Background"));
+            CardColor(c, "Top", () => StudioCardFrame.BgTop, v => StudioCardFrame.BgTop = v);
+            CardColor(c, "Bottom", () => StudioCardFrame.BgBottom, v => StudioCardFrame.BgBottom = v);
+            CardColor(c, "Glow", () => StudioCardFrame.Glow, v => StudioCardFrame.Glow = v, true);
+            CardSlider(c, "Glow Height", 0f, 1f, () => StudioCardFrame.GlowHeight, v => StudioCardFrame.GlowHeight = v);
+            CardSlider(c, "Glow Size", 0.1f, 1.5f, () => StudioCardFrame.GlowSize, v => StudioCardFrame.GlowSize = v);
+
+            c.Add(Section("Card"));
+            CardColor(c, "Top", () => StudioCardFrame.CardTop, v => StudioCardFrame.CardTop = v);
+            CardColor(c, "Bottom", () => StudioCardFrame.CardBottom, v => StudioCardFrame.CardBottom = v);
+            CardSlider(c, "Margin Sides", 0f, 0.3f, () => StudioCardFrame.MarginX, v => StudioCardFrame.MarginX = v);
+            CardSlider(c, "Margin Top", 0f, 0.4f, () => StudioCardFrame.MarginTop, v => StudioCardFrame.MarginTop = v);
+            CardSlider(c, "Margin Bottom", 0f, 0.3f, () => StudioCardFrame.MarginBottom, v => StudioCardFrame.MarginBottom = v);
+            CardSlider(c, "Corner Radius", 0f, 0.5f, () => StudioCardFrame.CornerRadius, v => StudioCardFrame.CornerRadius = v);
+            CardColor(c, "Border", () => StudioCardFrame.Border, v => StudioCardFrame.Border = v);
+            CardSlider(c, "Border Width", 0f, 0.05f, () => StudioCardFrame.BorderWidth, v => StudioCardFrame.BorderWidth = v);
+
+            c.Add(Section("Bottom fade"));
+            CardColor(c, "Color", () => StudioCardFrame.Fade, v => StudioCardFrame.Fade = v);
+            CardSlider(c, "Fade Height", 0f, 1f, () => StudioCardFrame.FadeHeight, v => StudioCardFrame.FadeHeight = v);
+            CardSlider(c, "Fade Softness", 0f, 1f, () => StudioCardFrame.FadeSoftness, v => StudioCardFrame.FadeSoftness = v);
+
+            c.Add(new Button(() =>
+            {
+                StudioCardFrame.ResetDefaults();
+                BuildCardBody(c); // reflect reset values back into the fields
+            }) { text = "Reset card defaults", style = { marginTop = 6 } });
+        }
+
+        private static void CardSlider(VisualElement c, string label, float min, float max,
+            Func<float> get, Action<float> set)
+        {
+            var s = new Slider(label, min, max) { value = get(), showInputField = true };
+            s.RegisterValueChangedCallback(e => set(e.newValue));
+            c.Add(s);
+        }
+
+        private static void CardColor(VisualElement c, string label, Func<Color> get, Action<Color> set,
+            bool showAlpha = false)
+        {
+            var f = new ColorField(label) { value = get(), showAlpha = showAlpha };
+            f.RegisterValueChangedCallback(e => set(e.newValue));
+            c.Add(f);
         }
 
         // One button per single-frame GLB in StreamingAssets/poses/. Clicking sets the pose as the

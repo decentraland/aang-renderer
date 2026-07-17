@@ -52,11 +52,13 @@ Assets/OutfitStudio/
 ├── Shaders/
 │   ├── Matcaps/                   # 6 matcap PNGs + MatcapPresets.asset (local copies, §16)
 │   ├── DCL_Toon_Studio/           # unlocked copy of the metallic-branch DCL_Toon (§16)
-│   └── DCL_Stylized_PBR/          # new Disney-principled stylized PBR shader (§16)
+│   ├── DCL_Stylized_PBR/          # new Disney-principled stylized PBR shader (§16)
+│   └── StudioCardFrame/           # unlit shader for the Fortnite-style card frame (§18)
 └── Editor/
     ├── OutfitCapture.cs           # still (RenderPipeline request) + video (Unity Recorder)
     ├── EditModeAvatarPreview.cs   # edit-mode outfit assembly on the scene skeleton (§11)
     ├── StudioAvatarShaderSwitcher.cs # 3-way shader enforcement + matcap bootstrap (§16)
+    ├── StudioCardFrame.cs         # camera-parented card-frame quads (bg/card/fade) (§18)
     └── OutfitStudioWindow.cs      # the EditorWindow (all UI + orchestration)
 ```
 (Plus `Editor/StudioSceneOverlayHider.cs`, `Editor/StudioRenderPipelineSwitcher.cs`,
@@ -511,9 +513,11 @@ Renderer *script* changes flow automatically — only scene-serialized wiring dr
 
 ## 16. Shader switcher & studio shaders (iteration 5, 2026-07-15)
 
-A "Shader" section at the top of the outfit pane with 3 buttons. The selection persists
-(EditorPrefs `OutfitStudio.Shader`) and is enforced on every avatar material in edit AND play
-mode, across reloads, until another shader is picked. Studio-scene-gated — outside
+A "Shader" section at the top of the outfit pane with 3 selector buttons (always visible for quick
+access); the per-shader tuning panel below them is tucked into a collapsible **"Shader Settings"**
+foldout (2026-07-17, matching the Card frame section). The selection persists (EditorPrefs
+`OutfitStudio.Shader`) and is enforced on every avatar material in edit AND play mode, across
+reloads, until another shader is picked. Studio-scene-gated — outside
 `OutfitStudio.unity` nothing is touched.
 
 | Button | Shader | What it is |
@@ -754,3 +758,113 @@ the edit-mode skeleton). Constants live in `OutfitStudioWindow`: `POSES_DIR_UNDE
 (`OutfitStudio/Poses`, for the scan) and `POSES_EMBEDDED_PREFIX` (`../OutfitStudio/Poses`, the emote
 name). A future v2 could sample the pose clip onto the edit-mode skeleton (like `SampleIdlePose`) so
 shots can be framed without entering play.
+
+## 18. Card frame — Fortnite-style item cards (2026-07-17)
+
+A "Card frame (beauty shot)" section (collapsible Foldout at the top of the outfit pane) composites
+a Fortnite item-card look around the avatar: **outer background gradient → rounded card panel →
+avatar → bottom fade**. The reference targets are the marketplace/Fortnite item cards (purple card
+on a dark→violet backdrop, head overflowing the top edge, legs fading into the card). Studio-scene
+only; **fully folder-isolated — zero renderer-data / shipping-asset edits, and nothing ships to a
+build** (the shader is only referenced by editor-created runtime materials, so it's excluded from
+the WebGL build — verify in a build report, same discipline as the Nethereum DLLs in §13).
+
+### Why quads, not a UI overlay or a renderer feature
+The hard constraint is §8: **runtime UI overlays don't render through the capture camera**, so the
+frame must be camera geometry to appear in the exported PNG. Two ways to get camera geometry:
+- A URP fullscreen renderer feature (like `BackgroundRendererFeature`) — but the studio
+  **PreviewCamera renders through `URP_PreviewRenderer` (renderer index 1)**, which has only the
+  outline feature; the gradient `BackgroundRendererFeature` lives on `URP_ConfiguratorRenderer`
+  (index 0 = the ConfiguratorCamera we strip). Adding a feature would mean editing a **shipping**
+  renderer data (or duplicating it, §14 "Route A") **and** shipping the shader into prod builds.
+- **Camera-parented quads** (chosen) — keeps everything under `Assets/OutfitStudio/`, needs no
+  renderer/asset changes, and the quad shader never enters a build.
+
+### Layers (ordered by render queue, so no per-avatar depth math)
+`StudioCardFrame` ([InitializeOnLoad], 0.5 s poll, studio-scene-gated like the other helpers)
+parents three quads to the render camera (`Camera.main`, matching what `OutfitCapture` uses; falls
+back to a `PreviewCamera`/highest-depth search). One shader (`Custom/StudioCardFrame`, `_Mode`
+0/1/2) with **material-driven render state** (`_ZTest`/`_ZWrite`/`_SrcBlend`/`_DstBlend`) covers all
+three:
+- **Background** — queue 1000, opaque, **ZWrite On**. Fullscreen vertical gradient + optional radial
+  glow. Writing depth here occludes the skybox **without touching the camera's clear flags** (no
+  scene churn). Safe because the studio renderer has `m_DepthPrimingMode: 0` (priming would force
+  ZTest Equal and skip a quad with no DepthOnly pass) and Forward+ (`m_RenderingMode: 2`) is fine for
+  unlit quads.
+- **Card panel** — queue 1500, ZTest Always, alpha blend. Rounded-rect (SDF, aspect-corrected) with
+  a vertical gradient fill (fill only — the border is its own top layer, below). Drawn **before** the
+  avatar (opaque, queue 2000), so the avatar draws over it and the **head overflowing the top edge is
+  free** (no masking — that was the original "avatar mask" worry; it dissolves because the card is
+  just a shape *behind* the avatar). No hard side-clip by design — framing + margins keep the avatar
+  inside, matching the refs (add the SideMask toggle below for a hard clip).
+- **Bottom fade** — queue 3500, ZTest Always, alpha blend. Drawn **after** the avatar; same rounded
+  rect as the card (so its bottom corners match) × a vertical fade to transparent, painting the card
+  colour over the legs.
+- **Border** (`_Mode 4`) — queue 4000, ZTest Always, alpha blend. Drawn **last, on top of
+  everything** (avatar, fade, side-mask) so the card outline is never occluded — this is why the
+  border is a separate quad and not baked into the card panel. Ring in the SDF band
+  `dist ∈ (-_BorderWidth, 0)`; alpha 0 when `_BorderWidth` is 0. **Open at the top**: the border
+  fades out above `_BorderTopFade` (uv.y 0.88) so it frames only the sides + bottom and the head
+  overflows the top freely (without this the top edge draws across the neck/shoulders — same intent
+  as the side-mask leaving the top open).
+
+The card, fade, and border quads share the same rect; only the background (and the side mask) are
+fullscreen. Placement Z is a fixed `PLANE_Z = 50` (behind a ~2 m avatar, inside the far plane);
+ordering is queue-only so the exact Z doesn't matter except for the background's depth write.
+
+### Optional side-mask (clip arms/hands to the card) — `SideMask` toggle
+By default the avatar overflows on *all* sides (drawing behind gives top-overflow for free but no
+side clip). The **"Mask avatar to card sides"** toggle adds a 4th quad (`_Mode 3`, queue 3200 — in
+front of the avatar + transparent wearables, before the fade) that **repaints the background gradient
+over everything outside the card rect, leaving the top open** so the head still overflows (matches
+the Fortnite cards, where arms/hands are clipped at the card edge but the head pokes out the top).
+- **No seam:** the mask quad is given the **exact same transform as the background quad**, so its
+  mesh UV — and therefore the repainted gradient (incl. glow) — is pixel-identical to the background.
+  The card rect is handed to the shader as `_MaskRect (l,r,b,t)` in that shared UV space
+  (`U(f) = 0.5 + (f-0.5)/BG_OVERSIZE` maps a viewport fraction into it).
+- **Shape:** the same rounded-rect SDF as the card gives clipped **sides + rounded bottom corners**;
+  the region **above the card top, within the card width** is forced open (`max(cardMask,
+  withinX*aboveTop)`) so the head overflows. Bottom corners align with the card panel; the bottom
+  fade draws over the inside afterwards.
+- Chosen over a stencil mask (would need every avatar shader to opt in) or a fullscreen composite
+  (would need the avatar isolated to its own RT). The repaint-outside approach needs neither and
+  stays in the quad model. Only enabled when the toggle is on (`_mask.enabled = SideMask`).
+
+### Controls & persistence
+All knobs live on `StudioCardFrame` as EditorPrefs-backed static properties (keys
+`OutfitStudio.Card.*`); the window builds fields from them (`BuildCardFrame`/`BuildCardBody`),
+setters push live. Groups: **Background** (top/bottom colour, glow colour+height+size), **Card**
+(top/bottom colour, side/top/bottom margins, corner radius, border colour+width), **Bottom fade**
+(colour, height, softness). "Reset card defaults" clears the keys. Defaults are tuned to the
+reference look (bg `#16143A`→`#3A1E5C`, card `#6B3FA0`→`#4A2870`, top margin 0.12 for head overflow).
+Master **Enable** toggle (default off, opt-in).
+
+### Capture
+`OutfitCapture.CaptureStill` forces `camera.aspect = width/height` and calls
+`StudioCardFrame.RelayoutFor(camera)` before the render request (then `camera.ResetAspect()` after),
+so a still at a resolution different from the Game view still frames the card correctly. Set the
+Game view to a **portrait aspect (~2:3)** to author WYSIWYG. Note: with the card enabled the opaque
+background quad fills the frame, so the "Transparent background" capture toggle is effectively
+overridden (you want the card bg, not transparency).
+
+### Lifecycle
+Quads are `HideFlags.DontSave` (never serialized → no scene churn) and parented to the camera so they
+track the view (incl. drag-rotate, which rotates the avatar only). Recreated after a domain reload
+(`TryReattach` finds a surviving root by name, else rebuilds) and after the play-mode scene reload
+(the poll re-parents to the new camera). Edit-mode preview and play mode both show the frame.
+
+### Verification (needs the editor — not yet run)
+1. Focus Unity → `Custom/StudioCardFrame` compiles, no CS errors in the new files.
+2. Studio scene, edit mode: load an outfit, open **Card frame**, tick **Enable** → gradient bg +
+   rounded purple card appear behind the avatar within ~0.5 s; head overflows the top; legs fade
+   into the card at the bottom.
+3. Tweak margins/radius/colours/fade → live update. Drag-rotate → bg/card stay put, avatar rotates.
+4. Enter play, pick a pose, **Capture Still** at e.g. 900×1350 → PNG shows the framed card matching
+   the Game view (set the Game view to a 2:3 portrait aspect first).
+5. Toggle Enable off → quads vanish, plain preview returns. Prod safety: confirm the shader is absent
+   from a WebGL build report and no diffs on any `URP_*`/renderer-data asset or `Main.unity`.
+
+### Possible v2s
+Name/price/"+" text chrome (deferred — not a DCL concept; would be a 4th quad or a captured text
+layer); per-side avatar hard-clip via a stencil if a wide pose ever spills past the card; save/load
+card presets alongside outfit presets; a horizontal/radial background gradient option.

@@ -43,6 +43,12 @@ namespace OutfitStudio.Editor
                 camera.backgroundColor = new Color(0f, 0f, 0f, 0f);
             }
 
+            // The card frame (if active) sizes its quads from camera.aspect on a 0.5 s poll, which
+            // tracks the Game view. Force the capture aspect and re-lay-out so a still at a different
+            // resolution still frames the card correctly. Restored via ResetAspect() below.
+            camera.aspect = width / (float)height;
+            StudioCardFrame.RelayoutFor(camera);
+
             var rt = new RenderTexture(width, height, 32, RenderTextureFormat.ARGB32)
             {
                 antiAliasing = 4
@@ -86,6 +92,8 @@ namespace OutfitStudio.Editor
             {
                 camera.clearFlags = previousFlags;
                 camera.backgroundColor = previousColor;
+                camera.ResetAspect();
+                StudioCardFrame.RelayoutFor(camera);
 
                 if (texture != null) UnityEngine.Object.DestroyImmediate(texture);
                 rt.Release();
