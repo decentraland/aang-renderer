@@ -35,6 +35,11 @@ Menu entry: **Decentraland ▸ Outfit Studio** (`OutfitStudioWindow`, UI Toolkit
   5. `Assets/Scripts/Preview/PreviewUIPresenter.cs` — the debug URL presets list was hoisted
      from a local variable in `EnableDebug()` to `public static readonly DEBUG_URL_PRESETS`
      (same content) so the window's Debug tab shares one source of truth. Behavior-neutral.
+  6. `Assets/Scripts/AangConfiguration.cs` (+`Assets/Scripts/Preview/PreviewController.cs`) —
+     added `bool EmoteLoop` (default **false**) and passed it to `LoadForProfile` in the
+     Profile/Authentication case (`LoadForProfile(config.Profile, config.Emote, config.EmoteLoop)`).
+     Lets the studio hold a single-frame pose on a profile avatar (§17). Prod default false =
+     unchanged; only the Outfit Studio sets it true.
 
 ## 3. File map
 
@@ -754,7 +759,28 @@ resolves in production builds — which is fine, poses are an editor-only screen
 
 **Apply in play mode** (like all emotes — a 1-frame emote holds its frame): equip → Enter Play →
 click a pose → Capture Still. Edit mode still shows the static idle pose (poses aren't sampled onto
-the edit-mode skeleton). Constants live in `OutfitStudioWindow`: `POSES_DIR_UNDER_ASSETS`
+the edit-mode skeleton).
+
+**Play-mode pose buttons change ONLY the pose, not the loaded avatar (2026-07-17).** In play mode a
+pose button calls `ApplyPoseOnly` instead of `Apply`: it sets just `AangConfiguration.Emote` and
+reloads, so whatever avatar is loaded keeps its identity/wearables and only the pose changes (the
+`AvatarLoader` diffs the unchanged wearables, so just the emote reloads) — mirroring how the shader
+switcher edits the loaded avatar rather than reloading it.
+
+**Mode handling (important):** `Builder` (the custom outfit) is kept. **Every other mode is switched
+to `Profile`** (preserving `config.Profile`, so a Debug-tab **Random Profile** stays the same avatar,
+now posed). This is required because `LoadForProfile`/`LoadForBuilder` pass `config.Emote` through
+`FromEmbeddedEmote` (so `"../OutfitStudio/Poses/<file>"` resolves), **but `Jesus` mode hard-codes its
+emote** (`character/Particles_Anim` — the arms-out "jesus" pose) and Marketplace shows a wearable —
+both ignore `config.Emote`. Random Profile via `SetProfile` doesn't change the mode, so if the
+session was in Jesus mode the pose silently wouldn't apply; forcing Profile fixes it.
+
+**Holding the pose (`EmoteLoop`):** a single-frame pose only *holds* if the emote loops. Builder's
+`ResolveBuilderEmote` uses `loop: true`, but `LoadForProfile`/`LoadForMarketplace` use `loop: false`
+— so in Profile mode the 1-frame pose ended instantly and reverted to the base breathing idle.
+`ApplyPoseOnly` sets `config.EmoteLoop = true` (renderer touch point #6, prod default false) so the
+profile pose holds. **Edit mode is unchanged** (pose buttons route through `Apply`). Scoped to the
+pose buttons; the "Embedded" emote popup still does a full `Apply`. Constants live in `OutfitStudioWindow`: `POSES_DIR_UNDER_ASSETS`
 (`OutfitStudio/Poses`, for the scan) and `POSES_EMBEDDED_PREFIX` (`../OutfitStudio/Poses`, the emote
 name). A future v2 could sample the pose clip onto the edit-mode skeleton (like `SampleIdlePose`) so
 shots can be framed without entering play.

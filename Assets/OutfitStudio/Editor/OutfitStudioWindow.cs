@@ -1416,7 +1416,13 @@ namespace OutfitStudio.Editor
                     RemoveDraftEmote(); // an equipped draft emote would override the pose
                     _poseLabel.text = $"Pose: {name}";
                     RefreshShareCode();
-                    ScheduleApply();
+                    // Play mode: pose ONLY the currently-loaded avatar (which may be a Random Profile
+                    // from the Debug tab) without reloading the custom outfit. Edit mode: assemble the
+                    // outfit + pose onto the preview skeleton as before.
+                    if (Application.isPlaying)
+                        ApplyPoseOnly(emoteName);
+                    else
+                        ScheduleApply();
                     BuildPoseButtons(grid); // refresh the selected-highlight
                 }) { text = name, style = { marginRight = 2, marginBottom = 2 } };
                 btn.SetEnabled(outfit.emote != emoteName); // disabled = selected
@@ -1692,6 +1698,43 @@ namespace OutfitStudio.Editor
             previewController.InvokeReload();
 
             SetStatus("Outfit applied");
+        }
+
+        /// <summary>
+        /// Play-mode pose change that does NOT reload the custom outfit: sets only <c>config.Emote</c>
+        /// and reloads, so whatever avatar is loaded keeps its identity and just changes pose (the
+        /// AvatarLoader diffs the unchanged wearables, so only the emote reloads).
+        ///
+        /// Mode handling: <b>Builder</b> (the custom outfit) is kept as-is. <b>Any other</b> mode is
+        /// switched to <b>Profile</b> — because Jesus mode hard-codes its emote (<c>Particles_Anim</c>,
+        /// the arms-out "jesus" pose) and Marketplace shows a wearable, both ignoring
+        /// <c>config.Emote</c>; Profile mode applies it. <c>config.Profile</c> is preserved, so a
+        /// Random Profile stays the same avatar, now posed. Edit mode routes poses through Apply.
+        /// </summary>
+        private void ApplyPoseOnly(string emoteName)
+        {
+            var pc = FindPreviewController();
+            if (pc == null)
+            {
+                SetStatus("No PreviewController in the scene", true);
+                return;
+            }
+
+            var config = AangConfiguration.Instance;
+            config.Emote = string.IsNullOrEmpty(emoteName) ? "idle" : emoteName;
+
+            // Keep the custom outfit (Builder); otherwise pose the current profile avatar in Profile
+            // mode, where config.Emote is actually applied (Jesus/Marketplace ignore it).
+            if (config.Mode != PreviewMode.Builder)
+                config.SetMode("profile");
+
+            // Hold the single-frame pose. Builder already loops embedded emotes; Profile mode does
+            // not (its 1-frame pose would end instantly and revert to the base idle), so opt in.
+            config.EmoteLoop = true;
+
+            pc.gameObject.SetActive(true);
+            pc.InvokeReload();
+            SetStatus("Pose applied to the loaded avatar");
         }
 
         /// <summary>

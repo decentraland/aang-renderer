@@ -193,7 +193,7 @@ namespace Preview
                         case PreviewMode.Authentication:
                         case PreviewMode.Profile:
                             showingAvatar = true;
-                            await LoadForProfile(config.Profile, config.Emote);
+                            await LoadForProfile(config.Profile, config.Emote, config.EmoteLoop);
                             break;
                         case PreviewMode.Builder:
                             await LoadForBuilder(config.BodyShape,

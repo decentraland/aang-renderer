@@ -49,6 +49,13 @@ public class AangConfiguration
     public string Emote { get; set; } = "idle";
 
     /// <summary>
+    /// Whether the emote should loop in Profile/Authentication mode. Default false (unchanged
+    /// behaviour). The Outfit Studio sets this true so a single-frame "pose" holds its frame on a
+    /// profile avatar (Builder mode already loops embedded emotes; see PreviewController).
+    /// </summary>
+    public bool EmoteLoop { get; set; } = false;
+
+    /// <summary>
     /// The base64 encoded GLB to load.
     /// </summary>
     public List<byte[]> Base64 { get; } = new();
