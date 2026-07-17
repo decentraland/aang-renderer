@@ -301,6 +301,15 @@ namespace Loading
             }
         }
 
+        public Renderer[] GetAvatarRenderers() => transform.GetComponentsInChildren<Renderer>();
+
+        /// <summary>
+        /// World-space bounds of the loaded emote across its whole animation, used to frame the camera.
+        /// Returns false if there is no emote loaded or no renderers to measure.
+        /// </summary>
+        public bool TryGetEmoteBounds(int samples, out Bounds worldBounds) =>
+            emoteAnimationController.TryGetEmoteWorldBounds(GetAvatarRenderers(), samples, out worldBounds);
+
         public void ClearEmote()
         {
             if (_loadedEmote != null)

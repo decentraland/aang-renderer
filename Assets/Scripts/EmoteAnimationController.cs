@@ -52,6 +52,94 @@ public class EmoteAnimationController : MonoBehaviour
         return _loadedEmote.Value.Clip.length;
     }
 
+    // Mesh extends beyond the bone joints; pad the bone-derived envelope so nothing clips.
+    private const float BoneEnvelopePadding = 0.15f;
+
+    /// <summary>
+    /// Samples the currently loaded emote across its whole length (plus the idle pose) and returns
+    /// the world-space envelope of the avatar skeleton over that range. Used to frame the camera so
+    /// the entire emote fits — sampling the whole clip avoids depending on any single animation
+    /// frame, and measuring bone positions (rather than SkinnedMeshRenderer.bounds, which does not
+    /// refresh on a synchronous Sample) captures the true animated extent, including emotes that
+    /// scale the avatar. The visible pose and playback state are fully restored before returning.
+    /// </summary>
+    public bool TryGetEmoteWorldBounds(Renderer[] renderers, int samples, out Bounds worldBounds)
+    {
+        worldBounds = default;
+
+        if (!_loadedEmote.HasValue || renderers == null || renderers.Length == 0) return false;
+        if (samples < 1) samples = 1;
+
+        var urn = _loadedEmote.Value.Entity.URN;
+        var clip = _loadedEmote.Value.Clip;
+
+        // Collect the unique set of skeleton bones driving the avatar. We measure the envelope from
+        // bone world positions rather than SkinnedMeshRenderer.bounds: skinned bounds do not
+        // recompute on a synchronous Sample() (Unity only refreshes them during its skinning pass),
+        // so they stay frozen while scrubbing. Bone transforms, however, update immediately — and
+        // they also track any scale the emote animates, which is exactly what we need to frame.
+        var bones = new System.Collections.Generic.HashSet<Transform>();
+        foreach (var r in renderers)
+        {
+            if (r is not SkinnedMeshRenderer smr) continue;
+            if (smr.rootBone != null) bones.Add(smr.rootBone);
+            foreach (var b in smr.bones)
+                if (b != null) bones.Add(b);
+        }
+
+        if (bones.Count == 0) return false;
+
+        var hasBounds = false;
+
+        avatarAnimation.Play(urn);
+        var state = avatarAnimation[urn];
+
+        if (state != null)
+        {
+            for (var i = 0; i <= samples; i++)
+            {
+                state.time = i / (float)samples * clip.length;
+                avatarAnimation.Sample();
+                EncapsulateBones(bones, ref worldBounds, ref hasBounds);
+            }
+        }
+
+        // Include the idle pose so the framing keeps the resting avatar comfortably inside.
+        avatarAnimation.Play(IDLE_CLIP_NAME);
+        avatarAnimation.Sample();
+        EncapsulateBones(bones, ref worldBounds, ref hasBounds);
+
+        if (hasBounds)
+        {
+            worldBounds.Expand(BoneEnvelopePadding * 2f); // Expand() takes total growth, so *2 per side.
+        }
+
+        // Restart the emote cleanly from the top (this re-establishes the crossfade-to-idle queue,
+        // prop and audio triggers) so sampling leaves playback exactly as a fresh play would.
+        ReplayEmote();
+
+        return hasBounds;
+    }
+
+    private static void EncapsulateBones(System.Collections.Generic.HashSet<Transform> bones,
+        ref Bounds bounds, ref bool hasBounds)
+    {
+        foreach (var b in bones)
+        {
+            if (b == null) continue;
+
+            if (!hasBounds)
+            {
+                bounds = new Bounds(b.position, Vector3.zero);
+                hasBounds = true;
+            }
+            else
+            {
+                bounds.Encapsulate(b.position);
+            }
+        }
+    }
+
     public bool IsEmotePlaying()
     {
         if (!_loadedEmote.HasValue) return false;

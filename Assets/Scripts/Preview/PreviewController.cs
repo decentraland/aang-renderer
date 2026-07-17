@@ -32,6 +32,9 @@ namespace Preview
 
         [SerializeField] private float wearablePadding = 0.15f;
 
+        // Number of steps to sample across an emote clip when computing its framing bounds.
+        private const int EMOTE_BBOX_SAMPLES = 24;
+
         private bool _loading;
         private bool _shouldReload;
         private bool _shouldCleanup;
@@ -229,7 +232,14 @@ namespace Preview
                 }
                 else if (hasEmoteOverride)
                 {
-                    GameObjectUtils.CenterAndFit(avatarLoader.transform, mainCamera, wearablePadding);
+                    // Frame the emote by moving the camera (keeping the avatar at true world scale)
+                    // so the whole animation fits and the avatar never gets left over-scaled on the
+                    // return to idle. See marketplace#2661.
+                    if (avatarLoader.TryGetEmoteBounds(EMOTE_BBOX_SAMPLES, out var emoteBounds))
+                    {
+                        previewCameraController.FrameAvatarToBounds(emoteBounds, mainCamera.aspect,
+                            mainCamera.orthographic);
+                    }
                 }
 
                 if (config.Mode is PreviewMode.Marketplace)
