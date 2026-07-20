@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a92cabcd6d1a2204cab97d4490ac87ac, type: 3}
+  m_Name: CardColorPreset_01
+  m_EditorClassIdentifier: Assembly-CSharp-Editor::OutfitStudio.Editor.CardColorPreset
+  backgroundTop: {r: 0.15294118, g: 0.33333334, b: 0.39215687, a: 1}
+  backgroundBottom: {r: 0.039215688, g: 0.11764706, b: 0.18039216, a: 1}
+  glow: {r: 0.30588236, g: 0.56078434, b: 0.57254905, a: 0.2509804}
+  cardTop: {r: 0.3529412, g: 0.16470589, b: 0.40392157, a: 1}
+  cardBottom: {r: 0.1882353, g: 0.078431375, b: 0.22352941, a: 1}
+  border: {r: 0.4117647, g: 0.30588236, b: 1, a: 1}
+  bottomFade: {r: 0.14901961, g: 0.0627451, b: 0.18039216, a: 1}

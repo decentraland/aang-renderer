@@ -62,6 +62,10 @@ namespace OutfitStudio.Editor
         private const string POSES_DIR_UNDER_ASSETS = "OutfitStudio/Poses";       // for the file scan
         private const string POSES_EMBEDDED_PREFIX = "../OutfitStudio/Poses";      // relative to StreamingAssets
 
+        // Default folder the "Save current…" card-colour-preset dialog points at (presets can live
+        // anywhere - they're discovered project-wide by type).
+        private const string CARD_PRESETS_DIR = "Assets/OutfitStudio/CardPresets";
+
         private static readonly Dictionary<string, Color> RARITY_COLORS = new()
         {
             ["common"] = new Color(0.67f, 0.79f, 0.85f),
@@ -1353,6 +1357,53 @@ namespace OutfitStudio.Editor
 
             Label Section(string t) => new(t) { style = { unityFontStyleAndWeight = FontStyle.Bold, marginTop = 6 } };
 
+            // Colour presets — one button per CardColorPreset asset. Applies ONLY the 7 frame colours,
+            // leaving the current margins/sizes/toggles intact. The whole body is rebuilt on apply so
+            // the ColorFields below reflect the new values.
+            c.Add(Section("Presets"));
+            var presetRow = new VisualElement { style = { flexDirection = FlexDirection.Row, flexWrap = Wrap.Wrap } };
+            foreach (var preset in LoadCardPresets())
+            {
+                var p = preset; // capture per-iteration
+                presetRow.Add(new Button(() =>
+                {
+                    ApplyCardPreset(p);
+                    BuildCardBody(c);
+                }) { text = p.name, style = { marginRight = 2, marginBottom = 2 } });
+            }
+
+            if (presetRow.childCount == 0)
+                presetRow.Add(new Label("No presets — create via Assets ▸ Create ▸ Outfit Studio ▸ Card Color Preset")
+                {
+                    style = { unityFontStyleAndWeight = FontStyle.Italic, opacity = 0.7f, marginRight = 4 }
+                });
+
+            presetRow.Add(new Button(() =>
+            {
+                EnsureFolder(CARD_PRESETS_DIR); // so the dialog opens in the intended default folder
+                var path = EditorUtility.SaveFilePanelInProject("Save Card Color Preset", "CardColorPreset",
+                    "asset", "Save the current 7 frame colours as a reusable preset.", CARD_PRESETS_DIR);
+                if (string.IsNullOrEmpty(path)) return;
+
+                var preset = ScriptableObject.CreateInstance<CardColorPreset>();
+                preset.backgroundTop = StudioCardFrame.BgTop;
+                preset.backgroundBottom = StudioCardFrame.BgBottom;
+                preset.glow = StudioCardFrame.Glow;
+                preset.cardTop = StudioCardFrame.CardTop;
+                preset.cardBottom = StudioCardFrame.CardBottom;
+                preset.border = StudioCardFrame.Border;
+                preset.bottomFade = StudioCardFrame.Fade;
+                AssetDatabase.CreateAsset(preset, path);
+                AssetDatabase.SaveAssets();
+                BuildCardBody(c); // show the new preset button
+            }) { text = "Save current…", tooltip = "Save the current 7 colours as a new preset asset", style = { marginRight = 2, marginBottom = 2 } });
+
+            presetRow.Add(new Button(() => BuildCardBody(c))
+            {
+                text = "⟳", tooltip = "Rescan for preset assets", style = { marginBottom = 2 }
+            });
+            c.Add(presetRow);
+
             c.Add(Section("Background"));
             CardColor(c, "Top", () => StudioCardFrame.BgTop, v => StudioCardFrame.BgTop = v);
             CardColor(c, "Bottom", () => StudioCardFrame.BgBottom, v => StudioCardFrame.BgBottom = v);
@@ -1396,6 +1447,39 @@ namespace OutfitStudio.Editor
             var f = new ColorField(label) { value = get(), showAlpha = showAlpha };
             f.RegisterValueChangedCallback(e => set(e.newValue));
             c.Add(f);
+        }
+
+        // All CardColorPreset assets in the project, sorted by name (one button each).
+        private static List<CardColorPreset> LoadCardPresets() =>
+            AssetDatabase.FindAssets($"t:{nameof(CardColorPreset)}")
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadAssetAtPath<CardColorPreset>)
+                .Where(p => p != null)
+                .OrderBy(p => p.name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+        // Push a preset's 7 colours onto the live card frame. Each setter refreshes the frame; the
+        // margins/sizes/toggles are deliberately not touched.
+        private static void ApplyCardPreset(CardColorPreset p)
+        {
+            StudioCardFrame.BgTop = p.backgroundTop;
+            StudioCardFrame.BgBottom = p.backgroundBottom;
+            StudioCardFrame.Glow = p.glow;
+            StudioCardFrame.CardTop = p.cardTop;
+            StudioCardFrame.CardBottom = p.cardBottom;
+            StudioCardFrame.Border = p.border;
+            StudioCardFrame.Fade = p.bottomFade;
+        }
+
+        // Create an "Assets/…"-relative folder (and any missing parents) if it doesn't exist yet.
+        private static void EnsureFolder(string assetPath)
+        {
+            if (AssetDatabase.IsValidFolder(assetPath)) return;
+            var parent = System.IO.Path.GetDirectoryName(assetPath)?.Replace('\\', '/');
+            var name = System.IO.Path.GetFileName(assetPath);
+            if (string.IsNullOrEmpty(parent) || string.IsNullOrEmpty(name)) return;
+            EnsureFolder(parent);
+            AssetDatabase.CreateFolder(parent, name);
         }
 
         // One button per single-frame GLB in StreamingAssets/poses/. Clicking sets the pose as the
