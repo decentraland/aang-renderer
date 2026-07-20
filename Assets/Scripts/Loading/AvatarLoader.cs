@@ -31,6 +31,15 @@ namespace Loading
         [SerializeField] private Vector3 highlightCenter = new(0, 0.18f, 0);
         [SerializeField] private Vector2 highlightSize = new(0.57f, 2.3f);
 
+        /// <summary>
+        /// When true, the per-frame population of <see cref="RendererFeature_AvatarOutline"/> is
+        /// skipped so the avatar renders without its outline. Set by the Outfit Studio (editor tool)
+        /// for clean "card" beauty shots; the outline feature clears its list each frame, so simply
+        /// not adding leaves it empty. Runtime-static (resets on domain reload); the studio re-applies
+        /// it from its poller. Also honoured by <see cref="WearableLoader"/>.
+        /// </summary>
+        public static bool OutlineSuppressed;
+
         private BodyShape? _loadedBodyShape;
 
         private readonly Dictionary<string, LoadedModel> _loadedModels = new();
@@ -328,11 +337,19 @@ namespace Loading
 
         private void Update()
         {
-            foreach (var (_, root, _, outlineRenderers) in _loadedModels.Values)
+            if (OutlineSuppressed)
             {
-                if (root.activeInHierarchy)
+                // Clear rather than just skip, in case the feature doesn't reset the list itself.
+                RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.Clear();
+            }
+            else
+            {
+                foreach (var (_, root, _, outlineRenderers) in _loadedModels.Values)
                 {
-                    RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.AddRange(outlineRenderers);
+                    if (root.activeInHierarchy)
+                    {
+                        RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.AddRange(outlineRenderers);
+                    }
                 }
             }
 

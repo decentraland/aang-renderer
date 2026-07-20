@@ -1344,6 +1344,15 @@ namespace OutfitStudio.Editor
             sideMask.RegisterValueChangedCallback(evt => StudioCardFrame.SideMask = evt.newValue);
             fold.Add(sideMask);
 
+            var hideOutline = new Toggle("Hide avatar outline")
+            {
+                value = StudioCardFrame.HideOutline,
+                tooltip = "Suppress the avatar's outline (a thin silhouette line, most visible over " +
+                          "the head against a light card) for clean beauty shots. Play mode only."
+            };
+            hideOutline.RegisterValueChangedCallback(evt => StudioCardFrame.HideOutline = evt.newValue);
+            fold.Add(hideOutline);
+
             var body = new VisualElement();
             BuildCardBody(body);
             fold.Add(body);

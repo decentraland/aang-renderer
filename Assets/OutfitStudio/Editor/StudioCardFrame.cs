@@ -34,6 +34,7 @@ namespace OutfitStudio.Editor
         // EditorPrefs keys
         private const string K_ENABLED = "OutfitStudio.Card.Enabled";
         private const string K_SIDEMASK = "OutfitStudio.Card.SideMask";
+        private const string K_HIDE_OUTLINE = "OutfitStudio.Card.HideOutline";
         private const string K_BG_TOP = "OutfitStudio.Card.BgTop";
         private const string K_BG_BOTTOM = "OutfitStudio.Card.BgBottom";
         private const string K_GLOW = "OutfitStudio.Card.Glow";
@@ -107,6 +108,15 @@ namespace OutfitStudio.Editor
             set { EditorPrefs.SetBool(K_SIDEMASK, value); Refresh(); }
         }
 
+        /// <summary>Suppress the avatar's outline (a thin silhouette line, visible over the head
+        /// against a light card) for clean beauty shots. Drives <see cref="Loading.AvatarLoader"/>'s
+        /// runtime flag; independent of <see cref="Enabled"/> so it works with or without the frame.</summary>
+        public static bool HideOutline
+        {
+            get => EditorPrefs.GetBool(K_HIDE_OUTLINE, false);
+            set { EditorPrefs.SetBool(K_HIDE_OUTLINE, value); SyncOutline(); }
+        }
+
         public static Color BgTop { get => GetColor(K_BG_TOP, DefBgTop); set => SetColor(K_BG_TOP, value); }
         public static Color BgBottom { get => GetColor(K_BG_BOTTOM, DefBgBottom); set => SetColor(K_BG_BOTTOM, value); }
         public static Color Glow { get => GetColor(K_GLOW, DefGlow, true); set => SetColor(K_GLOW, value); }
@@ -142,7 +152,24 @@ namespace OutfitStudio.Editor
         {
             if (EditorApplication.timeSinceStartup < _nextCheck) return;
             _nextCheck = EditorApplication.timeSinceStartup + 0.5;
+            SyncOutline();
             Refresh();
+        }
+
+        /// <summary>
+        /// Push the outline-suppression flag onto the runtime loaders. Only overrides inside the
+        /// studio scene, so the outline behaves normally in the main app / other scenes. Re-applied
+        /// every poll tick so it survives a domain reload or entering play mode (where the static
+        /// resets). The flag is only read while playing (the outline renders in play mode).
+        /// </summary>
+        private static void SyncOutline()
+        {
+            // Suppress only while the studio window is open in the studio scene, so closing the
+            // window or leaving the scene auto-restores the outline (the poll runs every tick, so a
+            // stale "on" preference can never leave the outline stuck off with no visible control).
+            var inStudio = SceneManager.GetActiveScene().path == OutfitStudioWindow.STUDIO_SCENE_PATH;
+            var windowOpen = EditorWindow.HasOpenInstances<OutfitStudioWindow>();
+            Loading.AvatarLoader.OutlineSuppressed = inStudio && windowOpen && HideOutline;
         }
 
         /// <summary>Ensure/teardown the quads and push the current settings. Cheap and idempotent.</summary>

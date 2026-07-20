@@ -829,7 +829,10 @@ three:
 - **Border** (`_Mode 4`) — queue 4000, ZTest Always, alpha blend. Drawn **last, on top of
   everything** (avatar, fade, side-mask) so the card outline is never occluded — this is why the
   border is a separate quad and not baked into the card panel. Ring in the SDF band
-  `dist ∈ (-_BorderWidth, 0)`; alpha 0 when `_BorderWidth` is 0. **Open at the top**: the border
+  `dist ∈ (-_BorderWidth, 0)`, built as `saturate(sInner - sOuter)` (difference of the inner/outer
+  edge smoothsteps) so it collapses to **exactly** 0 at `_BorderWidth == 0` — do **not** revert to
+  `mask * innerCut`, which peaks at ~0.25 on the edge and leaves a ~1px hairline around the whole
+  card even at width 0. **Open at the top**: the border
   fades out above `_BorderTopFade` (uv.y 0.88) so it frames only the sides + bottom and the head
   overflows the top freely (without this the top edge draws across the neck/shoulders — same intent
   as the side-mask leaving the top open).
@@ -849,9 +852,12 @@ the Fortnite cards, where arms/hands are clipped at the card edge but the head p
   The card rect is handed to the shader as `_MaskRect (l,r,b,t)` in that shared UV space
   (`U(f) = 0.5 + (f-0.5)/BG_OVERSIZE` maps a viewport fraction into it).
 - **Shape:** the same rounded-rect SDF as the card gives clipped **sides + rounded bottom corners**;
-  the region **above the card top, within the card width** is forced open (`max(cardMask,
-  withinX*aboveTop)`) so the head overflows. Bottom corners align with the card panel; the bottom
-  fade draws over the inside afterwards.
+  the region **above the card top, within the card width** is forced open (`saturate(cardMask +
+  withinX*aboveTop)`) so the head overflows. **Use `+`, not `max`:** at the card-top transition both
+  terms are mid-fade (~0.5) with different AA widths, and `max(0.5,0.5)=0.5` dipped the keep-region
+  below 1, painting a faint bg **seam across the head**; the sum is ~1 there (the terms are
+  complementary in y, and `aboveTop` is 0 below the top so they never over-add elsewhere). Bottom
+  corners align with the card panel; the bottom fade draws over the inside afterwards.
 - Chosen over a stencil mask (would need every avatar shader to opt in) or a fullscreen composite
   (would need the avatar isolated to its own RT). The repaint-outside approach needs neither and
   stays in the quad model. Only enabled when the toggle is on (`_mask.enabled = SideMask`).

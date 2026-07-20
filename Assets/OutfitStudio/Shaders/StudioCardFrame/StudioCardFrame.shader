@@ -115,7 +115,12 @@ Shader "Custom/StudioCardFrame"
                     float withinX = smoothstep(lo.x - axu, lo.x + axu, uv.x)
                                   * (1.0 - smoothstep(hi.x - axu, hi.x + axu, uv.x));
                     float aboveTop = smoothstep(hi.y - ayu, hi.y + ayu, uv.y);   // open above the card top
-                    float inside = saturate(max(cardMask, withinX * aboveTop));
+                    // ADD (not max) the two keep-regions: at the card-top transition both the card
+                    // mask and the overflow column are mid-fade (~0.5), and max(0.5,0.5)=0.5 dipped
+                    // "inside" below 1, painting a faint bg line across the head. Their sum is ~1
+                    // there (they're complementary in y), so the seam disappears; saturate caps it and
+                    // they never both fully overlap elsewhere (aboveTop is 0 below the top).
+                    float inside = saturate(cardMask + withinX * aboveTop);
                     return float4(col, 1.0 - inside);                            // paint bg only outside
                 }
 
@@ -140,11 +145,17 @@ Shader "Custom/StudioCardFrame"
 
                 // --- Border (mode 4) — drawn LAST, on top of the avatar / fade / side-mask ------
                 // Ring in the band dist ∈ (-_BorderWidth, 0): inside the edge but not deep interior.
+                // Written as the difference of two edge smoothsteps (outer at dist 0, inner at
+                // dist -_BorderWidth) so the band collapses to EXACTLY zero when _BorderWidth is 0 —
+                // the old mask*innerCut form peaked at ~0.25 on the edge, leaving a ~1px hairline
+                // around the whole card even at width 0.
                 // Faded out near the top so the border only frames the sides/bottom and the head
                 // overflows the top freely (same intent as the side mask leaving the top open).
-                float innerCut = smoothstep(-_BorderWidth - aa, -_BorderWidth + aa, dist);
+                float sOuter = smoothstep(-aa, aa, dist);                                // 0 inside → 1 outside
+                float sInner = smoothstep(-_BorderWidth - aa, -_BorderWidth + aa, dist); // 0 deep-inside → 1 inward of ring
+                float ring = saturate(sInner - sOuter);
                 float topOpen = 1.0 - smoothstep(_BorderTopFade, 1.0, uv.y);
-                return float4(_BorderColor.rgb, mask * innerCut * topOpen * _BorderColor.a);
+                return float4(_BorderColor.rgb, ring * topOpen * _BorderColor.a);
             }
             ENDHLSL
         }
