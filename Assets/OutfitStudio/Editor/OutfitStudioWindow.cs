@@ -880,7 +880,7 @@ namespace OutfitStudio.Editor
 
             if (_results?.data == null) return;
 
-            foreach (var item in _results.data)
+            foreach (var item in SortForDisplay(_results.data, _query.SortBy))
             {
                 _grid.Add(BuildTile(item));
             }
@@ -891,6 +891,27 @@ namespace OutfitStudio.Editor
             _prevButton.SetEnabled(_query.Skip > 0);
             _nextButton.SetEnabled(to < _results.total);
         }
+
+        /// <summary>
+        /// The live marketplace-api ignores <c>sortBy</c> entirely (verified: "newest", "name",
+        /// "cheapest" and several other candidate values/param names all return items in the exact
+        /// same order) — so the Sort dropdown did nothing. There's no server-side fix available from
+        /// here, so this sorts the current page client-side instead. This is a real but partial fix:
+        /// it only reorders the ≤24 items already fetched for this page, not the whole catalog (a
+        /// true global sort would need fetching/caching every page, which doesn't scale for a
+        /// multi-thousand-item catalog) — still strictly better than a dropdown that visibly does
+        /// nothing.
+        /// </summary>
+        private static IEnumerable<CatalogItem> SortForDisplay(CatalogItem[] items, string sortBy) =>
+            sortBy switch
+            {
+                "name" => items.OrderBy(i => i.name, StringComparer.OrdinalIgnoreCase),
+                "cheapest" => items.OrderBy(i => i.isOnSale && double.TryParse(i.price, out var price)
+                    ? price
+                    : double.MaxValue),
+                _ => items.OrderByDescending(i =>
+                    long.TryParse(i.createdAt, out var createdAt) ? createdAt : long.MinValue), // "newest"
+            };
 
         private VisualElement BuildTile(CatalogItem item)
         {

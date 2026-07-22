@@ -223,6 +223,28 @@ import the files); absolute paths allowed. Filenames `outfit_yyyyMMdd_HHmmss`.
 - The base-avatar (off-chain) wearables can't be browsed — the marketplace API only serves
   collection items. Artists get default body parts unless they equip marketplace items; browsing
   base-avatars would need the catalyst entities endpoint instead.
+- **Catalog search quirks (2026-07-22 investigation, not a client bug):** hitting the live
+  `marketplace-api.decentraland.org/v1/items` directly (outside Unity, same params `CatalogService`
+  sends) confirms two upstream behaviors, not bugs in this repo:
+  1. Some single-word searches return 0 even though the item exists and is indexed — e.g.
+     `search=atari` → 0, but `search=Orange Atari` → 4 and correctly finds "Orange Atari Cap"/"Orange
+     Atari Tee". Verified `search`/`category`/`rarity`/`wearableGender`/`emoteGender`/
+     `wearableCategory`/`emoteCategory` are all otherwise correct and narrow results as expected —
+     only certain bare single-word queries (seemingly brand-name-like terms) get excluded server-
+     side. Workaround: search two words (e.g. add the item type: "atari cap").
+  2. **`sortBy` has no effect at all** — tried `newest`/`name`/`cheapest`/`recently_listed`/
+     `recently_sold`/`most_expensive`/`issued_id_asc`/`issued_id_desc`, the alternate param name
+     `orderBy`, combined with `sortDirection`/`isOnSale=true`, and cache-busting query params:
+     every combination returned items in the exact same order (confirmed via `createdAt`/`price`
+     not being monotonic even for "newest"/"cheapest"). The endpoint also never errors on an
+     invalid enum value for `category`/`sortBy` — it silently falls back to a default — so there's
+     no way to discover a "correct" value/param name by trial and error; the sort feature appears
+     genuinely unsupported by this endpoint version. **Fixed client-side**: `CatalogItem` gained
+     `price`/`createdAt` (already in the JSON, just not consumed before), and
+     `OutfitStudioWindow.SortForDisplay` re-sorts the already-fetched page in `RebuildGrid` by the
+     selected `SortBy` value. This is a **per-page** sort, not a true catalog-wide one — a real global
+     sort would mean fetching/caching every page of a multi-thousand-item catalog, which doesn't
+     scale — but it's strictly better than a dropdown that visibly did nothing.
 
 ## 11. Edit-mode 3D preview (iteration 2)
 

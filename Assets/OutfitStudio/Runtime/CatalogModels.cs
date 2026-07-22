@@ -60,6 +60,8 @@ namespace OutfitStudio
         public string category; // "wearable" | "emote"
         public string rarity;
         public bool isOnSale;
+        public string price; // wei, as a decimal string (e.g. "0" when not on sale)
+        public string createdAt; // unix seconds, as a string
         public ItemData data;
 
         /// <summary>The avatar slot this item occupies (wearable category or "emote").</summary>
