@@ -812,6 +812,27 @@ identity for). `ApplyPoseOnly` itself is generic over "single-frame pose" vs. "m
 — both are just an embedded-emote name reaching `FromEmbeddedEmote` through Profile/Builder mode, so
 no changes were needed there beyond documentation.
 
+**Same-day follow-up: the "Emotes / Poses" catalog tab had the same bug, plus a real renderer gap.**
+`OnItemClicked`'s emote branch (catalog tiles built by `BuildTile`/`RunSearch`, i.e. the "Emotes /
+Poses" tab) unconditionally fell through to the shared `RefreshShareCode(); ScheduleApply();` at the
+bottom of the method — the same forced-Builder-reload bug as the popup, now fixed the same way:
+`Application.isPlaying` → `ApplyPoseOnly(outfit.emote)`, else the old `ScheduleApply()` (early
+`return` right after; the wearable-equip branch below is unchanged and still always does the full
+Apply, which is correct — equipping a wearable *should* go onto the custom outfit).
+
+Unlike the pose buttons / Embedded popup, catalog tiles set `outfit.emote` to a real published
+**URN** (`item.urn`), not an embedded-clip name — and that exposed **renderer touch point #7**:
+`PreviewController.LoadForProfile` unconditionally called `EntityDefinition.FromEmbeddedEmote
+(defaultEmote, loop)`, treating ANY string (including a URN) as an embedded StreamingAssets clip
+name. Builder mode already had URN handling (`ResolveBuilderEmote`'s `StartsWith("urn:")` branch,
+fetching the real entity via `EntityService.GetEntities`), but Profile mode never needed it in
+production (the `emote=` query param is documented as one of the embedded names only) — so
+`ApplyPoseOnly`'s "force Profile mode unless already Builder" would have silently failed to load a
+catalog emote picked while posing a Random Profile. Fixed by giving `LoadForProfile` the same
+`StartsWith("urn:")` branch as `ResolveBuilderEmote` (fetch via `EntityService.GetEntities`,
+otherwise fall back to `FromEmbeddedEmote` exactly as before — purely additive, no behavior change
+for any existing non-URN caller). Touch point in `Assets/Scripts/Preview/PreviewController.cs`.
+
 ## 18. Card frame — Fortnite-style item cards (2026-07-17)
 
 A "Card frame (beauty shot)" section (collapsible Foldout at the top of the outfit pane) composites

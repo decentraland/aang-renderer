@@ -998,21 +998,30 @@ namespace OutfitStudio.Editor
                 RemoveDraftEmote();
                 _poseLabel.text = $"Pose: {item.name}";
                 SyncEmotePopup();
+                RefreshShareCode();
                 SetStatus($"Pose set: {item.name}");
-            }
-            else
-            {
-                var slot = item.Slot;
 
-                // One wearable per slot: drop anything we know occupies the same category
-                outfit.urns.RemoveAll(urn =>
-                    _knownItems.TryGetValue(urn, out var known) && known.Slot == slot);
-                outfit.urns.Remove(item.urn);
-                outfit.urns.Add(item.urn);
-
-                SetStatus($"Equipped {item.name} ({slot})");
-                RefreshSlots();
+                // Play mode: animate ONLY the currently-loaded avatar (which may be a Random
+                // Profile from the Debug tab), same as the pose buttons / Embedded popup — don't
+                // force a reload of the custom Builder outfit just to change the emote. Edit mode
+                // still routes through the full Apply.
+                if (Application.isPlaying)
+                    ApplyPoseOnly(outfit.emote);
+                else
+                    ScheduleApply();
+                return;
             }
+
+            var slot = item.Slot;
+
+            // One wearable per slot: drop anything we know occupies the same category
+            outfit.urns.RemoveAll(urn =>
+                _knownItems.TryGetValue(urn, out var known) && known.Slot == slot);
+            outfit.urns.Remove(item.urn);
+            outfit.urns.Add(item.urn);
+
+            SetStatus($"Equipped {item.name} ({slot})");
+            RefreshSlots();
 
             RefreshShareCode();
             ScheduleApply();

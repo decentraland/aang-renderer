@@ -400,8 +400,22 @@ namespace Preview
             var avatar = await APIService.GetAvatar(profileID);
             var entities = await EntityService.GetEntities(avatar.wearables);
 
+            // A URN means a real (published) emote entity — e.g. picked from a marketplace catalog —
+            // rather than one of the embedded StreamingAssets clips; resolve it instead of treating
+            // the URN string itself as an embedded clip name.
+            EntityDefinition emoteDefinition;
+            if (!string.IsNullOrEmpty(defaultEmote) && defaultEmote.StartsWith("urn:", StringComparison.OrdinalIgnoreCase))
+            {
+                var emoteEntities = await EntityService.GetEntities(new[] { defaultEmote });
+                emoteDefinition = emoteEntities.FirstOrDefault(e => e.Type == EntityType.Emote);
+            }
+            else
+            {
+                emoteDefinition = EntityDefinition.FromEmbeddedEmote(defaultEmote, loop);
+            }
+
             await avatarLoader.LoadAvatar(avatar.GetBodyShape(), entities,
-                EntityDefinition.FromEmbeddedEmote(defaultEmote, loop), avatar.forceRender, avatar.GetAvatarColors());
+                emoteDefinition, avatar.forceRender, avatar.GetAvatarColors());
         }
 
         private async Awaitable<List<string>> LoadUrns(AangConfiguration config)
