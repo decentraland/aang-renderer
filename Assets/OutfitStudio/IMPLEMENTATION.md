@@ -757,6 +757,23 @@ name is project-relative, so it's machine-independent (share codes / persistence
 teammate with the same `Poses/` folder), and because it points outside StreamingAssets it never
 resolves in production builds — which is fine, poses are an editor-only screenshot tool.
 
+**Fix (2026-07-22): transport (▶/❚❚/■) snapping back to the last pose instead of a picked embedded
+emote.** The "Embedded" popup shared `outfit.emote` with the pose buttons but was only built once
+(`BuildOutfitPane`, on window open) and computed its displayed index as
+`EMBEDDED_EMOTES.IndexOf(outfit.emote)` — a pose path isn't in that list, so the popup silently fell
+back to showing `"idle"` (index 0) after any pose click, while the pose was what was actually
+loaded/playing. If the user then "reselected" whatever the popup already showed (commonly `"idle"`),
+UI Toolkit's `PopupField` doesn't fire `RegisterValueChangedCallback` for a same-value pick, so
+nothing reloaded — the transport buttons kept controlling the stale pose clip: Play looked like a
+no-op (a 1-frame pose is already "playing"), Stop crossfaded the pose to idle, and Play again
+replayed the pose, not the emote the popup claimed to show. Fixed by giving the popup a sentinel
+choice, `EMBEDDED_EMOTE_NONE`, and a `SyncEmotePopup()` helper (`_emotePopup.SetValueWithoutNotify`)
+called from every place that sets `outfit.emote` outside the popup itself — pose buttons, draft/
+catalog emote picks (`EquipDraft`, `OnItemClicked`), and `LoadOutfit` (share code / preset loads).
+Whenever a pose (or anything else not in `EMBEDDED_EMOTES`) becomes active, the popup now visibly
+shows the sentinel instead of a stale `"idle"`/emote name, so picking an actual embedded emote
+afterwards is always a genuine value change and reliably reloads + auto-plays it.
+
 **Apply in play mode** (like all emotes — a 1-frame emote holds its frame): equip → Enter Play →
 click a pose → Capture Still. Edit mode still shows the static idle pose (poses aren't sampled onto
 the edit-mode skeleton).
@@ -779,11 +796,21 @@ session was in Jesus mode the pose silently wouldn't apply; forcing Profile fixe
 `ResolveBuilderEmote` uses `loop: true`, but `LoadForProfile`/`LoadForMarketplace` use `loop: false`
 — so in Profile mode the 1-frame pose ended instantly and reverted to the base breathing idle.
 `ApplyPoseOnly` sets `config.EmoteLoop = true` (renderer touch point #6, prod default false) so the
-profile pose holds. **Edit mode is unchanged** (pose buttons route through `Apply`). Scoped to the
-pose buttons; the "Embedded" emote popup still does a full `Apply`. Constants live in `OutfitStudioWindow`: `POSES_DIR_UNDER_ASSETS`
-(`OutfitStudio/Poses`, for the scan) and `POSES_EMBEDDED_PREFIX` (`../OutfitStudio/Poses`, the emote
-name). A future v2 could sample the pose clip onto the edit-mode skeleton (like `SampleIdlePose`) so
-shots can be framed without entering play.
+profile pose holds. **Edit mode is unchanged** (pose buttons route through `Apply`). Constants live
+in `OutfitStudioWindow`: `POSES_DIR_UNDER_ASSETS` (`OutfitStudio/Poses`, for the scan) and
+`POSES_EMBEDDED_PREFIX` (`../OutfitStudio/Poses`, the emote name). A future v2 could sample the pose
+clip onto the edit-mode skeleton (like `SampleIdlePose`) so shots can be framed without entering play.
+
+**Update 2026-07-22: the "Embedded" emote popup now goes through `ApplyPoseOnly` too, in play mode.**
+Previously picking an animation ("dance", "clap", ...) from the popup always called the full `Apply`,
+which hardcodes `config.SetMode("builder")` — so choosing an animation forced a reload of the
+studio's custom outfit, discarding whatever avatar was actually loaded (e.g. a Debug-tab Random
+Profile), exactly the outfit-switch the pose buttons were built to avoid. The popup's change handler
+now mirrors the pose buttons: `Application.isPlaying` → `ApplyPoseOnly(outfit.emote)` (re-animate the
+loaded avatar in place); otherwise → `ScheduleApply()` as before (edit mode has no avatar to preserve
+identity for). `ApplyPoseOnly` itself is generic over "single-frame pose" vs. "multi-frame animation"
+— both are just an embedded-emote name reaching `FromEmbeddedEmote` through Profile/Builder mode, so
+no changes were needed there beyond documentation.
 
 ## 18. Card frame — Fortnite-style item cards (2026-07-17)
 

@@ -52,6 +52,18 @@ namespace OutfitStudio.Editor
             "love", "money", "fist-pump", "head-explode"
         };
 
+        // Shown in the "Embedded" popup whenever outfit.emote isn't one of EMBEDDED_EMOTES (a pose,
+        // a marketplace/draft emote URN, ...). Without this, the popup silently fell back to
+        // showing "idle" (index 0) while a pose was actually loaded/playing — reselecting "idle"
+        // from that state is a no-op (same value = no change event), so nothing reloaded and the
+        // transport buttons kept controlling the stale pose instead of the emote the popup claimed
+        // to have selected. Having a distinct sentinel means any real embedded-emote pick is always
+        // a genuine value change.
+        private const string EMBEDDED_EMOTE_NONE = "— pose/other selected —";
+
+        private static readonly List<string> EMBEDDED_EMOTE_CHOICES =
+            new[] { EMBEDDED_EMOTE_NONE }.Concat(EMBEDDED_EMOTES).ToList();
+
         // Single-frame screenshot poses, kept fully inside the tool folder (Assets/OutfitStudio/Poses/)
         // so nothing spills into the rest of the repo. They still ride the stock embedded-emote path
         // with ZERO renderer changes: the emote name is resolved as Path.Combine(streamingAssetsPath,
@@ -111,6 +123,7 @@ namespace OutfitStudio.Editor
         private Button _prevButton, _nextButton;
         private VisualElement _slotsContainer;
         private Label _poseLabel;
+        private PopupField<string> _emotePopup;
         private TextField _shareCodeField;
         private Label _statusLabel;
         private Button _playButton;
@@ -768,6 +781,7 @@ namespace OutfitStudio.Editor
                 outfit.base64Items.Add(item.Base64Entity);
                 outfit.emote = "idle"; // the base64 emote takes pose priority in builder mode
                 _poseLabel.text = $"Pose: {item.Name} (draft)";
+                SyncEmotePopup();
                 SetStatus($"Pose set: {item.Name} (draft, play mode only)");
             }
             else
@@ -983,6 +997,7 @@ namespace OutfitStudio.Editor
                 outfit.emote = item.urn;
                 RemoveDraftEmote();
                 _poseLabel.text = $"Pose: {item.name}";
+                SyncEmotePopup();
                 SetStatus($"Pose set: {item.name}");
             }
             else
@@ -1090,17 +1105,27 @@ namespace OutfitStudio.Editor
             BuildPoseButtons(poseGrid);
             pane.Add(poseGrid);
 
-            var emotePopup = new PopupField<string>("Embedded", EMBEDDED_EMOTES,
-                Mathf.Max(0, EMBEDDED_EMOTES.IndexOf(outfit.emote)));
-            emotePopup.RegisterValueChangedCallback(_ =>
+            _emotePopup = new PopupField<string>("Embedded", EMBEDDED_EMOTE_CHOICES, 0);
+            SyncEmotePopup();
+            _emotePopup.RegisterValueChangedCallback(_ =>
             {
-                outfit.emote = emotePopup.value;
+                // Selecting the sentinel isn't a real emote choice; only "idle" would land back
+                // here anyway, so just treat it the same way.
+                outfit.emote = _emotePopup.value == EMBEDDED_EMOTE_NONE ? "idle" : _emotePopup.value;
                 RemoveDraftEmote(); // an equipped draft emote would override the pose
                 _poseLabel.text = $"Pose: {outfit.emote}";
                 RefreshShareCode();
-                ScheduleApply();
+
+                // Play mode: animate ONLY the currently-loaded avatar (which may be a Random
+                // Profile from the Debug tab), same as the pose buttons — don't force a reload of
+                // the custom Builder outfit just to change the animation. Edit mode still routes
+                // through the full Apply (animations aren't sampled onto the edit-mode skeleton).
+                if (Application.isPlaying)
+                    ApplyPoseOnly(outfit.emote);
+                else
+                    ScheduleApply();
             });
-            pane.Add(emotePopup);
+            pane.Add(_emotePopup);
 
             var transport = new VisualElement { style = { flexDirection = FlexDirection.Row } };
             transport.Add(new Button(() => WithPreview(pc => pc.PlayEmote())) { text = "▶" });
@@ -1508,6 +1533,7 @@ namespace OutfitStudio.Editor
                     outfit.emote = emoteName;
                     RemoveDraftEmote(); // an equipped draft emote would override the pose
                     _poseLabel.text = $"Pose: {name}";
+                    SyncEmotePopup();
                     RefreshShareCode();
                     // Play mode: pose ONLY the currently-loaded avatar (which may be a Random Profile
                     // from the Debug tab) without reloading the custom outfit. Edit mode: assemble the
@@ -1702,12 +1728,24 @@ namespace OutfitStudio.Editor
             _hairField.SetValueWithoutNotify(outfit.hairColor);
             _eyeField.SetValueWithoutNotify(outfit.eyeColor);
             _poseLabel.text = $"Pose: {outfit.emote}";
+            SyncEmotePopup();
 
             HydrateKnownItems();
             RefreshSlots();
             RefreshShareCode();
             ScheduleApply();
         }
+
+        /// <summary>
+        /// Keeps the "Embedded" popup's displayed value truthful whenever outfit.emote changes from
+        /// somewhere other than the popup itself (pose buttons, draft/catalog emote picks, loading a
+        /// share code or preset). Falls back to <see cref="EMBEDDED_EMOTE_NONE"/> for anything that
+        /// isn't a literal EMBEDDED_EMOTES entry (poses, URNs) so the popup never silently shows a
+        /// stale emote while something else is actually loaded/playing.
+        /// </summary>
+        private void SyncEmotePopup() =>
+            _emotePopup?.SetValueWithoutNotify(
+                EMBEDDED_EMOTES.Contains(outfit.emote) ? outfit.emote : EMBEDDED_EMOTE_NONE);
 
         /// <summary>
         /// Resolves names/thumbnails for URNs we don't have catalog info for
@@ -1794,15 +1832,18 @@ namespace OutfitStudio.Editor
         }
 
         /// <summary>
-        /// Play-mode pose change that does NOT reload the custom outfit: sets only <c>config.Emote</c>
-        /// and reloads, so whatever avatar is loaded keeps its identity and just changes pose (the
-        /// AvatarLoader diffs the unchanged wearables, so only the emote reloads).
+        /// Play-mode pose/animation change that does NOT reload the custom outfit: sets only
+        /// <c>config.Emote</c> and reloads, so whatever avatar is loaded keeps its identity and just
+        /// changes emote (the AvatarLoader diffs the unchanged wearables, so only the emote reloads).
+        /// Shared by the pose buttons and the "Embedded" emote popup — either way the currently-loaded
+        /// avatar (which may be a Random Profile from the Debug tab) gets re-posed/re-animated in
+        /// place instead of switching to the studio's custom Builder outfit.
         ///
         /// Mode handling: <b>Builder</b> (the custom outfit) is kept as-is. <b>Any other</b> mode is
         /// switched to <b>Profile</b> — because Jesus mode hard-codes its emote (<c>Particles_Anim</c>,
         /// the arms-out "jesus" pose) and Marketplace shows a wearable, both ignoring
         /// <c>config.Emote</c>; Profile mode applies it. <c>config.Profile</c> is preserved, so a
-        /// Random Profile stays the same avatar, now posed. Edit mode routes poses through Apply.
+        /// Random Profile stays the same avatar, now posed/animated. Edit mode routes through Apply.
         /// </summary>
         private void ApplyPoseOnly(string emoteName)
         {
@@ -1821,13 +1862,14 @@ namespace OutfitStudio.Editor
             if (config.Mode != PreviewMode.Builder)
                 config.SetMode("profile");
 
-            // Hold the single-frame pose. Builder already loops embedded emotes; Profile mode does
-            // not (its 1-frame pose would end instantly and revert to the base idle), so opt in.
+            // Loop in Profile mode, matching how Builder mode already always loops embedded emotes
+            // (ResolveBuilderEmote hardcodes loop:true) — without this a single-frame pose would end
+            // instantly and revert to the base idle, and a multi-frame animation wouldn't hold either.
             config.EmoteLoop = true;
 
             pc.gameObject.SetActive(true);
             pc.InvokeReload();
-            SetStatus("Pose applied to the loaded avatar");
+            SetStatus("Applied to the loaded avatar");
         }
 
         /// <summary>
