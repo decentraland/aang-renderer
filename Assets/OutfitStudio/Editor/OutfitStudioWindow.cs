@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Data;
 using Newtonsoft.Json.Linq;
 using Preview;
 using Services;
@@ -45,6 +46,140 @@ namespace OutfitStudio.Editor
         private static readonly List<string> EMOTE_CATEGORIES = new()
         {
             "any", "dance", "poses", "fun", "greetings", "reactions", "stunt", "horror", "miscellaneous"
+        };
+
+        // Wearable categories that make up a face/body look rather than an outfit item. Browsed from
+        // the Avatar tab; picks there are editor-only preview overrides (see _previewFaceUrns) and are
+        // deliberately never added to outfit.urns, so they never end up in a share code or preset.
+        private static readonly List<string> FACE_SLOTS = new()
+        {
+            "eyes", "eyebrows", "mouth", "hair", "facial_hair"
+        };
+
+        private static readonly Dictionary<string, string> FACE_SLOT_LABELS = new()
+        {
+            ["eyes"] = "Eyes",
+            ["eyebrows"] = "Eyebrows",
+            ["mouth"] = "Mouth",
+            ["hair"] = "Hair",
+            ["facial_hair"] = "Facial Hair"
+        };
+
+        // Curated Decentraland base-avatar (off-chain) options per face-feature slot — first stage
+        // deliberately skips the marketplace here: these off-chain URNs aren't resolvable via
+        // CatalogService (marketplace-api only serves collection items), and the artist can still
+        // reach marketplace hair/etc. through the Wearables tab. Mirrors the same curated set the
+        // in-game avatar Configurator ships with (Assets/Scripts/Configurator/ConfiguratorController.cs,
+        // faceCategories, serialized on the OutfitStudio scene).
+        private static readonly Dictionary<string, string[]> DEFAULT_FACE_URNS = new()
+        {
+            ["hair"] = new[]
+            {
+                "urn:decentraland:off-chain:base-avatars:standard_hair",
+                "urn:decentraland:off-chain:base-avatars:casual_hair_01",
+                "urn:decentraland:off-chain:base-avatars:semi_afro",
+                "urn:decentraland:off-chain:base-avatars:modern_hair",
+                "urn:decentraland:off-chain:base-avatars:hair_anime_01",
+                "urn:decentraland:off-chain:base-avatars:hair_undere",
+                "urn:decentraland:off-chain:base-avatars:keanu_hair",
+                "urn:decentraland:off-chain:base-avatars:shoulder_bob_hair",
+                "urn:decentraland:off-chain:base-avatars:hair_f_oldie_02",
+                "urn:decentraland:off-chain:base-avatars:cool_hair",
+                "urn:decentraland:off-chain:base-avatars:tall_front_01",
+                "urn:decentraland:off-chain:base-avatars:pony_tail",
+                "urn:decentraland:off-chain:base-avatars:rasta",
+                "urn:decentraland:off-chain:base-avatars:casual_hair_02",
+                "urn:decentraland:off-chain:base-avatars:curtained_hair",
+                "urn:decentraland:off-chain:base-avatars:semi_bold",
+                "urn:decentraland:off-chain:base-avatars:curly_hair",
+                "urn:decentraland:off-chain:base-avatars:double_bun",
+                "urn:decentraland:off-chain:base-avatars:punk"
+            },
+            ["eyes"] = new[]
+            {
+                "urn:decentraland:off-chain:base-avatars:f_eyes_00",
+                "urn:decentraland:off-chain:base-avatars:eyes_00",
+                "urn:decentraland:off-chain:base-avatars:eyes_01",
+                "urn:decentraland:off-chain:base-avatars:f_eyes_10",
+                "urn:decentraland:off-chain:base-avatars:f_eyes_01",
+                "urn:decentraland:off-chain:base-avatars:eyes_04",
+                "urn:decentraland:off-chain:base-avatars:eyes_07",
+                "urn:decentraland:off-chain:base-avatars:eyes_08",
+                "urn:decentraland:off-chain:base-avatars:eyes_21",
+                "urn:decentraland:off-chain:base-avatars:eyes_16",
+                "urn:decentraland:off-chain:base-avatars:eyes_20",
+                "urn:decentraland:off-chain:base-avatars:eyes_15",
+                "urn:decentraland:off-chain:base-avatars:eyes_03",
+                "urn:decentraland:off-chain:base-avatars:eyes_22",
+                "urn:decentraland:off-chain:base-avatars:f_eyes_05",
+                "urn:decentraland:off-chain:base-avatars:f_eyes_06",
+                "urn:decentraland:off-chain:base-avatars:eyes_11",
+                "urn:decentraland:off-chain:base-avatars:f_eyes_02",
+                "urn:decentraland:off-chain:base-avatars:f_eyes_04",
+                "urn:decentraland:off-chain:base-avatars:f_eyes_08"
+            },
+            ["eyebrows"] = new[]
+            {
+                "urn:decentraland:off-chain:base-avatars:eyebrows_00",
+                "urn:decentraland:off-chain:base-avatars:f_eyebrows_00",
+                "urn:decentraland:off-chain:base-avatars:eyebrows_01",
+                "urn:decentraland:off-chain:base-avatars:eyebrows_02",
+                "urn:decentraland:off-chain:base-avatars:eyebrows_04",
+                "urn:decentraland:off-chain:base-avatars:eyebrows_05",
+                "urn:decentraland:off-chain:base-avatars:eyebrows_07",
+                "urn:decentraland:off-chain:base-avatars:eyebrows_09",
+                "urn:decentraland:off-chain:base-avatars:eyebrows_11",
+                "urn:decentraland:off-chain:base-avatars:eyebrows_12",
+                "urn:decentraland:off-chain:base-avatars:eyebrows_14",
+                "urn:decentraland:off-chain:base-avatars:eyebrows_15",
+                "urn:decentraland:off-chain:base-avatars:eyebrows_17",
+                "urn:decentraland:off-chain:base-avatars:f_eyebrows_02",
+                "urn:decentraland:off-chain:base-avatars:f_eyebrows_03",
+                "urn:decentraland:off-chain:base-avatars:f_eyebrows_04",
+                "urn:decentraland:off-chain:base-avatars:f_eyebrows_05",
+                "urn:decentraland:off-chain:base-avatars:f_eyebrows_06",
+                "urn:decentraland:off-chain:base-avatars:f_eyebrows_07",
+                "urn:decentraland:off-chain:base-avatars:eyebrows_8"
+            },
+            ["mouth"] = new[]
+            {
+                "urn:decentraland:off-chain:base-avatars:f_mouth_00",
+                "urn:decentraland:off-chain:base-avatars:f_mouth_01",
+                "urn:decentraland:off-chain:base-avatars:f_mouth_02",
+                "urn:decentraland:off-chain:base-avatars:f_mouth_03",
+                "urn:decentraland:off-chain:base-avatars:f_mouth_04",
+                "urn:decentraland:off-chain:base-avatars:f_mouth_05",
+                "urn:decentraland:off-chain:base-avatars:f_mouth_06",
+                "urn:decentraland:off-chain:base-avatars:f_mouth_07",
+                "urn:decentraland:off-chain:base-avatars:f_mouth_08",
+                "urn:decentraland:off-chain:base-avatars:mouth_00",
+                "urn:decentraland:off-chain:base-avatars:mouth_01",
+                "urn:decentraland:off-chain:base-avatars:mouth_02",
+                "urn:decentraland:off-chain:base-avatars:mouth_03",
+                "urn:decentraland:off-chain:base-avatars:mouth_04",
+                "urn:decentraland:off-chain:base-avatars:mouth_05",
+                "urn:decentraland:off-chain:base-avatars:mouth_06",
+                "urn:decentraland:off-chain:base-avatars:mouth_07",
+                "urn:decentraland:off-chain:base-avatars:mouth_09",
+                "urn:decentraland:off-chain:base-avatars:mouth_10",
+                "urn:decentraland:off-chain:base-avatars:mouth_11"
+            },
+            ["facial_hair"] = new[]
+            {
+                "urn:decentraland:off-chain:base-avatars:balbo_beard",
+                "urn:decentraland:off-chain:base-avatars:beard",
+                "urn:decentraland:off-chain:base-avatars:chin_beard",
+                "urn:decentraland:off-chain:base-avatars:french_beard",
+                "urn:decentraland:off-chain:base-avatars:full_beard",
+                "urn:decentraland:off-chain:base-avatars:goatee_beard",
+                "urn:decentraland:off-chain:base-avatars:granpa_beard",
+                "urn:decentraland:off-chain:base-avatars:handlebar",
+                "urn:decentraland:off-chain:base-avatars:horseshoe_beard",
+                "urn:decentraland:off-chain:base-avatars:lincoln_beard",
+                "urn:decentraland:off-chain:base-avatars:mustache_short_beard",
+                "urn:decentraland:off-chain:base-avatars:old_mustache_beard",
+                "urn:decentraland:off-chain:base-avatars:short_boxed_beard"
+            }
         };
 
         private static readonly List<string> RARITIES = new()
@@ -140,11 +275,22 @@ namespace OutfitStudio.Editor
         // urn -> catalog item, used to resolve slot/name/thumbnail for outfit rows
         private readonly Dictionary<string, CatalogItem> _knownItems = new();
 
+        // Avatar tab: face-feature slot -> urn. Editor-only preview overrides — merged onto the
+        // preview outfit in BuildPreviewOutfit(), never into outfit.urns, so they never reach a
+        // share code or a saved preset.
+        private readonly Dictionary<string, string> _previewFaceUrns = new();
+        private EntityDefinition[] _faceEntities = Array.Empty<EntityDefinition>();
+        private string _faceCategory = FACE_SLOTS[0];
+        private int _faceSearchSequence;
+        private VisualElement _faceGrid;
+        private Button[] _faceCategoryButtons;
+
         private static readonly Dictionary<string, Texture2D> THUMBNAIL_CACHE = new();
         private static readonly HashSet<string> THUMBNAILS_IN_FLIGHT = new();
 
         // UI references
         private VisualElement _grid;
+        private VisualElement _avatarPane;
         private VisualElement _browserContent;
         private VisualElement _debugPane;
         private TextField _configField;
@@ -373,21 +519,25 @@ namespace OutfitStudio.Editor
 
             // Tabs
             var tabs = new VisualElement { style = { flexDirection = FlexDirection.Row, marginTop = 4, marginLeft = 4 } };
+            var avatarTab = new Button { text = "Avatar" };
             var wearablesTab = new Button { text = "Wearables" };
             var emotesTab = new Button { text = "Emotes / Poses" };
             var debugTab = new Button { text = "Debug" };
 
             void SelectTab(string tab)
             {
+                avatarTab.SetEnabled(tab != "avatar");
                 wearablesTab.SetEnabled(tab != "wearable");
                 emotesTab.SetEnabled(tab != "emote");
                 debugTab.SetEnabled(tab != "debug");
 
+                var isAvatar = tab == "avatar";
                 var isDebug = tab == "debug";
-                _browserContent.style.display = isDebug ? DisplayStyle.None : DisplayStyle.Flex;
+                _avatarPane.style.display = isAvatar ? DisplayStyle.Flex : DisplayStyle.None;
+                _browserContent.style.display = isAvatar || isDebug ? DisplayStyle.None : DisplayStyle.Flex;
                 _debugPane.style.display = isDebug ? DisplayStyle.Flex : DisplayStyle.None;
 
-                if (isDebug) return;
+                if (isAvatar || isDebug) return;
 
                 _query.Category = tab;
                 _query.WearableCategory = null;
@@ -395,14 +545,20 @@ namespace OutfitStudio.Editor
                 ResetAndSearch();
             }
 
+            avatarTab.clicked += () => SelectTab("avatar");
             wearablesTab.clicked += () => SelectTab("wearable");
             emotesTab.clicked += () => SelectTab("emote");
             debugTab.clicked += () => SelectTab("debug");
-            wearablesTab.SetEnabled(false);
+            wearablesTab.SetEnabled(false); // default active tab
+            tabs.Add(avatarTab);
             tabs.Add(wearablesTab);
             tabs.Add(emotesTab);
             tabs.Add(debugTab);
             pane.Add(tabs);
+
+            _avatarPane = BuildAvatarPane();
+            _avatarPane.style.display = DisplayStyle.None;
+            pane.Add(_avatarPane);
 
             _browserContent = new VisualElement { style = { flexGrow = 1 } };
             pane.Add(_browserContent);
@@ -501,6 +657,250 @@ namespace OutfitStudio.Editor
             _browserContent.Add(pager);
 
             return pane;
+        }
+
+        // ---------------------------------------------------------------- Avatar pane
+
+        /// <summary>
+        /// Body shape, colors and face features (eyes/eyebrows/mouth/hair/facial_hair) in one
+        /// place, mirroring the marketplace's own avatar editor. Body shape and colors write straight
+        /// to <c>outfit</c> (shareable, same as before — just relocated here from the Outfit pane).
+        /// Face features are deliberately NOT part of <c>outfit</c>: they're stored in
+        /// <see cref="_previewFaceUrns"/> and only ever merged in for local preview/capture (see
+        /// <see cref="BuildPreviewOutfit"/>), so a share code or saved preset never carries them.
+        /// </summary>
+        private VisualElement BuildAvatarPane()
+        {
+            var pane = new ScrollView { style = { flexGrow = 1, paddingLeft = 6, paddingRight = 6, paddingTop = 4 } };
+
+            pane.Add(Header("Body"));
+
+            _bodyShapePopup = new PopupField<string>("Body shape", new List<string> { "Male", "Female" },
+                outfit.bodyShape == WearablesConstants.BODY_SHAPE_FEMALE ? 1 : 0);
+            _bodyShapePopup.RegisterValueChangedCallback(_ =>
+            {
+                outfit.bodyShape = _bodyShapePopup.index == 1
+                    ? WearablesConstants.BODY_SHAPE_FEMALE
+                    : WearablesConstants.BODY_SHAPE_MALE;
+                RefreshFaceGrid(); // face options are body-shape specific (male/female variants)
+                RefreshShareCode();
+                ScheduleApply();
+            });
+            pane.Add(_bodyShapePopup);
+
+            pane.Add(Header("Colors"));
+            _skinField = ColorRow(pane, "Skin", outfit.skinColor, c => outfit.skinColor = c);
+            _hairField = ColorRow(pane, "Hair", outfit.hairColor, c => outfit.hairColor = c);
+            _eyeField = ColorRow(pane, "Eyes", outfit.eyeColor, c => outfit.eyeColor = c);
+
+            pane.Add(Header("Face Features"));
+            pane.Add(new Label("Preview only — not included in the share code or outfit preset.")
+            {
+                style =
+                {
+                    fontSize = 10,
+                    unityFontStyleAndWeight = FontStyle.Italic,
+                    whiteSpace = WhiteSpace.Normal,
+                    marginBottom = 4
+                }
+            });
+
+            var categoryRow = new VisualElement { style = { flexDirection = FlexDirection.Row, flexWrap = Wrap.Wrap } };
+            _faceCategoryButtons = new Button[FACE_SLOTS.Count];
+            for (var i = 0; i < FACE_SLOTS.Count; i++)
+            {
+                var slot = FACE_SLOTS[i];
+                var button = new Button(() => SelectFaceCategory(slot))
+                {
+                    text = FACE_SLOT_LABELS[slot],
+                    style = { marginRight = 2, marginBottom = 2 }
+                };
+                _faceCategoryButtons[i] = button;
+                categoryRow.Add(button);
+            }
+            pane.Add(categoryRow);
+
+            pane.Add(new Button(() =>
+            {
+                _previewFaceUrns.Remove(_faceCategory);
+                RefreshFaceGrid();
+                ScheduleApply();
+            }) { text = "Clear selection", style = { marginTop = 2, marginBottom = 4 } });
+
+            // No nested ScrollView here: the pane itself already scrolls, and a ScrollView inside a
+            // ScrollView left the outer one unable to size to its content, clipping the bottom of the
+            // panel instead of scrolling to it.
+            _faceGrid = new VisualElement
+            {
+                style = { flexDirection = FlexDirection.Row, flexWrap = Wrap.Wrap, paddingTop = 4 }
+            };
+            pane.Add(_faceGrid);
+
+            UpdateFaceCategoryButtons();
+            RunFaceSearch();
+
+            return pane;
+        }
+
+        private void SelectFaceCategory(string slot)
+        {
+            _faceCategory = slot;
+            UpdateFaceCategoryButtons();
+            RunFaceSearch();
+        }
+
+        private void UpdateFaceCategoryButtons()
+        {
+            for (var i = 0; i < FACE_SLOTS.Count; i++)
+                _faceCategoryButtons[i].SetEnabled(FACE_SLOTS[i] != _faceCategory);
+        }
+
+        /// <summary>
+        /// Resolves the current category's curated URNs via the Catalyst entities endpoint (the
+        /// only source that can serve off-chain base-avatar items — see DEFAULT_FACE_URNS). Async
+        /// void, same pattern EditModeAvatarPreview.Apply already uses for editor-only await chains.
+        /// </summary>
+        private async void RunFaceSearch()
+        {
+            if (_faceGrid == null) return;
+
+            var sequence = ++_faceSearchSequence;
+            SetStatus($"Loading {FACE_SLOT_LABELS[_faceCategory]}...");
+
+            EntityDefinition[] entities;
+            try
+            {
+                entities = await EntityService.GetEntities((string[])DEFAULT_FACE_URNS[_faceCategory].Clone());
+            }
+            catch (Exception e)
+            {
+                if (sequence == _faceSearchSequence)
+                    SetStatus($"Failed to load {FACE_SLOT_LABELS[_faceCategory]}: {e.Message}", true);
+                return;
+            }
+
+            if (sequence != _faceSearchSequence) return;
+
+            _faceEntities = entities;
+            RefreshFaceGrid();
+            SetStatus($"{_faceEntities.Length} {FACE_SLOT_LABELS[_faceCategory]} options");
+        }
+
+        private BodyShape CurrentBodyShape() =>
+            outfit.bodyShape.Equals(WearablesConstants.BODY_SHAPE_FEMALE, StringComparison.OrdinalIgnoreCase)
+                ? BodyShape.Female
+                : BodyShape.Male;
+
+        private void RefreshFaceGrid()
+        {
+            if (_faceGrid == null) return;
+
+            _faceGrid.Clear();
+
+            var bodyShape = CurrentBodyShape();
+            var selectedUrn = _previewFaceUrns.GetValueOrDefault(_faceCategory);
+
+            // Only options with a representation for the currently-selected body shape are shown —
+            // this list mixes male and female-specific variants (the "f_"-prefixed URNs), and picking
+            // one without a matching representation would just get silently skipped at apply time.
+            foreach (var entity in _faceEntities.Where(e => e.HasRepresentation(bodyShape)))
+            {
+                _faceGrid.Add(BuildFaceTile(entity, entity.URN == selectedUrn));
+            }
+        }
+
+        private VisualElement BuildFaceTile(EntityDefinition entity, bool selected)
+        {
+            var label = FriendlyName(entity.URN);
+
+            var tile = new VisualElement
+            {
+                tooltip = label,
+                style =
+                {
+                    width = THUMB_SIZE + 8,
+                    marginRight = 4,
+                    marginBottom = 4,
+                    paddingTop = 4,
+                    paddingLeft = 4,
+                    paddingRight = 4,
+                    paddingBottom = 2,
+                    backgroundColor = new Color(0, 0, 0, 0.25f)
+                }
+            };
+
+            if (selected)
+            {
+                tile.style.borderTopWidth = tile.style.borderBottomWidth =
+                    tile.style.borderLeftWidth = tile.style.borderRightWidth = 2;
+                tile.style.borderTopColor = tile.style.borderBottomColor =
+                    tile.style.borderLeftColor = tile.style.borderRightColor = Color.white;
+            }
+
+            var image = new Image
+            {
+                scaleMode = ScaleMode.ScaleToFit,
+                style = { width = THUMB_SIZE, height = THUMB_SIZE }
+            };
+            tile.Add(image);
+
+            var nameLabel = new Label(label)
+            {
+                style =
+                {
+                    fontSize = 10,
+                    overflow = Overflow.Hidden,
+                    whiteSpace = WhiteSpace.NoWrap,
+                    textOverflow = TextOverflow.Ellipsis,
+                    unityTextAlign = TextAnchor.MiddleCenter
+                }
+            };
+            tile.Add(nameLabel);
+
+            // Entities don't carry a display name (unlike marketplace CatalogItems) — only a
+            // thumbnail, same as WearableItemElement (the in-game Configurator's own tile).
+            LoadThumbnail(entity.Thumbnail, tex =>
+            {
+                if (tex != null) image.image = tex;
+            });
+
+            tile.RegisterCallback<ClickEvent>(_ => OnFaceFeatureClicked(entity));
+
+            return tile;
+        }
+
+        private static string FriendlyName(string urn)
+        {
+            var suffix = urn[(urn.LastIndexOf(':') + 1)..];
+            return string.Join(' ', suffix.Split(new[] { '_', '-' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(w => char.ToUpperInvariant(w[0]) + w[1..]));
+        }
+
+        private void OnFaceFeatureClicked(EntityDefinition entity)
+        {
+            _previewFaceUrns[_faceCategory] = entity.URN;
+            RefreshFaceGrid();
+            ScheduleApply();
+            SetStatus($"Preview: {FriendlyName(entity.URN)} ({FACE_SLOT_LABELS[_faceCategory]}) — editor-only, not shared");
+        }
+
+        /// <summary>
+        /// The outfit actually rendered for preview/capture: <c>outfit</c> plus any local face-feature
+        /// overrides, with a conflicting real outfit item in the same slot dropped (one item per slot,
+        /// same rule <see cref="OnItemClicked"/> already applies for ordinary equips). Returns
+        /// <c>outfit</c> itself untouched when there's nothing to merge, so the common case allocates
+        /// nothing.
+        /// </summary>
+        private OutfitDefinition BuildPreviewOutfit()
+        {
+            if (_previewFaceUrns.Count == 0) return outfit;
+
+            var preview = outfit.Clone();
+            var overriddenSlots = _previewFaceUrns.Keys.ToHashSet();
+            preview.urns.RemoveAll(urn =>
+                _knownItems.TryGetValue(urn, out var known) && overriddenSlots.Contains(known.Slot));
+            preview.urns.AddRange(_previewFaceUrns.Values);
+            return preview;
         }
 
         /// <summary>
@@ -730,7 +1130,7 @@ namespace OutfitStudio.Editor
                     _collectionGrid.Clear();
                     foreach (var item in page.data)
                     {
-                        _collectionGrid.Add(BuildTile(item)); // published items equip via the normal URN flow
+                        _collectionGrid.Add(BuildTile(item, OnItemClicked)); // published items equip via the normal URN flow
                     }
 
                     var from = _collectionSkip + 1;
@@ -945,7 +1345,7 @@ namespace OutfitStudio.Editor
 
             foreach (var item in _sortedResults.Skip(_displayOffset).Take(PAGE_SIZE))
             {
-                _grid.Add(BuildTile(item));
+                _grid.Add(BuildTile(item, OnItemClicked));
             }
 
             var shown = Mathf.Clamp(_sortedResults.Length - _displayOffset, 0, PAGE_SIZE);
@@ -1002,7 +1402,7 @@ namespace OutfitStudio.Editor
             return ordered.Concat(items.Where(i => !HasValue(i)));
         }
 
-        private VisualElement BuildTile(CatalogItem item)
+        private VisualElement BuildTile(CatalogItem item, Action<CatalogItem> onClick)
         {
             var tile = new VisualElement
             {
@@ -1049,7 +1449,7 @@ namespace OutfitStudio.Editor
                 if (tex != null) image.image = tex;
             });
 
-            tile.RegisterCallback<ClickEvent>(_ => OnItemClicked(item));
+            tile.RegisterCallback<ClickEvent>(_ => onClick(item));
 
             return tile;
         }
@@ -1186,29 +1586,11 @@ namespace OutfitStudio.Editor
             // --- Card Frame (Fortnite-style item-card composite; studio-scene only, captured for free)
             BuildCardFrame(pane);
 
-            // --- Outfit
+            // --- Outfit (body shape and colors live on the Avatar tab now)
             pane.Add(Header("Outfit"));
-
-            _bodyShapePopup = new PopupField<string>("Body shape", new List<string> { "Male", "Female" },
-                outfit.bodyShape == WearablesConstants.BODY_SHAPE_FEMALE ? 1 : 0);
-            _bodyShapePopup.RegisterValueChangedCallback(_ =>
-            {
-                outfit.bodyShape = _bodyShapePopup.index == 1
-                    ? WearablesConstants.BODY_SHAPE_FEMALE
-                    : WearablesConstants.BODY_SHAPE_MALE;
-                RefreshShareCode();
-                ScheduleApply();
-            });
-            pane.Add(_bodyShapePopup);
 
             _slotsContainer = new VisualElement();
             pane.Add(_slotsContainer);
-
-            // --- Colors
-            pane.Add(Header("Colors"));
-            _skinField = ColorRow(pane, "Skin", outfit.skinColor, c => outfit.skinColor = c);
-            _hairField = ColorRow(pane, "Hair", outfit.hairColor, c => outfit.hairColor = c);
-            _eyeField = ColorRow(pane, "Eyes", outfit.eyeColor, c => outfit.eyeColor = c);
 
             // --- Pose
             pane.Add(Header("Pose"));
@@ -1841,6 +2223,11 @@ namespace OutfitStudio.Editor
         {
             outfit = loaded;
 
+            // Face-feature previews belong to the session that picked them, not to whatever outfit
+            // happens to be loaded next — start clean rather than carrying stale overrides across.
+            _previewFaceUrns.Clear();
+            RefreshFaceGrid();
+
             _bodyShapePopup.SetValueWithoutNotify(
                 outfit.bodyShape == WearablesConstants.BODY_SHAPE_FEMALE ? "Female" : "Male");
             _skinField.SetValueWithoutNotify(outfit.skinColor);
@@ -1905,11 +2292,13 @@ namespace OutfitStudio.Editor
 
         private void Apply()
         {
+            var previewOutfit = BuildPreviewOutfit(); // outfit + local face-feature overrides, never shared
+
             if (!Application.isPlaying)
             {
                 // Edit-mode 3D preview: assembles onto the scene skeleton without play mode.
                 // Pose/emote playback and capture still require play mode.
-                EditModeAvatarPreview.Apply(outfit, SetStatus);
+                EditModeAvatarPreview.Apply(previewOutfit, SetStatus);
                 return;
             }
 
@@ -1923,7 +2312,7 @@ namespace OutfitStudio.Editor
             var config = AangConfiguration.Instance;
             config.SetMode("builder");
             config.BodyShape = outfit.bodyShape;
-            config.Urns = FilterForBodyShape(outfit.urns).Select(URNUtils.SanitizeURN).ToList();
+            config.Urns = FilterForBodyShape(previewOutfit.urns).Select(URNUtils.SanitizeURN).ToList();
             config.SetSkinColor(ColorUtility.ToHtmlStringRGB(outfit.skinColor));
             config.SetHairColor(ColorUtility.ToHtmlStringRGB(outfit.hairColor));
             config.SetEyeColor(ColorUtility.ToHtmlStringRGB(outfit.eyeColor));

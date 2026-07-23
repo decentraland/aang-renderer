@@ -51,7 +51,16 @@ Shader "Custom/StudioCardFrame"
             Cull Off
             ZTest [_ZTest]
             ZWrite [_ZWrite]
-            Blend [_SrcBlend] [_DstBlend]
+            // Separate alpha blend: RGB uses the material-driven factors as before, but alpha always
+            // uses the standard "over" formula (One, OneMinusSrcAlpha). With a single shared factor
+            // pair, alpha blends as srcAlpha² + dstAlpha·(1-srcAlpha), which dips below 1 (as low as
+            // 0.75) at any anti-aliased edge composited over an opaque layer beneath — invisible in
+            // RGB (the painted color matches what's underneath) but a visible seam in the alpha
+            // channel alone (e.g. compositing the exported PNG over a different background). The
+            // correct "over" formula keeps alpha at 1 whenever the destination is already opaque,
+            // which is always true here once the BG quad has drawn — so the whole card frame,
+            // including the Fade quad's bottom gradient, now exports fully opaque, as intended.
+            Blend [_SrcBlend] [_DstBlend], One OneMinusSrcAlpha
 
             HLSLPROGRAM
             #pragma vertex vert

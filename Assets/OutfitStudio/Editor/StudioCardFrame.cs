@@ -206,6 +206,9 @@ namespace OutfitStudio.Editor
         {
             if (_root == null || cam == null) return;
             Layout(cam);
+            PushParams(); // keep _CardAspect/_CornerRadius in sync with the capture's aspect, not the
+                           // Game view's — otherwise the rounded-corner/border math is evaluated for
+                           // the wrong aspect and a seam opens between quads only in the capture.
         }
 
         public static bool IsActive => _root != null;
