@@ -23,8 +23,17 @@ namespace OutfitStudio.Editor
     /// </summary>
     public class OutfitStudioWindow : EditorWindow
     {
-        private const int PAGE_SIZE = 24;
+        private const int PAGE_SIZE = 36;
         private const int THUMB_SIZE = 90;
+
+        // The live marketplace-api ignores sortBy entirely (verified: every documented value -
+        // newest, recently_listed, recently_sold, cheapest, most_expensive - returns items in the
+        // exact same server order, prices/dates included). So there's no way to get a correct sort
+        // via pagination; instead we fetch every item matching the current filters (up to this cap)
+        // in one go and sort the whole set client-side. A true, uncapped global sort isn't practical
+        // for a broad, unfiltered browse (e.g. ~11k wearables) without fetching the entire catalog,
+        // so results are labelled "first N of total" whenever the cap is hit.
+        private const int FETCH_CAP = 3000;
 
         private static readonly List<string> WEARABLE_SLOTS = new()
         {
@@ -44,7 +53,24 @@ namespace OutfitStudio.Editor
         };
 
         private static readonly List<string> GENDERS = new() { "any", "male", "female", "unisex" };
-        private static readonly List<string> SORT_OPTIONS = new() { "newest", "name", "cheapest" };
+
+        // Labels match the Decentraland marketplace's own Sort dropdown, in the same order, so the
+        // two tools read the same way. "Name" is a local-only convenience option the marketplace
+        // doesn't have.
+        private static readonly List<string> SORT_OPTIONS = new()
+        {
+            "Newest", "Recently Listed", "Recently Sold", "Cheapest", "Most Expensive", "Name"
+        };
+
+        private static readonly Dictionary<string, string> SORT_API_VALUES = new()
+        {
+            ["Newest"] = "newest",
+            ["Recently Listed"] = "recently_listed",
+            ["Recently Sold"] = "recently_sold",
+            ["Cheapest"] = "cheapest",
+            ["Most Expensive"] = "most_expensive",
+            ["Name"] = "name"
+        };
 
         private static readonly List<string> EMBEDDED_EMOTES = new()
         {
@@ -104,8 +130,11 @@ namespace OutfitStudio.Editor
         [SerializeField] private bool cleanGameView = true;
 
         // Browser state (session only)
-        private readonly CatalogQuery _query = new() { First = PAGE_SIZE };
-        private CatalogPage _results;
+        private readonly CatalogQuery _query = new();
+        private CatalogItem[] _fetchedItems = Array.Empty<CatalogItem>(); // raw, unsorted, current filters
+        private CatalogItem[] _sortedResults = Array.Empty<CatalogItem>(); // _fetchedItems, sorted for display
+        private int _fetchedTotal; // server-reported total for the current filters (may exceed FETCH_CAP)
+        private int _displayOffset; // position of the current page within _sortedResults
         private int _searchSequence;
 
         // urn -> catalog item, used to resolve slot/name/thumbnail for outfit rows
@@ -121,6 +150,8 @@ namespace OutfitStudio.Editor
         private TextField _configField;
         private Label _pageLabel;
         private Button _prevButton, _nextButton;
+        private Button _invertSortButton;
+        private bool _invertSort;
         private VisualElement _slotsContainer;
         private Label _poseLabel;
         private PopupField<string> _emotePopup;
@@ -424,10 +455,24 @@ namespace OutfitStudio.Editor
             var sortPopup = new PopupField<string>("Sort", SORT_OPTIONS, 0);
             sortPopup.RegisterValueChangedCallback(_ =>
             {
-                _query.SortBy = sortPopup.value;
-                ResetAndSearch();
+                _query.SortBy = SORT_API_VALUES[sortPopup.value];
+                _displayOffset = 0;
+                ApplySortAndRebuild(); // already have every matching item fetched; no need to re-query
             });
             filters.Add(sortPopup);
+
+            _invertSortButton = new Button(() =>
+            {
+                _invertSort = !_invertSort;
+                UpdateInvertSortButton();
+                _displayOffset = 0;
+                ApplySortAndRebuild();
+            })
+            {
+                style = { width = 20, marginLeft = 2 }
+            };
+            UpdateInvertSortButton();
+            filters.Add(_invertSortButton);
 
             // Swap slot filter choices when the tab changes
             wearablesTab.clicked += () => { slotPopup.choices = WEARABLE_SLOTS; slotPopup.index = 0; };
@@ -446,8 +491,9 @@ namespace OutfitStudio.Editor
 
             // Pagination
             var pager = new VisualElement { style = { flexDirection = FlexDirection.Row, justifyContent = Justify.Center, paddingBottom = 4 } };
-            _prevButton = new Button(() => { _query.Skip = Mathf.Max(0, _query.Skip - PAGE_SIZE); RunSearch(); }) { text = "◀" };
-            _nextButton = new Button(() => { _query.Skip += PAGE_SIZE; RunSearch(); }) { text = "▶" };
+            // Paging is purely local: every matching item (up to FETCH_CAP) is already in memory.
+            _prevButton = new Button(() => { _displayOffset = Mathf.Max(0, _displayOffset - PAGE_SIZE); RebuildGrid(); }) { text = "◀" };
+            _nextButton = new Button(() => { _displayOffset += PAGE_SIZE; RebuildGrid(); }) { text = "▶" };
             _pageLabel = new Label("") { style = { unityTextAlign = TextAnchor.MiddleCenter, marginLeft = 8, marginRight = 8 } };
             pager.Add(_prevButton);
             pager.Add(_pageLabel);
@@ -848,7 +894,7 @@ namespace OutfitStudio.Editor
 
         private void ResetAndSearch()
         {
-            _query.Skip = 0;
+            _displayOffset = 0;
             RunSearch();
         }
 
@@ -859,13 +905,13 @@ namespace OutfitStudio.Editor
             SetStatus("Searching catalog...");
 
             var sequence = ++_searchSequence; // guard against out-of-order responses
-            CatalogService.Search(_query,
-                page =>
+            CatalogService.SearchAll(_query, FETCH_CAP,
+                (items, total) =>
                 {
                     if (sequence != _searchSequence) return;
-                    _results = page;
-                    RebuildGrid();
-                    SetStatus($"{page.total} items");
+                    _fetchedItems = items;
+                    _fetchedTotal = total;
+                    ApplySortAndRebuild();
                 },
                 error =>
                 {
@@ -874,44 +920,87 @@ namespace OutfitStudio.Editor
                 });
         }
 
+        private void UpdateInvertSortButton()
+        {
+            _invertSortButton.text = _invertSort ? "↑" : "↓";
+            _invertSortButton.tooltip = _invertSort
+                ? "Sort direction inverted (e.g. Newest shows oldest first) - click to restore"
+                : "Click to invert sort direction (e.g. Newest → oldest first)";
+        }
+
+        private void ApplySortAndRebuild()
+        {
+            _sortedResults = SortForDisplay(_fetchedItems, _query.SortBy, _invertSort).ToArray();
+            RebuildGrid();
+
+            var capped = _fetchedTotal > _sortedResults.Length;
+            SetStatus(capped
+                ? $"{_sortedResults.Length} of {_fetchedTotal} items (sort limited to the first {FETCH_CAP})"
+                : $"{_sortedResults.Length} items");
+        }
+
         private void RebuildGrid()
         {
             _grid.Clear();
 
-            if (_results?.data == null) return;
-
-            foreach (var item in SortForDisplay(_results.data, _query.SortBy))
+            foreach (var item in _sortedResults.Skip(_displayOffset).Take(PAGE_SIZE))
             {
                 _grid.Add(BuildTile(item));
             }
 
-            var from = _query.Skip + 1;
-            var to = _query.Skip + (_results.data?.Length ?? 0);
-            _pageLabel.text = _results.total > 0 ? $"{from}–{to} of {_results.total}" : "no results";
-            _prevButton.SetEnabled(_query.Skip > 0);
-            _nextButton.SetEnabled(to < _results.total);
+            var shown = Mathf.Clamp(_sortedResults.Length - _displayOffset, 0, PAGE_SIZE);
+            var from = shown > 0 ? _displayOffset + 1 : 0;
+            var to = _displayOffset + shown;
+            _pageLabel.text = _sortedResults.Length > 0 ? $"{from}–{to} of {_sortedResults.Length}" : "no results";
+            _prevButton.SetEnabled(_displayOffset > 0);
+            _nextButton.SetEnabled(to < _sortedResults.Length);
         }
 
         /// <summary>
-        /// The live marketplace-api ignores <c>sortBy</c> entirely (verified: "newest", "name",
-        /// "cheapest" and several other candidate values/param names all return items in the exact
-        /// same order) — so the Sort dropdown did nothing. There's no server-side fix available from
-        /// here, so this sorts the current page client-side instead. This is a real but partial fix:
-        /// it only reorders the ≤24 items already fetched for this page, not the whole catalog (a
-        /// true global sort would need fetching/caching every page, which doesn't scale for a
-        /// multi-thousand-item catalog) — still strictly better than a dropdown that visibly does
-        /// nothing.
+        /// The live marketplace-api ignores <c>sortBy</c> entirely (verified: newest, recently_listed,
+        /// recently_sold, cheapest and most_expensive all return items in the exact same server order,
+        /// prices/dates included) — so this sorts client-side instead, over every item matching the
+        /// current filters (fetched up to FETCH_CAP by <see cref="RunSearch"/>), not just one page.
+        /// Values match the real marketplace sortBy enum; "name" is local-only.
+        ///
+        /// <paramref name="invert"/> flips the natural direction of whichever option is selected (e.g.
+        /// "Newest" + invert shows the oldest items first) — the only way to reach the tail of a sort,
+        /// since the marketplace itself has no "oldest"/"least expensive"-style option of its own.
+        /// Items lacking the relevant value (not on sale, never sold) always trail last regardless of
+        /// direction, so inverting "Cheapest" doesn't flood the top with unpriced items.
         /// </summary>
-        private static IEnumerable<CatalogItem> SortForDisplay(CatalogItem[] items, string sortBy) =>
+        private static IEnumerable<CatalogItem> SortForDisplay(CatalogItem[] items, string sortBy, bool invert) =>
             sortBy switch
             {
-                "name" => items.OrderBy(i => i.name, StringComparer.OrdinalIgnoreCase),
-                "cheapest" => items.OrderBy(i => i.isOnSale && double.TryParse(i.price, out var price)
-                    ? price
-                    : double.MaxValue),
-                _ => items.OrderByDescending(i =>
-                    long.TryParse(i.createdAt, out var createdAt) ? createdAt : long.MinValue), // "newest"
+                "name" => invert
+                    ? items.OrderByDescending(i => i.name, StringComparer.OrdinalIgnoreCase)
+                    : items.OrderBy(i => i.name, StringComparer.OrdinalIgnoreCase),
+                "cheapest" => OrderByPrice(items, descending: invert),
+                "most_expensive" => OrderByPrice(items, descending: !invert),
+                "recently_listed" => OrderByTimestamp(items, i => i.updatedAt, descending: !invert),
+                "recently_sold" => OrderByTimestamp(items, i => i.soldAt, descending: !invert),
+                _ => OrderByTimestamp(items, i => i.createdAt, descending: !invert), // "newest"
             };
+
+        private static IEnumerable<CatalogItem> OrderByPrice(CatalogItem[] items, bool descending)
+        {
+            var onSale = items.Where(i => i.isOnSale);
+            var priced = descending
+                ? onSale.OrderByDescending(i => double.TryParse(i.price, out var price) ? price : 0)
+                : onSale.OrderBy(i => double.TryParse(i.price, out var price) ? price : 0);
+            return priced.Concat(items.Where(i => !i.isOnSale));
+        }
+
+        private static IEnumerable<CatalogItem> OrderByTimestamp(CatalogItem[] items,
+            Func<CatalogItem, string> selector, bool descending)
+        {
+            bool HasValue(CatalogItem i) => long.TryParse(selector(i), out _);
+            var withValue = items.Where(HasValue);
+            var ordered = descending
+                ? withValue.OrderByDescending(i => long.Parse(selector(i)))
+                : withValue.OrderBy(i => long.Parse(selector(i)));
+            return ordered.Concat(items.Where(i => !HasValue(i)));
+        }
 
         private VisualElement BuildTile(CatalogItem item)
         {
