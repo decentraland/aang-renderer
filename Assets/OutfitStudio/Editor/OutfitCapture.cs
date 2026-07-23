@@ -49,10 +49,17 @@ namespace OutfitStudio.Editor
             camera.aspect = width / (float)height;
             StudioCardFrame.RelayoutFor(camera);
 
-            var rt = new RenderTexture(width, height, 32, RenderTextureFormat.ARGB32)
+            // The legacy RenderTexture(w,h,depth,format) constructor leaves sRGB read/write
+            // ambiguous, which can gamma-encode the capture differently than the Game view's
+            // backbuffer (showing up as slightly flattened/desaturated colors). Building it from a
+            // descriptor with sRGB explicitly forced on keeps it display-referred, matching what the
+            // Linear-color-space project's URP pipeline outputs for the live view.
+            var rtDesc = new RenderTextureDescriptor(width, height, RenderTextureFormat.ARGB32, 32)
             {
-                antiAliasing = 4
+                sRGB = true,
+                msaaSamples = 4
             };
+            var rt = new RenderTexture(rtDesc);
 
             Texture2D texture = null;
 
