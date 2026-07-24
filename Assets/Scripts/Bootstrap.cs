@@ -15,6 +15,14 @@ public class Bootstrap : MonoBehaviour
 
     private void Start()
     {
+        // The preview is near-static, so cap the frame rate to keep GPU/CPU
+        // cost low on consumers. VSync must be disabled first: while it is on
+        // (QualitySettings.vSyncCount != 0) Application.targetFrameRate is
+        // ignored and rendering is tied to the display refresh (120Hz+ on
+        // ProMotion / high-refresh screens).
+        QualitySettings.vSyncCount = 0;
+        Application.targetFrameRate = 30;
+
         // Common assets
         CommonAssets.AvatarMaterial = baseMat;
         CommonAssets.FacialFeaturesMaterial = facialFeaturesMat;
