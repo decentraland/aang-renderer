@@ -37,6 +37,9 @@ float _GI_Intensity;
 float _BumpScale;
 float _StylizedMetalStrength;
 float _RimLightIntensity;
+float4 _Outline_Color;
+float _Outline_Width;
+float _Is_BlendBaseColor;
 int _MainTexArr_ID;
 int _NormalMapArr_ID;
 int _MatCap_SamplerArr_ID; 
@@ -77,6 +80,9 @@ UNITY_DOTS_INSTANCING_START(MaterialPropertyMetadata)
     UNITY_DOTS_INSTANCED_PROP(float, _BumpScale)
     UNITY_DOTS_INSTANCED_PROP(float, _StylizedMetalStrength)
     UNITY_DOTS_INSTANCED_PROP(float, _RimLightIntensity)
+    UNITY_DOTS_INSTANCED_PROP(float4, _Outline_Color)
+    UNITY_DOTS_INSTANCED_PROP(float, _Outline_Width)
+    UNITY_DOTS_INSTANCED_PROP(float, _Is_BlendBaseColor)
     UNITY_DOTS_INSTANCED_PROP(int, _lastWearableVertCount)
     UNITY_DOTS_INSTANCED_PROP(int, _lastAvatarVertCount)
 UNITY_DOTS_INSTANCING_END(MaterialPropertyMetadata)
@@ -134,6 +140,9 @@ static float unity_DOTS_Sampled_GI_Intensity;
 static float unity_DOTS_Sampled_BumpScale;
 static float unity_DOTS_Sampled_StylizedMetalStrength;
 static float unity_DOTS_Sampled_RimLightIntensity;
+static float4 unity_DOTS_Sampled_Outline_Color;
+static float unity_DOTS_Sampled_Outline_Width;
+static float unity_DOTS_Sampled_Is_BlendBaseColor;
 static int unity_DOTS_Sampled_MainTexArr_ID;
 static int unity_DOTS_Sampled_NormalMapArr_ID;
 static int unity_DOTS_Sampled_MatCap_SamplerArr_ID;
@@ -175,7 +184,10 @@ void SetupDOTSToonMaterialPropertyCaches()
     unity_DOTS_Sampled_BumpScale 					= UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float, _BumpScale);
     unity_DOTS_Sampled_StylizedMetalStrength 		= UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float, _StylizedMetalStrength);
     unity_DOTS_Sampled_RimLightIntensity 			= UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float, _RimLightIntensity);
-    unity_DOTS_Sampled_MainTexArr_ID 				= UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(int, _MainTexArr_ID); 
+    unity_DOTS_Sampled_Outline_Color 				= UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float4, _Outline_Color);
+    unity_DOTS_Sampled_Outline_Width 				= UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float, _Outline_Width);
+    unity_DOTS_Sampled_Is_BlendBaseColor 			= UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float, _Is_BlendBaseColor);
+    unity_DOTS_Sampled_MainTexArr_ID 				= UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(int, _MainTexArr_ID);
     unity_DOTS_Sampled_NormalMapArr_ID 				= UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(int, _NormalMapArr_ID); 
     unity_DOTS_Sampled_MatCap_SamplerArr_ID 		= UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(int, _MatCap_SamplerArr_ID); 
     unity_DOTS_Sampled_Emissive_TexArr_ID 			= UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(int, _Emissive_TexArr_ID); 
@@ -217,6 +229,9 @@ void SetupDOTSToonMaterialPropertyCaches()
 #define _BumpScale                          unity_DOTS_Sampled_BumpScale
 #define _StylizedMetalStrength              unity_DOTS_Sampled_StylizedMetalStrength
 #define _RimLightIntensity                  unity_DOTS_Sampled_RimLightIntensity
+#define _Outline_Color                      unity_DOTS_Sampled_Outline_Color
+#define _Outline_Width                      unity_DOTS_Sampled_Outline_Width
+#define _Is_BlendBaseColor                  unity_DOTS_Sampled_Is_BlendBaseColor
 #define _MainTexArr_ID                      unity_DOTS_Sampled_MainTexArr_ID
 #define _NormalMapArr_ID                    unity_DOTS_Sampled_NormalMapArr_ID
 #define _MatCap_SamplerArr_ID               unity_DOTS_Sampled_MatCap_SamplerArr_ID

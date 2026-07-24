@@ -198,7 +198,12 @@ namespace Utils
 
                 foreach (var sharedMaterial in renderer.sharedMaterials)
                 {
-                    if (sharedMaterial != null && sharedMaterial.shader.name == "DCL/DCL_Toon"
+                    // Gate on the shader actually declaring an "Outline" pass rather than a literal
+                    // "DCL/DCL_Toon" name match — Outfit Studio's shader switcher (StudioAvatarShaderSwitcher)
+                    // re-shades avatar materials in place to DCL_Toon_Studio/DCL_Stylized_PBR while the
+                    // game is running, and this eligibility check re-runs on every reload against the
+                    // renderer's *current* material, not just its original stock-shader material.
+                    if (sharedMaterial != null && sharedMaterial.FindPass("Outline") >= 0
                                                && sharedMaterial.renderQueue is >= 2000 and < 3000)
                     {
                         outlineRenderers.Add(renderer);

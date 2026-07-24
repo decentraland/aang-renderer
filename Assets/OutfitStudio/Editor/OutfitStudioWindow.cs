@@ -11,6 +11,7 @@ using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.UIElements;
 using Utils;
 using Loading;
@@ -958,6 +959,37 @@ namespace OutfitStudio.Editor
                 SetStatus($"Loaded preset: {selected.name}");
             });
             pane.Add(presetPopup);
+
+            // --- Outline debug. SMAA erodes the outline's thin stroke toward whatever's behind it, so
+            // it picks up the card background. Outline width/color are shader-tuning knobs (Capture
+            // pane); widen the stroke there so it survives AA. This selector A/Bs the camera AA live.
+            pane.Add(Header("Outline Debug"));
+            pane.Add(new Label("Antialiasing override — play mode only, not persisted. " +
+                               "Outline width and color are under Shader Tuning.")
+            {
+                style = { fontSize = 10, unityFontStyleAndWeight = FontStyle.Italic, whiteSpace = WhiteSpace.Normal, marginBottom = 4 }
+            });
+
+            var aaOptions = new List<string> { "Scene Default", "None", "FXAA", "SMAA", "TAA" };
+            var aaPopup = new PopupField<string>("Anti-aliasing", aaOptions, 0)
+            {
+                tooltip = "Scene Default is SMAA — the likely source of the outline being tinted by the card background."
+            };
+            aaPopup.RegisterValueChangedCallback(evt =>
+            {
+                StudioCardFrame.DebugAntialiasing = evt.newValue switch
+                {
+                    "None" => AntialiasingMode.None,
+                    "FXAA" => AntialiasingMode.FastApproximateAntialiasing,
+                    "SMAA" => AntialiasingMode.SubpixelMorphologicalAntiAliasing,
+                    "TAA" => AntialiasingMode.TemporalAntiAliasing,
+                    _ => (AntialiasingMode?)null
+                };
+                SetStatus(Application.isPlaying
+                    ? $"Antialiasing set to {evt.newValue}"
+                    : "Antialiasing override will apply once you're in play mode", false);
+            });
+            pane.Add(aaPopup);
 
             // --- Misc debug actions
             pane.Add(Header("Actions"));

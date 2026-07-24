@@ -366,6 +366,27 @@ namespace Loading
             }
         }
 
+        /// <summary>
+        /// Re-populates <see cref="RendererFeature_AvatarOutline"/>'s renderer list for a one-off
+        /// manual camera render — specifically the Outfit Studio still capture, which issues an extra
+        /// <c>SubmitRenderRequest</c>. <see cref="Update"/> fills the list every frame, but the outline
+        /// pass clears it after each camera render (OnCameraCleanup), so a capture render that runs
+        /// after the Game-view render in the same frame would otherwise draw no outline. Clears first
+        /// so it's safe to call regardless of the list's current state.
+        /// </summary>
+        public void RefreshOutlineRenderers()
+        {
+            var list = RendererFeature_AvatarOutline.m_AvatarOutlineRenderers;
+            list.Clear();
+            if (OutlineSuppressed) return;
+
+            foreach (var (_, root, _, outlineRenderers) in _loadedModels.Values)
+            {
+                if (root.activeInHierarchy)
+                    list.AddRange(outlineRenderers);
+            }
+        }
+
         private void Update()
         {
             if (OutlineSuppressed)

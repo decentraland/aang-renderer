@@ -41,6 +41,7 @@ float _RimSharpness;
 float _Is_LightColor_RimLight;
 float _OutlineEnabled;
 float _Outline_Width;
+float _Is_BlendBaseColor;
 int _MainTexArr_ID;
 int _NormalMapArr_ID;
 int _MatCap_SamplerArr_ID;

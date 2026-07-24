@@ -63,6 +63,13 @@ namespace OutfitStudio.Editor
 
             Texture2D texture = null;
 
+            // The avatar outline's renderer list is repopulated each frame by AvatarLoader.Update and
+            // cleared by the outline pass after every camera render. This capture issues an extra
+            // render (below), so refresh the list first — otherwise the still has no outline even
+            // though the live Game view shows it (it was consumed by the Game-view render this frame).
+            var avatarLoader = UnityEngine.Object.FindAnyObjectByType<Loading.AvatarLoader>();
+            if (avatarLoader != null) avatarLoader.RefreshOutlineRenderers();
+
             try
             {
                 var request = new RenderPipeline.StandardRequest();

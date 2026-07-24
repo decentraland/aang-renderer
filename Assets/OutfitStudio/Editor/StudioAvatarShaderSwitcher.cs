@@ -98,6 +98,9 @@ namespace OutfitStudio.Editor
         // Shared default rim tint: warm gold #CCB777 (RGB 204,183,119) — used by both studio shaders.
         private static readonly Color RimGold = new(204f / 255f, 183f / 255f, 119f / 255f);
 
+        // Shared default outline tint: burnt orange #B85C2A (RGB 184,92,42) — used by both studio shaders.
+        private static readonly Color OutlineOrange = new(184f / 255f, 92f / 255f, 42f / 255f);
+
         /// <summary>DCL_Toon_Studio — the knobs unlocked over the stock toon shader.</summary>
         public static readonly StudioShaderKnob[] StudioKnobs =
         {
@@ -109,7 +112,9 @@ namespace OutfitStudio.Editor
             new("Normal Strength", "_BumpScale", 0f, 2f, 1f, "Global normal-map intensity (overrides per-wearable scale)."),
             new("Metal Strength", "_StylizedMetalStrength", 0f, 1f, 1f, "Blend of the matcap metallic reflection."),
             new("Matcap Tint", "_MatCapColor", Color.white, "Colors the matcap metal reflection (white = untinted)."),
-            new("Matcap Blur", "_BlurLevelMatcap", 0f, 4f, 0f, "Softens the matcap reflection (mip LOD).")
+            new("Matcap Blur", "_BlurLevelMatcap", 0f, 4f, 0f, "Softens the matcap reflection (mip LOD)."),
+            new("Outline Width", "_Outline_Width", 0f, 10f, 3f, "Thickness of the avatar outline. Stock is 2; wider survives the camera's antialiasing instead of being eroded into the background."),
+            new("Outline Color", "_Outline_Color", OutlineOrange, "Flat color of the avatar outline.")
         };
 
         /// <summary>DCL_Stylized_PBR — the full principled + stylization control set.</summary>
@@ -134,7 +139,9 @@ namespace OutfitStudio.Editor
             new("Metal Strength", "_StylizedMetalStrength", 0f, 4f, 1f, "How strongly the matcap replaces the metal surface (1 = full, matches toon; >1 over-drives)."),
             new("Matcap Tint", "_MatCapColor", Color.white, "Colors the matcap metal reflection (white = untinted)."),
             new("Matcap Blur", "_BlurLevelMatcap", 0f, 4f, 0f, "Softens the matcap reflection (mip LOD)."),
-            new("Normal Strength", "_BumpScale", 0f, 2f, 1f, "Global normal-map intensity (overrides per-wearable scale).")
+            new("Normal Strength", "_BumpScale", 0f, 2f, 1f, "Global normal-map intensity (overrides per-wearable scale)."),
+            new("Outline Width", "_Outline_Width", 0f, 10f, 3f, "Thickness of the avatar outline. Stock is 2; wider survives the camera's antialiasing instead of being eroded into the background."),
+            new("Outline Color", "_Outline_Color", OutlineOrange, "Flat color of the avatar outline.")
         };
 
         public static StudioShaderKnob[] KnobsFor(StudioShaderMode mode) => mode switch

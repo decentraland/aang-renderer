@@ -29,7 +29,7 @@
 #define _Is_BakedNormal 0.0f
 #define _Is_BlendAddToHiColor 1.0f
 #define _Is_BlendAddToMatCap 1.0f
-#define _Is_BlendBaseColor 1.0f
+// _Is_BlendBaseColor promoted to a runtime per-material property (see DCL_ToonInput.hlsl)
 #define _Is_Filter_HiCutPointLightColor 1.0f
 #define _Is_Filter_LightColor 1.0f
 #define _Is_LightColor_1st_Shade 1.0f
@@ -57,7 +57,7 @@
 #define _Offset_X_Axis_BLD -0.05f
 #define _Offset_Y_Axis_BLD 0.09f
 #define _Offset_Z 0.0f
-#define _Outline_Width 2.0f
+// _Outline_Width promoted to a runtime per-material property (see DCL_ToonInput.hlsl)
 // _RimLight promoted to a runtime per-material property (see DCL_ToonInput.hlsl)
 // _RimLight_FeatherOff promoted to a runtime per-material property (see DCL_ToonInput.hlsl)
 // _RimLight_InsideMask promoted to a runtime per-material property (see DCL_ToonInput.hlsl)
@@ -92,8 +92,7 @@
 #define _EmissionColor float4 (0, 0, 0, 1)
 #define _HighColor float4 (1, 1, 1, 1)
 // _MatCapColor promoted to a runtime per-material property (see DCL_ToonInput.hlsl)
-// _Is_BlendBaseColor == 1.0f, so OutlineColor can be removed
-#define _Outline_Color float4 (0.6320754, 0.6320754, 0.6320754, 1)
+// _Outline_Color promoted to a runtime per-material property (see DCL_ToonInput.hlsl)
 // _RimLightColor promoted to a runtime per-material property (see DCL_ToonInput.hlsl)
 #define _HighlightObjectOffset float4 (0.0f, 0.0f, 0.0f, 0.0f)
 #define _HighlightColour float4 (0.5f, 0.0f, 0.5f, 1.0f)

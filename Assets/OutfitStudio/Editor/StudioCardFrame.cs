@@ -1,6 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 
 namespace OutfitStudio.Editor
@@ -34,7 +35,6 @@ namespace OutfitStudio.Editor
         // EditorPrefs keys
         private const string K_ENABLED = "OutfitStudio.Card.Enabled";
         private const string K_SIDEMASK = "OutfitStudio.Card.SideMask";
-        private const string K_HIDE_OUTLINE = "OutfitStudio.Card.HideOutline";
         private const string K_BG_TOP = "OutfitStudio.Card.BgTop";
         private const string K_BG_BOTTOM = "OutfitStudio.Card.BgBottom";
         private const string K_GLOW = "OutfitStudio.Card.Glow";
@@ -110,11 +110,58 @@ namespace OutfitStudio.Editor
 
         /// <summary>Suppress the avatar's outline (a thin silhouette line, visible over the head
         /// against a light card) for clean beauty shots. Drives <see cref="Loading.AvatarLoader"/>'s
-        /// runtime flag; independent of <see cref="Enabled"/> so it works with or without the frame.</summary>
+        /// runtime flag; independent of <see cref="Enabled"/> so it works with or without the frame.
+        /// Deliberately NOT persisted to EditorPrefs (unlike the other card settings) — it always
+        /// starts off on a fresh domain reload/Editor launch, so it can never silently stay on across
+        /// a session and leave someone wondering why the outline is missing.</summary>
         public static bool HideOutline
         {
-            get => EditorPrefs.GetBool(K_HIDE_OUTLINE, false);
-            set { EditorPrefs.SetBool(K_HIDE_OUTLINE, value); SyncOutline(); }
+            get => _hideOutline;
+            set { _hideOutline = value; SyncOutline(); }
+        }
+
+        private static bool _hideOutline;
+
+        /// <summary>
+        /// Live override for the studio camera's post-process antialiasing mode, so SMAA's edge
+        /// erosion of the (thin) outline stroke can be compared against None/FXAA/TAA live. Null =
+        /// leave the camera at whatever the scene/prefab has configured. Only settable in play mode
+        /// (that's when the actual rendering camera exists); not persisted. (Outline width lives in
+        /// StudioAvatarShaderSwitcher's knob list, the single owner of _Outline_Width.)
+        /// </summary>
+        public static AntialiasingMode? DebugAntialiasing
+        {
+            get => _debugAntialiasing;
+            set { _debugAntialiasing = value; SyncDebugOverrides(); }
+        }
+
+        private static AntialiasingMode? _debugAntialiasing;
+        private static AntialiasingMode? _originalAntialiasing; // captured on first override, restored when cleared
+
+        /// <summary>Re-applies the antialiasing override. Called from the poll so it survives a
+        /// play-mode re-entry (which would otherwise reset the camera to its authored default).</summary>
+        private static void SyncDebugOverrides()
+        {
+            if (SceneManager.GetActiveScene().path != OutfitStudioWindow.STUDIO_SCENE_PATH) return;
+
+            // The antialiasing mode lives on the actual rendering camera, which only exists once play
+            // mode spins up the scene for real (edit-mode preview renders through the Scene View).
+            if (!Application.isPlaying) return;
+
+            var cam = FindCamera();
+            var camData = cam != null ? cam.GetUniversalAdditionalCameraData() : null;
+            if (camData == null) return;
+
+            if (_debugAntialiasing.HasValue)
+            {
+                _originalAntialiasing ??= camData.antialiasing;
+                camData.antialiasing = _debugAntialiasing.Value;
+            }
+            else if (_originalAntialiasing.HasValue)
+            {
+                camData.antialiasing = _originalAntialiasing.Value;
+                _originalAntialiasing = null;
+            }
         }
 
         public static Color BgTop { get => GetColor(K_BG_TOP, DefBgTop); set => SetColor(K_BG_TOP, value); }
@@ -153,6 +200,7 @@ namespace OutfitStudio.Editor
             if (EditorApplication.timeSinceStartup < _nextCheck) return;
             _nextCheck = EditorApplication.timeSinceStartup + 0.5;
             SyncOutline();
+            SyncDebugOverrides();
             Refresh();
         }
 
@@ -270,8 +318,13 @@ namespace OutfitStudio.Editor
             _bg = MakeQuad("BG", shader, mode: 0, queue: 1000,
                 zTest: (int)CompareFunction.LessEqual, zWrite: 1,
                 src: (int)BlendMode.One, dst: (int)BlendMode.Zero);
+            // LessEqual (not Always): the card panel sits behind the avatar (far Z), so it must
+            // respect depth. The avatar outline draws BeforeRenderingOpaques and writes near depth in
+            // its ring; with ZTest Always the card painted over that ring (outline showed the card
+            // color). LessEqual lets the card draw over the BG quad (same far Z) but leaves the nearer
+            // outline ring — and the opaque avatar — untouched.
             _card = MakeQuad("Card", shader, mode: 1, queue: 1500,
-                zTest: (int)CompareFunction.Always, zWrite: 0,
+                zTest: (int)CompareFunction.LessEqual, zWrite: 0,
                 src: (int)BlendMode.SrcAlpha, dst: (int)BlendMode.OneMinusSrcAlpha);
             _fade = MakeQuad("Fade", shader, mode: 2, queue: 3500,
                 zTest: (int)CompareFunction.Always, zWrite: 0,

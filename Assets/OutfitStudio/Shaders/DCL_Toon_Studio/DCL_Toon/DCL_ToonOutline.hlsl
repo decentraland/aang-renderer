@@ -138,7 +138,11 @@ float4 frag(VertexOutput i) : SV_Target
     float4 _MainTex_var = SAMPLE_MAINTEX(uv_maintex,nMainTexArrID);
     //float4 _MainTex_var = SAMPLE_TEXTURE2D(_MainTex,sampler_MainTex, TRANSFORM_TEX(Set_UV0, _MainTex));
     float3 Set_BaseColor = _BaseColor.rgb*_MainTex_var.rgb;
-    float3 _Is_BlendBaseColor_var = lerp( _Outline_Color.rgb*lightColor, (_Outline_Color.rgb*Set_BaseColor*Set_BaseColor*lightColor), _Is_BlendBaseColor );
+    // Render the tuning-knob _Outline_Color literally (lightColor is 1 here — _Is_LightColor_Outline
+    // is 0). The stock shader multiplied it by the garment albedo squared (_Is_BlendBaseColor), which
+    // crushed a chosen color into a dark garment-tinted sliver; the studio outline is a flat art-
+    // direction color instead.
+    float3 _Is_BlendBaseColor_var = _Outline_Color.rgb * lightColor;
     //
     //float3 _OutlineTex_var = float3(1.0, 1.0, 1.0);//tex2D(_OutlineTex,TRANSFORM_TEX(Set_UV0, _OutlineTex)).rgb;
     //v.2.0.7.5

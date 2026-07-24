@@ -60,6 +60,7 @@ Shader "DCL/DCL_Stylized_PBR"
         [Toggle(_)] _OutlineEnabled ("Outline Enabled", Float) = 1
         _Outline_Width ("Outline_Width", Range(0, 10)) = 2
         _Outline_Color ("Outline_Color", Color) = (0.6320754, 0.6320754, 0.6320754, 1)
+        [Toggle(_)] _Is_BlendBaseColor ("Is_BlendBaseColor", Float) = 1
 
         // --- Clipping / transparency (shared contract with DCL_Toon)
         _Clipping_Level ("Clipping_Level", Range(0, 1)) = 0
@@ -125,8 +126,9 @@ Shader "DCL/DCL_Stylized_PBR"
                 if (_OutlineEnabled < 0.5) clip(-1);
                 half4 texColor = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, TRANSFORM_TEX(input.uv, _MainTex));
                 StylizedPBRAlphaClip(texColor.a);
-                // Blend outline tint with the base color (DCL_Toon's blend-base default)
-                return half4(texColor.rgb * _BaseColor.rgb * _Outline_Color.rgb, 1);
+                // Render the tuning-knob _Outline_Color literally (flat art-direction color) rather
+                // than tinting it by the garment albedo, so the picked color shows exactly.
+                return half4(_Outline_Color.rgb, 1);
             }
             ENDHLSL
         }
