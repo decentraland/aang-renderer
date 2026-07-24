@@ -35,6 +35,7 @@ namespace OutfitStudio.Editor
         // for a broad, unfiltered browse (e.g. ~11k wearables) without fetching the entire catalog,
         // so results are labelled "first N of total" whenever the cap is hit.
         private const int FETCH_CAP = 3000;
+        private const float NECK_LOOK_SHARE = 0.4f; // fraction of the look-at turn given to the neck vs. the head
 
         private static readonly List<string> WEARABLE_SLOTS = new()
         {
@@ -1735,6 +1736,8 @@ namespace OutfitStudio.Editor
             rotationRow.Add(new Button(() => SnapRotate(-15f)) { text = ">", style = { width = 30 } });
             pane.Add(rotationRow);
 
+            pane.Add(new Button(LookAtCamera) { text = "Look at Camera" });
+
             var sizeRow = new VisualElement { style = { flexDirection = FlexDirection.Row } };
             var widthField = new IntegerField("Size") { value = captureWidth, style = { flexGrow = 1 } };
             widthField.RegisterValueChangedCallback(evt => captureWidth = Mathf.Clamp(evt.newValue, 64, 8192));
@@ -2537,6 +2540,52 @@ namespace OutfitStudio.Editor
             rotationSnapAngle += deltaDegrees;
             _rotationLabel.text = $"{rotationSnapAngle:0}°";
             rotator.SnapRotation(rotationSnapAngle);
+        }
+
+        /// <summary>Turns the head bone toward the camera (or lets the current pose/emote drive
+        /// it again), independent of body rotation. Returns false (and leaves the toggle
+        /// unapplied) when the head bone/avatar/camera can't be resolved.</summary>
+        /// <summary>Rotates the head bone to face the camera, giving the neck bone a share of
+        /// the turn (see <see cref="NECK_LOOK_SHARE"/>) so it doesn't read as the head twisting
+        /// on its own. One-shot: freezes the current pose first (<see cref="AvatarLoader.FreezePose"/>)
+        /// since the legacy Animation component would otherwise re-drive these bones back to the
+        /// clip pose on the very next frame, undoing the adjustment.</summary>
+        private void LookAtCamera()
+        {
+            if (!EnsurePlaying()) return;
+
+            var avatarLoader = FindAnyObjectByType<AvatarLoader>();
+            if (avatarLoader == null)
+            {
+                SetStatus("No avatar loaded", true);
+                return;
+            }
+
+            var headBone = avatarLoader.HeadBone;
+            if (headBone == null)
+            {
+                SetStatus("Head bone not found", true);
+                return;
+            }
+
+            var camera = avatarLoader.MainCamera;
+            var direction = camera.transform.position - headBone.position;
+            if (direction.sqrMagnitude < 0.0001f) return;
+
+            avatarLoader.FreezePose();
+
+            var targetRotation = Quaternion.LookRotation(direction, Vector3.up);
+
+            var neckBone = avatarLoader.NeckBone;
+            if (neckBone != null)
+            {
+                var remainingTurn = targetRotation * Quaternion.Inverse(headBone.rotation);
+                neckBone.rotation = Quaternion.Slerp(Quaternion.identity, remainingTurn, NECK_LOOK_SHARE) *
+                                     neckBone.rotation;
+            }
+
+            headBone.rotation = targetRotation;
+            SetStatus("Head looking at camera");
         }
 
         // ---------------------------------------------------------------- Misc

@@ -238,6 +238,37 @@ namespace Loading
             UpdateHighlight();
         }
 
+        public Camera MainCamera => mainCamera;
+
+        /// <summary>
+        /// Looks up a body-skeleton bone by its glTF node name (e.g. "Avatar_Head"). These
+        /// transforms are the fixed base-body skeleton wearables get remapped onto by name in
+        /// <see cref="AvatarUtils.SetupWearable"/>, so the same names apply here.
+        /// </summary>
+        [CanBeNull]
+        public Transform GetBone(string name) => avatarBones?.FirstOrDefault(b => b != null && b.name == name);
+
+        /// <summary>The base skeleton's head bone. Falls back to a name-suffix match in case the
+        /// imported node name doesn't exactly match the "Avatar_Head" convention.</summary>
+        [CanBeNull]
+        public Transform HeadBone => GetBone("Avatar_Head") ??
+            avatarBones?.FirstOrDefault(b => b != null && b.name.EndsWith("Head", StringComparison.OrdinalIgnoreCase));
+
+        /// <summary>The base skeleton's neck bone (parent of <see cref="HeadBone"/>). Same
+        /// exact-then-suffix fallback as <see cref="HeadBone"/>.</summary>
+        [CanBeNull]
+        public Transform NeckBone => GetBone("Avatar_Neck") ??
+            avatarBones?.FirstOrDefault(b => b != null && b.name.EndsWith("Neck", StringComparison.OrdinalIgnoreCase));
+
+        /// <summary>
+        /// Stops the currently playing pose/emote clip so its bones stop being re-driven every
+        /// frame, leaving them exactly where they are right now. Used by the Outfit Studio's
+        /// "Look at Camera" action: without this, the legacy <see cref="Animation"/> component
+        /// would re-sample the head/neck rotation from the clip on the very next frame and undo
+        /// the look-at adjustment immediately.
+        /// </summary>
+        public void FreezePose() => avatarAnimation.Stop();
+
         public void SetSpringBonesParams(SpringBones.SpringBonesParamsPayload payload)
         {
             if (payload == null || string.IsNullOrEmpty(payload.itemId)) return;
