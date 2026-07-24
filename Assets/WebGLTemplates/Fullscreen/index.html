@@ -53,6 +53,14 @@
 
     <script src="Build/{{{ LOADER_FILENAME }}}"></script>
     <script>
+      // Cap the device pixel ratio. Unity otherwise renders at the full
+      // window.devicePixelRatio (4-9x the pixels on Retina/HiDPI displays),
+      // which pegs the GPU for a preview that is nearly static.
+      // Overridable via a ?dpr= query param so consumers can tune it; the
+      // default cap is 1.5.
+      var dprParam = parseFloat(new URLSearchParams(window.location.search).get("dpr"));
+      var dprCap = isNaN(dprParam) ? 1.5 : dprParam;
+
       createUnityInstance(document.querySelector("#unity-canvas"), {
         arguments: [],
         dataUrl: "Build/{{{ DATA_FILENAME }}}",
@@ -71,6 +79,7 @@
         productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
         productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
         matchWebGLToCanvasSize: true,
+        devicePixelRatio: Math.min(window.devicePixelRatio || 1, dprCap),
       }).then(function(unityInstance) {
 #if SHOW_DIAGNOSTICS
         // Open diagnostics when user clicks the icon
