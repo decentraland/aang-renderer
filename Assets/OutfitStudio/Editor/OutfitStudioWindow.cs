@@ -262,6 +262,7 @@ namespace OutfitStudio.Editor
         [SerializeField] private bool transparentBackground = true;
         [SerializeField] private string outputFolder = OutfitCapture.DEFAULT_OUTPUT_FOLDER;
         [SerializeField] private float turntableDuration = 6f;
+        [SerializeField] private float rotationSnapAngle;
         [SerializeField] private bool cleanGameView = true;
 
         // Browser state (session only)
@@ -300,6 +301,7 @@ namespace OutfitStudio.Editor
         private bool _invertSort;
         private VisualElement _slotsContainer;
         private Label _poseLabel;
+        private Label _rotationLabel;
         private PopupField<string> _emotePopup;
         private TextField _shareCodeField;
         private Label _statusLabel;
@@ -1723,6 +1725,16 @@ namespace OutfitStudio.Editor
             // --- Capture
             pane.Add(Header("Capture"));
 
+            pane.Add(new Label("Rotation"));
+            var rotationRow = new VisualElement
+                { style = { flexDirection = FlexDirection.Row, alignItems = Align.Center, marginBottom = 4 } };
+            rotationRow.Add(new Button(() => SnapRotate(15f)) { text = "<", style = { width = 30 } });
+            _rotationLabel = new Label($"{rotationSnapAngle:0}°")
+                { style = { flexGrow = 1, unityTextAlign = TextAnchor.MiddleCenter } };
+            rotationRow.Add(_rotationLabel);
+            rotationRow.Add(new Button(() => SnapRotate(-15f)) { text = ">", style = { width = 30 } });
+            pane.Add(rotationRow);
+
             var sizeRow = new VisualElement { style = { flexDirection = FlexDirection.Row } };
             var widthField = new IntegerField("Size") { value = captureWidth, style = { flexGrow = 1 } };
             widthField.RegisterValueChangedCallback(evt => captureWidth = Mathf.Clamp(evt.newValue, 64, 8192));
@@ -2508,6 +2520,23 @@ namespace OutfitStudio.Editor
             OutfitCapture.StartVideo(captureWidth, captureHeight, captureFrameRate, outputFolder);
             driver.enabled = true;
             SetStatus($"Recording turntable ({turntableDuration:0.0}s)...");
+        }
+
+        private void SnapRotate(float deltaDegrees)
+        {
+            if (!EnsurePlaying()) return;
+
+            var avatarLoader = FindAnyObjectByType<AvatarLoader>();
+            var rotator = avatarLoader != null ? avatarLoader.GetComponentInParent<DragRotator>() : null;
+            if (rotator == null)
+            {
+                SetStatus("No avatar loaded", true);
+                return;
+            }
+
+            rotationSnapAngle += deltaDegrees;
+            _rotationLabel.text = $"{rotationSnapAngle:0}°";
+            rotator.SnapRotation(rotationSnapAngle);
         }
 
         // ---------------------------------------------------------------- Misc
