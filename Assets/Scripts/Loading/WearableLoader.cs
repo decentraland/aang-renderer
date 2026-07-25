@@ -84,6 +84,14 @@ namespace Loading
             _outlineRenderers.Clear();
             AvatarUtils.SetupWearable(_wearableGO, colors, _outlineRenderers);
         }
+        
+        public void ApplyColors(AvatarColors colors)
+        {
+            if (_wearableGO == null) return;
+
+            AvatarUtils.ApplySkinHairColors(_wearableGO, colors);
+            AvatarUtils.ApplyFacialFeatureColors(_wearableGO, colors);
+        }
 
         private void Update()
         {

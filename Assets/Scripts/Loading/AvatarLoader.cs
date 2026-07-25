@@ -291,6 +291,20 @@ namespace Loading
             owner = null;
             return false;
         }
+        
+        public void ApplyColors(AvatarColors colors)
+        {
+            foreach (var model in _loadedModels.Values)
+            {
+                AvatarUtils.ApplySkinHairColors(model.Root, colors);
+            }
+
+            var bodyGO = _loadedModels.Values.FirstOrDefault(er => er.Entity.Type == EntityType.Body).Root;
+            if (bodyGO != null)
+            {
+                AvatarUtils.ApplyFacialFeatureColors(bodyGO, colors);
+            }
+        }
 
         public void HideFacialFeatures()
         {

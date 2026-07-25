@@ -249,6 +249,36 @@ namespace Utils
             }
         }
 
+        public static void ApplySkinHairColors(GameObject go, AvatarColors colors)
+        {
+            foreach (var renderer in go.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                foreach (var material in renderer.materials)
+                {
+                    if (material.name.Contains("skin", StringComparison.OrdinalIgnoreCase))
+                    {
+                        material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Skin);
+                    }
+                    else if (material.name.Contains("hair", StringComparison.OrdinalIgnoreCase))
+                    {
+                        material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID, colors.Hair);
+                    }
+                }
+            }
+        }
+
+        public static void ApplyFacialFeatureColors(GameObject bodyGO, AvatarColors colors)
+        {
+            foreach (var cat in WearableCategories.FACIAL_FEATURES)
+            {
+                var ffRenderer = GetFacialFeatureRenderer(cat, bodyGO);
+                if (ffRenderer == null) continue;
+
+                ffRenderer.material.SetColor(WearablesConstants.Shaders.BASE_COLOR_ID,
+                    GetFacialFeatureColor(cat, colors));
+            }
+        }
+
         private static SkinnedMeshRenderer GetFacialFeatureRenderer(string category, GameObject bodyGO)
         {
             var suffix = category switch
