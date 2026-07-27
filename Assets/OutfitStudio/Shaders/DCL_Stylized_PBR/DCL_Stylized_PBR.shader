@@ -53,7 +53,7 @@ Shader "DCL/DCL_Stylized_PBR"
         _EmissionStrength ("Emission Strength", Range(0, 2)) = 0.19
 
         // --- Emission
-        _Emissive_Tex ("Emissive", 2D) = "black" {}
+        _Emissive_Tex ("Emissive", 2D) = "white" {}
         _Emissive_Color ("Emissive Color", Color) = (0,0,0,1)
 
         // --- Outline (user toggle; pass must exist for the avatar outline feature's FindPass("Outline"))

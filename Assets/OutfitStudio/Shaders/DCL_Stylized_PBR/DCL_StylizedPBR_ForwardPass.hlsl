@@ -248,8 +248,14 @@ half4 StylizedPBRFragment(Varyings input) : SV_Target
     // _EmissionStrength (studio knob, default 1) lets the artist pull emissive back down: PBR's
     // emissive sits on a brighter additive base (ambient + rim) than toon's, so with bloom on it reads
     // hotter for the same texel — lower this (~0.4-0.6) to match the DCL_Toon look without touching post.
+    // Flat-color-only emissives (no emissiveTexture in the glTF) never get a texture bound, so they
+    // sample the shader's fallback "white" 1x1 — Unity still reports its real size via TexelSize, so a
+    // tiny texel size means "no authored map" (any real emissive map is well over 16px). Those read a
+    // touch weaker than their toon counterpart, so nudge them up without touching masked/mapped ones.
+    half isFlatEmissive = step(_Emissive_Tex_TexelSize.z, 16.0) * step(_Emissive_Tex_TexelSize.w, 16.0);
+    half emissiveBoost = lerp(1.0, 3.0, isFlatEmissive);
     half3 emissive = SAMPLE_TEXTURE2D(_Emissive_Tex, sampler_Emissive_Tex, TRANSFORM_TEX(input.uv, _Emissive_Tex)).rgb
-                     * _Emissive_Color.rgb * 2.5 * _EmissionStrength;
+                     * _Emissive_Color.rgb * 2.5 * _EmissionStrength * emissiveBoost;
     color += emissive;
 
     color = MixFog(color, input.fogFactor);

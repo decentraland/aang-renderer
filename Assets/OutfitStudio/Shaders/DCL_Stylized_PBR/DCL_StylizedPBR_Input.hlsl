@@ -10,6 +10,7 @@ CBUFFER_START(UnityPerMaterial)
 float4 _MainTex_ST;
 float4 _NormalMap_ST;
 float4 _Emissive_Tex_ST;
+float4 _Emissive_Tex_TexelSize;
 half4 _BaseColor;
 float4 _Emissive_Color;
 float4 _MatCapColor;
