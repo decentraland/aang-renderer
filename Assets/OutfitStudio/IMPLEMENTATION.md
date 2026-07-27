@@ -164,12 +164,53 @@ StopEmote/GoToEmote(seconds)`; the scrub slider's `highValue` is polled from
 
 `OutfitCapture` (static, editor-only):
 
-**Still** — renders `Camera.main` into an arbitrary-resolution `RenderTexture` (independent of
-Game view size) via `RenderPipeline.StandardRequest` + `SubmitRenderRequest` (URP-correct;
-falls back to `camera.targetTexture + Render()`), `ReadPixels` → `EncodeToPNG` →
-`File.WriteAllBytes`. Transparent background = temporarily set solid-color clear with alpha 0
-(URP preserves alpha — same mechanism the WebGL transparent template relies on). Runtime UI
-Toolkit overlays don't render through the camera, so stills are automatically clean.
+**Still** (2026-07-27 rewrite) — captures via the Unity Recorder package's `CameraInputSettings`
+("Targeted Camera" input, `Source = MainCamera`), single-frame mode
+(`RecorderControllerSettings.SetRecordModeToSingleFrame(0)`), same as **Video** below just with an
+`ImageRecorderSettings`/PNG recorder instead of a movie one. **Async**: `CaptureStill(..., Action<string>
+onComplete)` starts the Recorder and polls `EditorApplication.update` until `IsRecording()` goes
+false, then locates the newly-written file (`Directory.GetFiles` before/after diff — the Recorder
+always suffixes a frame index, so the exact filename isn't predictable up front) and invokes the
+callback. `IsCapturingStill` guards re-entry the same way `IsRecording` guards video.
+
+**Why not a direct render (the pre-2026-07-27 approach):** the original still path rendered
+`Camera.main` into an arbitrary-resolution `RenderTexture` via `RenderPipeline.StandardRequest` +
+`SubmitRenderRequest`, then `ReadPixels` → `EncodeToPNG`. Geometry/lighting matched the Game view,
+but **Bloom and any additive-blended VFX (rarity sparkle particles) came out dimmed or missing
+entirely** — confirmed by the fact that Video (which was already Recorder/Game-View-based) captured
+bloom correctly while the manual-RenderTexture stills didn't, even with an opaque background. The
+`SubmitRenderRequest` path doesn't go through the same per-camera "after render" capture hook
+(`CameraCapture.AddCaptureAction`) that the interactive render and the Recorder's own `CameraInput`
+use — root-caused by testing, not by reading URP source (a `msaaSamples` mismatch against the
+project's MSAA-disabled URP assets was suspected and fixed first, and did fix a real but smaller
+color-desaturation issue on thin bright details, but didn't fix the missing-bloom regression — that
+needed the full switch to Recorder/`CameraInputSettings`). Superseded entirely; `RenderTexture`/
+`RenderPipeline` are no longer used anywhere in `OutfitCapture`.
+
+Transparent background (`transparentBackground` toggle, or the Card Frame's **Enable background**
+off — see §18) = temporarily set the camera to solid-color clear with alpha 0, plus
+`CameraInputSettings.RecordTransparency` / `ImageRecorderSettings.CaptureAlpha` so the Recorder's
+copy shader preserves the channel through to the PNG.
+
+**`RecoverAdditiveAlpha`** (post-pass on the saved PNG, only when capturing transparent): Bloom and
+additive-blended VFX write RGB straight into the color buffer via `Blend One One`, never touching
+alpha. Over the old opaque background that was invisible (final alpha was 1 everywhere regardless),
+but with a transparent clear those glow pixels keep alpha 0 from the clear and vanish once exported
+to PNG even though their color is genuinely there. Fully un-premultiplying (scaling every touched
+pixel so its brightest channel hits 255, matching a brightness-derived alpha) is "physically
+correct" but also fully saturates the dim outer fringe of the bloom blur — often a blend of two or
+more nearby sparkles' colors mixing (e.g. green+yellow bleeding into a muddy olive) that was
+invisible before purely because its alpha was near 0; maxing it out makes the mixed hue loudly
+visible instead of subtle. Fix: curve the recovered alpha by `brightness²` so faint/mixed fringe
+pixels stay suppressed toward transparent (same as they'd fade to black in the editor) while
+genuinely bright sparkle cores stay vivid and correctly colored — a **stylized approximation**, not
+a physically-exact one (additive light fundamentally can't look identical over both black and white
+backgrounds; this trades strict correctness for not exposing color-mixing artifacts). Since the
+Recorder writes straight to disk, this runs by reading the saved file back in (`Texture2D.LoadImage`),
+patching, and re-encoding over it — there's no in-memory `Texture2D` to intercept mid-pipeline
+anymore.
+
+Runtime UI Toolkit overlays don't render through the camera, so stills are automatically clean.
 
 **Video** — Unity Recorder driven programmatically: `RecorderControllerSettings` +
 `MovieRecorderSettings` with `CoreEncoderSettings { Codec = MP4, Quality = High }` and
@@ -187,6 +228,21 @@ Three video flows in the window:
 
 Output: `Captures/` **next to the project root** by default (outside `Assets/` so Unity doesn't
 import the files); absolute paths allowed. Filenames `outfit_yyyyMMdd_HHmmss`.
+
+**Pose controls (2026-07-24, added to the Capture pane):**
+- **Rotation snap** (`<`/`>` buttons, ±15° per click, `rotationSnapAngle` accumulates and persists):
+  `DragRotator.SnapRotation(yawDegrees)` smoothly rotates to an absolute yaw relative to the spawn
+  orientation (`ResetRotation`'s target), resetting drag velocity/timing state so free-drag orbiting
+  still works normally once it settles. Play mode only (`EnsurePlaying`).
+- **Look at Camera** button: turns the head bone toward `Camera.main`, giving the neck bone a
+  `NECK_LOOK_SHARE` (0.4) share of the turn so it doesn't read as the head twisting on its own —
+  `AvatarLoader.HeadBone`/`NeckBone` resolve `"Avatar_Head"`/`"Avatar_Neck"` by exact glTF node name
+  first, falling back to a `"...Head"`/`"...Neck"` suffix match. **One-shot**: calls
+  `AvatarLoader.FreezePose()` (`avatarAnimation.Stop()`) first, since the legacy `Animation`
+  component would otherwise re-sample the head/neck rotation from the pose/emote clip on the very
+  next frame and undo the adjustment immediately — so this is a pose you apply right before
+  capturing, not a persistent look-at behavior. `AvatarLoader.MainCamera` was added as a public
+  accessor for this (previously private).
 
 ## 9. Window internals worth knowing
 
@@ -239,12 +295,26 @@ import the files); absolute paths allowed. Filenames `outfit_yyyyMMdd_HHmmss`.
      not being monotonic even for "newest"/"cheapest"). The endpoint also never errors on an
      invalid enum value for `category`/`sortBy` — it silently falls back to a default — so there's
      no way to discover a "correct" value/param name by trial and error; the sort feature appears
-     genuinely unsupported by this endpoint version. **Fixed client-side**: `CatalogItem` gained
-     `price`/`createdAt` (already in the JSON, just not consumed before), and
-     `OutfitStudioWindow.SortForDisplay` re-sorts the already-fetched page in `RebuildGrid` by the
-     selected `SortBy` value. This is a **per-page** sort, not a true catalog-wide one — a real global
-     sort would mean fetching/caching every page of a multi-thousand-item catalog, which doesn't
-     scale — but it's strictly better than a dropdown that visibly did nothing.
+     genuinely unsupported by this endpoint version.
+
+     **Fixed client-side, twice.** First pass: `CatalogItem` gained `price`/`createdAt`, and
+     `SortForDisplay` re-sorted just the already-fetched page — a per-page sort only, not a true
+     catalog-wide one. **2026-07-23 upgrade**: `CatalogService.SearchAll(query, cap, onSuccess,
+     onError)` ignores the query's `Skip`/`First` and instead pages through `Search` itself (at up
+     to `MAX_FETCH_PAGE=1000` items/request) until it has every item matching the current filters, a
+     server-reported total, or `cap` items — whichever comes first. `OutfitStudioWindow.RunSearch`
+     calls it with `FETCH_CAP=3000`, then sorts the **entire fetched set** client-side
+     (`SortForDisplay`) and paginates (`PAGE_SIZE=36`) locally over that in-memory array — so
+     Next/Prev and re-sorting no longer re-query the server at all. `CatalogItem` also gained
+     `updatedAt`/`soldAt` to support "Recently Listed"/"Recently Sold" (`OrderByTimestamp` helper;
+     items missing the relevant field always trail last). Sort option labels/order now match the
+     real marketplace dropdown exactly (Newest/Recently Listed/Recently Sold/Cheapest/Most
+     Expensive/Name — "Name" is local-only, not a marketplace concept). A new **↓/↑ invert button**
+     next to the Sort dropdown flips direction (e.g. Newest+invert = oldest first) — the only way to
+     reach the tail of a sort, since the marketplace's own dropdown has no "oldest" equivalent. Still
+     **not a true global sort** for a broad unfiltered browse (~11k wearables > `FETCH_CAP`) — the
+     status label reads "N of total items (sort limited to the first 3000)" whenever the cap is hit,
+     rather than silently truncating.
 
 ## 11. Edit-mode 3D preview (iteration 2)
 
@@ -760,6 +830,56 @@ Note: the "No MatcapPresets assigned" warning only fires if metal was *detected*
 **Blur caveat:** `_BlurLevelMatcap` samples the matcap by mip LOD, so it only softens visibly if the
 6 matcap PNGs are imported **with mipmaps enabled** — check their import settings if blur looks inert.
 
+**Outline color/width promoted to runtime properties + made flat (2026-07-24, "Outlines fixes").**
+Stock `DCL_Toon`'s outline was compile-time constants (`DCL_ToonVariables.hlsl`:
+`#define _Outline_Width 2.0f`, `#define _Outline_Color float4(0.632,0.632,0.632,1)`, uneditable —
+the inverted-hull outline mechanism itself is: the outline pass extrudes the mesh outward along
+vertex normals by `_Outline_Width` and draws its backfaces flat-shaded in `_Outline_Color`, so a
+width too thin gets eroded into the background by SMAA before it ever reaches the outline color)
+and was tinted by the garment's own albedo
+(`_Is_BlendBaseColor` lerp: `Outline_Color * albedo² * lightColor`), which crushed any chosen color
+into a dark, garment-dependent sliver. Both studio shaders now declare `_Outline_Width`,
+`_Outline_Color`, `_Is_BlendBaseColor` as real per-material properties (DOTS-instanced in
+`DCL_ToonInput.hlsl` alongside the other promoted knobs) and render `_Outline_Color` **literally** —
+`DCL_ToonOutline.hlsl`'s fragment is now just `_Outline_Color.rgb * lightColor` (drop the
+albedo-blend lerp entirely); PBR's outline pass (previously a stock verbatim copy) matches: `return
+half4(_Outline_Color.rgb, 1)` instead of tinting by `_BaseColor`/`texColor`. New knobs on **both**
+shaders: **Outline Width** (0–10, default 3 — wider than stock's 2 so the stroke survives the
+camera's antialiasing instead of being eroded into the background) and **Outline Color** (default
+burnt-orange `#B85C2A`, a shared
+`OutlineOrange` field in `StudioAvatarShaderSwitcher` next to `RimGold`).
+
+**Eligibility check fixed for re-shaded materials.** `AvatarUtils.cs`'s outline-renderer gate
+matched `sharedMaterial.shader.name == "DCL/DCL_Toon"` literally — but the shader switcher re-shades
+avatar materials **in place** to `DCL_Toon_Studio`/`DCL_Stylized_PBR` while the game is running, so
+this check (re-run on every reload) silently stopped finding any eligible renderer once a studio
+shader was active. Fixed to `sharedMaterial.FindPass("Outline") >= 0` — both studio shaders declare
+that pass — so the outline keeps working across shader switches. (Prod default `DCL_Toon` is
+unaffected: it also declares an "Outline" pass, so `FindPass` still matches it the same as before.)
+
+**Live antialiasing override for outline debugging:** `StudioCardFrame.DebugAntialiasing` (nullable
+`AntialiasingMode`, not persisted, play-mode only — the actual rendering camera only exists once
+play mode spins up the scene) lets you compare None/FXAA/TAA/SMAA live against the wider outline
+stroke, re-applied every 0.5 s poll (`SyncDebugOverrides`) so it survives a play-mode re-entry.
+Restores the camera's original antialiasing when cleared.
+
+**Still-capture outline gap fixed:** `RendererFeature_AvatarOutline`'s renderer list is repopulated
+every frame by `AvatarLoader.Update` and cleared after each camera render; a still capture's extra
+render (issued after the Game view's own render, same frame) previously found an already-emptied
+list and drew no outline even though the live Game view showed one. `AvatarLoader.RefreshOutlineRenderers()`
+re-populates it from `_loadedModels` right before the capture's render (both the old
+`SubmitRenderRequest` path and the current Recorder-based one call it — see §8). Also added:
+`AvatarLoader.MainCamera` (public accessor), `GetBone(name)`/`HeadBone`/`NeckBone` (exact glTF node
+name match, `"...Head"`/`"...Neck"` suffix fallback), and `FreezePose()` (`avatarAnimation.Stop()`) —
+all consumed by the **Look at Camera** capture control, see §8.
+
+**Card frame ZTest fix:** the card panel quad (queue 1500) used `ZTest Always`, so it painted over
+the avatar outline's near-depth ring (the outline pass draws `BeforeRenderingOpaques` and writes
+depth in its stroke) — the outline showed the card's color instead of the outline color wherever it
+crossed the card. Changed to `ZTest LessEqual`: the card still draws over the BG quad (same far Z)
+but now respects the nearer outline ring and the opaque avatar. See §18 for the rest of the card
+frame's alpha/layout fixes from the same pass.
+
 ## 17. Screenshot poses (iteration 6, 2026-07-16)
 
 Single-frame "poses" for stills: drop GLBs (1-frame skeletal animations) into
@@ -939,15 +1059,46 @@ setters push live. Groups: **Background** (top/bottom colour, glow colour+height
 (top/bottom colour, side/top/bottom margins, corner radius, border colour+width), **Bottom fade**
 (colour, height, softness). "Reset card defaults" clears the keys. Defaults are tuned to the
 reference look (bg `#16143A`→`#3A1E5C`, card `#6B3FA0`→`#4A2870`, top margin 0.12 for head overflow).
-Master **Enable** toggle (default off, opt-in).
+Master **Enable** toggle (default off, opt-in). **Enable background** toggle (2026-07-27, default
+on — see below) sits directly under it.
 
 ### Capture
 `OutfitCapture.CaptureStill` forces `camera.aspect = width/height` and calls
 `StudioCardFrame.RelayoutFor(camera)` before the render request (then `camera.ResetAspect()` after),
 so a still at a resolution different from the Game view still frames the card correctly. Set the
-Game view to a **portrait aspect (~2:3)** to author WYSIWYG. Note: with the card enabled the opaque
-background quad fills the frame, so the "Transparent background" capture toggle is effectively
-overridden (you want the card bg, not transparency).
+Game view to a **portrait aspect (~2:3)** to author WYSIWYG.
+
+**2026-07-23 fix:** `RelayoutFor` originally only called `Layout(cam)`, not `PushParams()` — so
+`_CardAspect`/`_CornerRadius` (used by the card/fade/border rounded-rect SDF) stayed evaluated for
+the *Game view's* aspect even when the capture resolution's aspect differed, opening a visible seam
+between quads **only in the capture**, never live. Fixed by having `RelayoutFor` call `PushParams()`
+too.
+
+**2026-07-23 alpha-export fix:** the shader used one shared `Blend [_SrcBlend] [_DstBlend]` factor
+pair for RGB *and* alpha. For an anti-aliased edge composited over an already-opaque layer beneath
+(the common case once the BG quad has drawn), that blends alpha as `srcAlpha² +
+dstAlpha·(1-srcAlpha)`, which dips as low as ~0.75 instead of staying at 1 — invisible in RGB (the
+painted color already matches what's underneath) but a visible seam **in the alpha channel alone**,
+e.g. compositing the exported PNG over a different background than the studio's own. Fixed with a
+separate alpha blend factor pair — `Blend [_SrcBlend] [_DstBlend], One OneMinusSrcAlpha` — the
+standard "over" formula, which keeps alpha at 1 wherever the destination is already opaque. This is
+what makes the card frame (with the background on) always export fully opaque regardless of edge
+antialiasing.
+
+**2026-07-27: "Enable background" toggle — transparent-with-card-frame capture.** Previously, with
+the card frame enabled, the opaque background quad filled the entire frame, so the "Transparent
+background" capture toggle was effectively overridden (you always got the card's own gradient
+background, never true transparency). `StudioCardFrame.BackgroundEnabled` (EditorPrefs-backed,
+default **true** = identical to the old always-on behavior) gates `_bg.enabled` — same pattern as
+the existing `SideMask` toggle on the mask quad. The background quad is the *only* opaque,
+ZWrite-On layer in the whole card-frame stack (see the "over" alpha-blend fix above — it's what
+forces every other layer's antialiased edges to export as fully opaque too); switch it off and
+`OutfitCapture` additionally clears the camera to alpha 0 whenever `StudioCardFrame.Enabled &&
+!StudioCardFrame.BackgroundEnabled` (independent of the separate "Transparent background" checkbox,
+which still works for the no-card-frame case) — so the area outside the card comes out transparent
+in the PNG while the card panel and avatar (still opaque themselves) are unaffected. See §8 for the
+`RecoverAdditiveAlpha` post-pass this exposed a need for (bloom/glow near the card's edges wasn't
+writing alpha, so it vanished over the new transparent region).
 
 ### Lifecycle
 Quads are `HideFlags.DontSave` (never serialized → no scene churn) and parented to the camera so they
@@ -970,3 +1121,44 @@ track the view (incl. drag-rotate, which rotates the avatar only). Recreated aft
 Name/price/"+" text chrome (deferred — not a DCL concept; would be a 4th quad or a captured text
 layer); per-side avatar hard-clip via a stencil if a wide pose ever spills past the card; save/load
 card presets alongside outfit presets; a horizontal/radial background gradient option.
+
+## 19. Avatar tab — body shape/colors relocated + curated face features (2026-07-23)
+
+New top-level tab (`BuildAvatarPane`, alongside Avatar/Wearables/Emotes-Poses/Debug) consolidating
+everything about the *body itself*, mirroring the marketplace's own avatar editor:
+
+- **Body shape + colors**: moved here verbatim from the Outfit pane (no behavior change — still
+  writes straight to `outfit`, so still shareable/saveable in presets, just relocated).
+- **Face features** (new): eyes/eyebrows/mouth/hair/facial_hair, browsed as a tile grid
+  (`BuildFaceTile`, same visual language as `WearableItemElement`) per `FACE_SLOTS`/
+  `FACE_SLOT_LABELS`, filtered to the currently-selected `CurrentBodyShape()` (male/female-specific
+  URN variants are mixed in `DEFAULT_FACE_URNS`; picking one without a representation for the active
+  body shape would silently no-op at apply time, so those are excluded from the grid instead).
+
+**Why this needed its own data path, not `CatalogService`:** these are **base-avatar (off-chain)**
+wearables — the marketplace-api (`v1/items`) only serves collection items, so face features are
+resolved via the **Catalyst entities endpoint** instead (`RunFaceSearch`, async void — same
+fire-and-forget pattern `EditModeAvatarPreview.Apply` already uses for editor-only await chains).
+`DEFAULT_FACE_URNS` is a curated per-slot URN list mirroring the same set the in-game avatar
+Configurator ships with (`Assets/Scripts/Configurator/ConfiguratorController.cs`'s
+`faceCategories`) — deliberately not a live catalog browse, since there's no marketplace-style
+search/pagination available for this data source.
+
+**Local-only, deliberately never shared.** Face-feature picks live in `_previewFaceUrns` (a plain
+`Dictionary<string, string>` on the window, not on `outfit`) and are merged in only at
+preview/capture time via `BuildPreviewOutfit()` — `outfit` plus the local overrides, with a
+conflicting real outfit item in the same slot dropped (same one-item-per-slot rule
+`OnItemClicked` already applies to ordinary equips). This means **a share code or saved preset never
+carries face-feature picks** — intentional, since these are meant as local preview/beauty-shot
+overrides (e.g. "how would this outfit look on a different face") rather than part of the outfit
+being authored. `BuildPreviewOutfit()` returns `outfit` itself untouched (no allocation) when there
+are no overrides, so the common no-face-override case costs nothing. Loading a new outfit clears
+`_previewFaceUrns` — overrides belong to the session that picked them, not to whatever gets loaded
+next.
+
+`Apply()` — the single entry point both edit-mode preview and play-mode load already funnel through
+(`EditModeAvatarPreview.Apply` / `PreviewController` respectively) — now builds `previewOutfit =
+BuildPreviewOutfit()` once and passes that through instead of reading `outfit` directly, so stills
+and video (which capture whatever `Apply()` last loaded, without a separate reload) pick up the
+face-feature overrides too. `outfit` itself remains the single source of truth for anything that
+gets shared/saved.

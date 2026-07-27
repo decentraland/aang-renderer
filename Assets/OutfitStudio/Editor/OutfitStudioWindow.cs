@@ -1908,6 +1908,16 @@ namespace OutfitStudio.Editor
             enable.RegisterValueChangedCallback(evt => StudioCardFrame.Enabled = evt.newValue);
             fold.Add(enable);
 
+            var enableBackground = new Toggle("Enable background")
+            {
+                value = StudioCardFrame.BackgroundEnabled,
+                tooltip = "Off leaves the card panel and avatar untouched but skips the fullscreen " +
+                          "gradient behind them, so captures come out with a transparent background " +
+                          "instead of the gradient."
+            };
+            enableBackground.RegisterValueChangedCallback(evt => StudioCardFrame.BackgroundEnabled = evt.newValue);
+            fold.Add(enableBackground);
+
             var sideMask = new Toggle("Mask avatar to card sides")
             {
                 value = StudioCardFrame.SideMask,
@@ -2476,12 +2486,19 @@ namespace OutfitStudio.Editor
         {
             if (!EnsurePlaying()) return;
 
-            var path = OutfitCapture.CaptureStill(captureWidth, captureHeight, transparentBackground, outputFolder);
-            if (path != null)
+            SetStatus("Capturing...");
+            OutfitCapture.CaptureStill(captureWidth, captureHeight, transparentBackground, outputFolder, path =>
             {
-                SetStatus($"Saved {path}");
-                OutfitCapture.RevealInFinder(path);
-            }
+                if (path != null)
+                {
+                    SetStatus($"Saved {path}");
+                    OutfitCapture.RevealInFinder(path);
+                }
+                else
+                {
+                    SetStatus("Capture failed", true);
+                }
+            });
         }
 
         private void ToggleVideo()

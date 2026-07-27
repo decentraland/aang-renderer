@@ -34,6 +34,7 @@ namespace OutfitStudio.Editor
 
         // EditorPrefs keys
         private const string K_ENABLED = "OutfitStudio.Card.Enabled";
+        private const string K_BG_ENABLED = "OutfitStudio.Card.BgEnabled";
         private const string K_SIDEMASK = "OutfitStudio.Card.SideMask";
         private const string K_BG_TOP = "OutfitStudio.Card.BgTop";
         private const string K_BG_BOTTOM = "OutfitStudio.Card.BgBottom";
@@ -98,6 +99,17 @@ namespace OutfitStudio.Editor
         {
             get => EditorPrefs.GetBool(K_ENABLED, false);
             set { EditorPrefs.SetBool(K_ENABLED, value); Refresh(); }
+        }
+
+        /// <summary>Draw the fullscreen gradient background quad. On by default (identical to the
+        /// original look). Turning it off leaves the card/fade/border/mask untouched, so with a
+        /// transparent-clear capture the frame area outside the card is transparent while the card
+        /// panel and the avatar stay opaque — the background quad is what forces the whole capture
+        /// opaque (see the shader's "over" alpha blend comment), so skipping it is all this needs.</summary>
+        public static bool BackgroundEnabled
+        {
+            get => EditorPrefs.GetBool(K_BG_ENABLED, true);
+            set { EditorPrefs.SetBool(K_BG_ENABLED, value); Refresh(); }
         }
 
         /// <summary>Clip the avatar to the card's sides/bottom (arms/hands that spill past the card
@@ -403,6 +415,7 @@ namespace OutfitStudio.Editor
         {
             var cardAspect = AspectOf(_card); // cw / ch
 
+            _bg.enabled = BackgroundEnabled;
             var bg = _bg.sharedMaterial;
             bg.SetColor(ColorAId, BgTop);
             bg.SetColor(ColorBId, BgBottom);
