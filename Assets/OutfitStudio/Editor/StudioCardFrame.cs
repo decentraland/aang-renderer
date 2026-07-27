@@ -32,9 +32,13 @@ namespace OutfitStudio.Editor
         private const float PLANE_Z = 50f; // camera-local Z; safely behind a ~2 m avatar, well inside the far plane
         private const float BG_OVERSIZE = 1.04f; // background quad scale over the frustum (hides edge slivers)
 
+        // Ported from Explorer's loading-screen background; see the shader's DclBackground() comment.
+        private const string DCL_BG_TEXTURE_PATH = "Assets/OutfitStudio/Textures/DclBackgroundPattern.png";
+
         // EditorPrefs keys
         private const string K_ENABLED = "OutfitStudio.Card.Enabled";
         private const string K_BG_ENABLED = "OutfitStudio.Card.BgEnabled";
+        private const string K_USE_DCL_BG = "OutfitStudio.Card.UseDclBg";
         private const string K_SIDEMASK = "OutfitStudio.Card.SideMask";
         private const string K_BG_TOP = "OutfitStudio.Card.BgTop";
         private const string K_BG_BOTTOM = "OutfitStudio.Card.BgBottom";
@@ -69,6 +73,8 @@ namespace OutfitStudio.Editor
         private static readonly int FadeEndId = Shader.PropertyToID("_FadeEnd");
         private static readonly int MaskRectId = Shader.PropertyToID("_MaskRect");
         private static readonly int BorderTopFadeId = Shader.PropertyToID("_BorderTopFade");
+        private static readonly int UseDclBgId = Shader.PropertyToID("_UseDclBg");
+        private static readonly int DclOverlayTexId = Shader.PropertyToID("_DclOverlayTex");
         private static readonly int ZTestId = Shader.PropertyToID("_ZTest");
         private static readonly int ZWriteId = Shader.PropertyToID("_ZWrite");
         private static readonly int SrcBlendId = Shader.PropertyToID("_SrcBlend");
@@ -111,6 +117,20 @@ namespace OutfitStudio.Editor
             get => EditorPrefs.GetBool(K_BG_ENABLED, true);
             set { EditorPrefs.SetBool(K_BG_ENABLED, value); Refresh(); }
         }
+
+        /// <summary>Replace the gradient background (and the side-mask repaint, if that's on too)
+        /// with the animated purple pattern from the Decentraland Explorer loading screens. Off by
+        /// default. No effect while <see cref="BackgroundEnabled"/> is off.</summary>
+        public static bool UseDclBackground
+        {
+            get => EditorPrefs.GetBool(K_USE_DCL_BG, false);
+            set { EditorPrefs.SetBool(K_USE_DCL_BG, value); Refresh(); }
+        }
+
+        private static Texture2D _dclBgTexture;
+
+        private static Texture2D DclBgTexture =>
+            _dclBgTexture ??= AssetDatabase.LoadAssetAtPath<Texture2D>(DCL_BG_TEXTURE_PATH);
 
         /// <summary>Clip the avatar to the card's sides/bottom (arms/hands that spill past the card
         /// edge are hidden), leaving the top open so the head still overflows. Off by default.</summary>
@@ -422,6 +442,8 @@ namespace OutfitStudio.Editor
             bg.SetColor(HighlightColorId, Glow);
             bg.SetVector(HighlightCenterId, new Vector4(0.5f, GlowHeight, 0f, 0f));
             bg.SetVector(HighlightSizeId, new Vector4(GlowSize, GlowSize, 0f, 0f));
+            bg.SetFloat(UseDclBgId, UseDclBackground ? 1f : 0f);
+            if (UseDclBackground && DclBgTexture != null) bg.SetTexture(DclOverlayTexId, DclBgTexture);
 
             var card = _card.sharedMaterial;
             card.SetColor(ColorAId, CardTop);
@@ -456,6 +478,8 @@ namespace OutfitStudio.Editor
                 mask.SetColor(HighlightColorId, Glow);
                 mask.SetVector(HighlightCenterId, new Vector4(0.5f, GlowHeight, 0f, 0f));
                 mask.SetVector(HighlightSizeId, new Vector4(GlowSize, GlowSize, 0f, 0f));
+                mask.SetFloat(UseDclBgId, UseDclBackground ? 1f : 0f);
+                if (UseDclBackground && DclBgTexture != null) mask.SetTexture(DclOverlayTexId, DclBgTexture);
                 mask.SetFloat(CardAspectId, cardAspect);
                 mask.SetFloat(CornerRadiusId, CornerRadius);
                 float U(float f) => 0.5f + (f - 0.5f) / BG_OVERSIZE;

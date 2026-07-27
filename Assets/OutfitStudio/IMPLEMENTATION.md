@@ -59,6 +59,8 @@ Assets/OutfitStudio/
 │   ├── DCL_Toon_Studio/           # unlocked copy of the metallic-branch DCL_Toon (§16)
 │   ├── DCL_Stylized_PBR/          # new Disney-principled stylized PBR shader (§16)
 │   └── StudioCardFrame/           # unlit shader for the Fortnite-style card frame (§18)
+├── Textures/
+│   └── DclBackgroundPattern.png   # icon-pattern overlay, ported from Explorer's loading screen (§18)
 └── Editor/
     ├── OutfitCapture.cs           # still (RenderPipeline request) + video (Unity Recorder)
     ├── EditModeAvatarPreview.cs   # edit-mode outfit assembly on the scene skeleton (§11)
@@ -1060,7 +1062,8 @@ setters push live. Groups: **Background** (top/bottom colour, glow colour+height
 (colour, height, softness). "Reset card defaults" clears the keys. Defaults are tuned to the
 reference look (bg `#16143A`→`#3A1E5C`, card `#6B3FA0`→`#4A2870`, top margin 0.12 for head overflow).
 Master **Enable** toggle (default off, opt-in). **Enable background** toggle (2026-07-27, default
-on — see below) sits directly under it.
+on — see below) sits directly under it, followed by **Use Decentraland Background** (2026-07-27,
+default off — see below).
 
 ### Capture
 `OutfitCapture.CaptureStill` forces `camera.aspect = width/height` and calls
@@ -1099,6 +1102,45 @@ which still works for the no-card-frame case) — so the area outside the card c
 in the PNG while the card panel and avatar (still opaque themselves) are unaffected. See §8 for the
 `RecoverAdditiveAlpha` post-pass this exposed a need for (bloom/glow near the card's edges wasn't
 writing alpha, so it vanished over the new transparent region).
+
+**2026-07-27: "Use Decentraland Background" toggle — animated purple loading-screen pattern.**
+Ported the animated background from `unity-explorer`'s Welcome/loading screens (shader
+`Custom/AnimatedBackgroundMovingTexture` in `TileableTexture.shader`, tuned via `BackgroundLoading.mat`)
+directly into `StudioCardFrame.shader`'s existing background mode (`_Mode 0`/`3`), rather than adding
+a 6th quad — the background is always a single opaque, ZWrite-On quad, so the two looks (gradient vs.
+DCL pattern) are just alternate branches inside the same `frag()`, selected by a new `_UseDclBg`
+toggle property:
+- **Vignette:** `_DclInnerColor`→`_DclOuterColor` radial falloff (`_DclRadius`/`_DclSmoothness`)
+  replaces the vertical `_ColorA`/`_ColorB` gradient. Same purple palette as the reference
+  (`#BF00FF`→`#4D0080`).
+- **Overlay pattern:** `DclBackgroundPattern.png` (copied from Explorer's `DCL_LogoPattern.png` — a
+  tileable atlas of t-shirt/crown/headphones/banana icons) is sampled with UVs scrolling via
+  `_Time.y * _DclOverlayDirection * _DclOverlaySpeed` (shader-driven, no C# ticking needed — same
+  approach as the reference, which has no animation script either) and composited with a
+  "luminosity blend" (`RgbToHsv`/`HsvToRgb` helpers): the overlay's own hue/value stay, but its
+  saturation/hue get pulled toward the vignette's, so the pattern tints purple instead of showing raw
+  white/gray.
+- **Off-center glow:** a second radial highlight (`_DclGlowColor`/`_DclGlowCenter`/`_DclGlowRadius`)
+  matches the reference's asymmetric hotspot, independent of the existing `_HighlightColor` glow
+  (which is skipped while the DCL mode is active).
+- Reuses the same opaque `return float4(col, 1.0)` exit as the gradient path for mode 0, and the same
+  side-mask repaint logic for mode 3 — so **Mask avatar to card sides** repaints with the DCL pattern
+  too when both toggles are on, staying seamless with the background quad exactly as it already did
+  for the gradient.
+- `StudioCardFrame.UseDclBackground` (EditorPrefs-backed, default **false**) pushes `_UseDclBg` and
+  the (lazily `AssetDatabase`-loaded) pattern texture onto the bg/mask materials in `PushParams()`;
+  all the DCL tuning constants (colors, glow, tiling/speed) are left at the shader Properties-block
+  defaults ported 1:1 from `BackgroundLoading.mat` rather than exposed as new controls — this is a
+  fixed "look", not a tunable gradient like the existing background colors.
+- Animation requires the Scene view's "Animate Materials" toggle when previewing outside Play mode
+  (standard Unity behavior for any `_Time`-driven shader); it always animates in Play mode and in
+  Captures, since `_Time` advances there regardless.
+- **Retuned same day** (Mauricio: bright center should occupy more space, dark should read as a
+  corner vignette, not dominate): `_DclRadius` 0.167→0.42 and `_DclSmoothness` 0.25→0.55 (range
+  widened to `Range(0.01,1)` to fit). At these values the full-bright disc now covers most of the
+  frame and the falloff only reaches the outer color out past the UV corner distance (~0.707), so
+  mid-edges stay mostly bright and only the corners darken — an actual vignette instead of the
+  reference's small hot-spot-in-a-dark-field look.
 
 ### Lifecycle
 Quads are `HideFlags.DontSave` (never serialized → no scene churn) and parented to the camera so they

@@ -21,6 +21,27 @@ Shader "Custom/StudioCardFrame"
         _HighlightCenter ("Highlight Center", Vector) = (0.5, 0.62, 0, 0)
         _HighlightSize ("Highlight Size", Vector) = (0.7, 0.7, 0, 0)
 
+        // Decentraland loading-screen background (mode 0/3 only) — animated purple vignette with a
+        // scrolling icon-pattern overlay, ported from Explorer's Custom/AnimatedBackgroundMovingTexture
+        // (unity-explorer's TileableTexture.shader / BackgroundLoading.mat). See IMPLEMENTATION.md §18.
+        [Toggle] _UseDclBg ("Use DCL Background", Float) = 0
+        _DclOverlayTex ("DCL Overlay Tex", 2D) = "white" {}
+        _DclInnerColor ("DCL Inner Color", Color) = (0.75, 0, 1, 1)
+        _DclOuterColor ("DCL Outer Color", Color) = (0.3, 0, 0.5, 1)
+        _DclRadius ("DCL Radius", Range(0,1)) = 0.42
+        _DclSmoothness ("DCL Smoothness", Range(0.01,1)) = 0.55
+        _DclOverlayColor ("DCL Overlay Color", Color) = (1, 1, 1, 1)
+        _DclOverlayTiling ("DCL Overlay Tiling", Float) = 1.66
+        _DclOverlayDirection ("DCL Overlay Direction", Vector) = (1, -1.25, 0, 0)
+        _DclOverlaySpeed ("DCL Overlay Speed", Float) = 0.06
+        _DclOverlayAlpha ("DCL Overlay Alpha", Range(0,1)) = 0.573
+        _DclGlowColor ("DCL Glow Color", Color) = (0.66, 0, 0.745, 1)
+        _DclGlowStrength ("DCL Glow Strength", Float) = 0.59
+        _DclGlowCenter ("DCL Glow Center", Vector) = (0.68, 0.5, 0, 0)
+        _DclGlowRadius ("DCL Glow Radius", Vector) = (0.05, -0.13, 0, 0)
+        _DclGlowSmoothness ("DCL Glow Smoothness", Float) = 3.61
+        _DclLuminosityStrength ("DCL Luminosity Strength", Range(0,1)) = 0.541
+
         // Card rounded-rect (also used by the fade so its bottom corners match)
         _CardAspect ("Card Aspect (w/h)", Float) = 0.66
         _CornerRadius ("Corner Radius", Range(0,1)) = 0.08
@@ -80,12 +101,72 @@ Shader "Custom/StudioCardFrame"
             float _FadeStart, _FadeEnd;
             float4 _MaskRect;
 
+            float _UseDclBg;
+            TEXTURE2D(_DclOverlayTex);
+            SAMPLER(sampler_DclOverlayTex);
+            float4 _DclInnerColor, _DclOuterColor;
+            float _DclRadius, _DclSmoothness;
+            float4 _DclOverlayColor;
+            float _DclOverlayTiling;
+            float2 _DclOverlayDirection;
+            float _DclOverlaySpeed, _DclOverlayAlpha;
+            float4 _DclGlowColor;
+            float _DclGlowStrength;
+            float2 _DclGlowCenter, _DclGlowRadius;
+            float _DclGlowSmoothness, _DclLuminosityStrength;
+
             Varyings vert (Attributes IN)
             {
                 Varyings OUT;
                 OUT.positionCS = TransformObjectToHClip(IN.positionOS.xyz);
                 OUT.uv = IN.uv;
                 return OUT;
+            }
+
+            // RGB <-> HSV, used by the DCL background's "luminosity blend" (recolors the overlay
+            // pattern to the vignette's hue/saturation while keeping the pattern's own brightness).
+            float3 RgbToHsv (float3 c)
+            {
+                float4 K = float4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+                float4 p = lerp(float4(c.bg, K.wz), float4(c.gb, K.xy), step(c.b, c.g));
+                float4 q = lerp(float4(p.xyw, c.r), float4(c.r, p.yzx), step(p.x, c.r));
+                float d = q.x - min(q.w, q.y);
+                float e = 1e-10;
+                return float3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+            }
+
+            float3 HsvToRgb (float3 c)
+            {
+                float4 K = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                float3 p = abs(frac(c.xxx + K.xyz) * 6.0 - K.www);
+                return c.z * lerp(K.xxx, saturate(p - K.xxx), c.y);
+            }
+
+            // Ported from Explorer's Custom/AnimatedBackgroundMovingTexture (TileableTexture.shader):
+            // a radial purple vignette with a scrolling, tinted icon-pattern overlay (luminosity blend)
+            // and an off-center radial glow. Opaque (alpha handled by the caller), so no _Mode<3.5 mask.
+            float3 DclBackground (float2 uv)
+            {
+                float radius = length(uv - 0.5);
+                float mask = smoothstep(_DclRadius + _DclSmoothness, _DclRadius, radius);
+                float3 vignette = lerp(_DclOuterColor.rgb, _DclInnerColor.rgb, mask);
+
+                float aspect = _ScreenParams.x / _ScreenParams.y;
+                float2 overlayUv = uv * float2(_DclOverlayTiling * aspect, _DclOverlayTiling);
+                overlayUv += _Time.y * _DclOverlayDirection * _DclOverlaySpeed;
+                float4 overlay = SAMPLE_TEXTURE2D(_DclOverlayTex, sampler_DclOverlayTex, overlayUv) * _DclOverlayColor;
+                overlay.a *= _DclOverlayAlpha * mask;
+
+                float3 vignetteHsv = RgbToHsv(vignette);
+                float3 overlayHsv = RgbToHsv(overlay.rgb);
+                float v = lerp(0.5, 1.0, overlayHsv.z);
+                float3 luminosityBlend = HsvToRgb(float3(vignetteHsv.x, vignetteHsv.y, v));
+                float3 col = lerp(vignette, luminosityBlend, overlay.a * _DclLuminosityStrength);
+
+                float2 glowDelta = (uv - _DclGlowCenter) / _DclGlowRadius;
+                float glowMask = 1.0 - smoothstep(1.0, 1.0 + _DclGlowSmoothness, length(glowDelta));
+                col += _DclGlowColor.rgb * glowMask * _DclGlowStrength * _DclGlowColor.a;
+                return col;
             }
 
             // Signed distance to a rounded box; negative inside. Worked in a space where the card
@@ -106,10 +187,18 @@ Shader "Custom/StudioCardFrame"
                 // --- Background (mode 0) / side-mask fill (mode 3) share the same gradient --------
                 if (_Mode < 0.5 || (_Mode > 2.5 && _Mode < 3.5))
                 {
-                    float3 col = lerp(_ColorB.rgb, _ColorA.rgb, uv.y);           // vertical gradient
-                    float2 d = (uv - _HighlightCenter) / max(_HighlightSize, 1e-4);
-                    float glow = 1.0 - smoothstep(0.0, 1.0, length(d));
-                    col = lerp(col, _HighlightColor.rgb, glow * _HighlightColor.a);
+                    float3 col;
+                    if (_UseDclBg > 0.5)
+                    {
+                        col = DclBackground(uv);
+                    }
+                    else
+                    {
+                        col = lerp(_ColorB.rgb, _ColorA.rgb, uv.y);              // vertical gradient
+                        float2 d = (uv - _HighlightCenter) / max(_HighlightSize, 1e-4);
+                        float glow = 1.0 - smoothstep(0.0, 1.0, length(d));
+                        col = lerp(col, _HighlightColor.rgb, glow * _HighlightColor.a);
+                    }
 
                     if (_Mode < 0.5) return float4(col, 1.0);                    // opaque background
 

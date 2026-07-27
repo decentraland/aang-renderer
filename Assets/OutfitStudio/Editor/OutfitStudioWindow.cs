@@ -1918,6 +1918,15 @@ namespace OutfitStudio.Editor
             enableBackground.RegisterValueChangedCallback(evt => StudioCardFrame.BackgroundEnabled = evt.newValue);
             fold.Add(enableBackground);
 
+            var useDclBackground = new Toggle("Use Decentraland Background")
+            {
+                value = StudioCardFrame.UseDclBackground,
+                tooltip = "Replaces the background gradient with the animated purple pattern from " +
+                          "the Decentraland Explorer loading screens. Off by default."
+            };
+            useDclBackground.RegisterValueChangedCallback(evt => StudioCardFrame.UseDclBackground = evt.newValue);
+            fold.Add(useDclBackground);
+
             var sideMask = new Toggle("Mask avatar to card sides")
             {
                 value = StudioCardFrame.SideMask,
