@@ -28,6 +28,11 @@ namespace OutfitStudio.Editor
         private const int PAGE_SIZE = 36;
         private const int THUMB_SIZE = 90;
 
+        // Cap on tag-matched items collected from the catalyst lambdas endpoint per search (see
+        // RunSearch) - a discovery-only pass, not the full result set, so this can stay well below
+        // FETCH_CAP without losing practical recall.
+        private const int TAG_SEARCH_CAP = 500;
+
         // The live marketplace-api ignores sortBy entirely (verified: every documented value -
         // newest, recently_listed, recently_sold, cheapest, most_expensive - returns items in the
         // exact same server order, prices/dates included). So there's no way to get a correct sort
@@ -1340,19 +1345,92 @@ namespace OutfitStudio.Editor
             SetStatus("Searching catalog...");
 
             var sequence = ++_searchSequence; // guard against out-of-order responses
+
+            void OnError(string error)
+            {
+                if (sequence != _searchSequence) return;
+                SetStatus($"Catalog error: {error}", true);
+            }
+
             CatalogService.SearchAll(_query, FETCH_CAP,
                 (items, total) =>
                 {
                     if (sequence != _searchSequence) return;
-                    _fetchedItems = items;
-                    _fetchedTotal = total;
-                    ApplySortAndRebuild();
+
+                    if (string.IsNullOrEmpty(_query.Search))
+                    {
+                        _fetchedItems = items;
+                        _fetchedTotal = total;
+                        ApplySortAndRebuild();
+                        return;
+                    }
+
+                    AugmentWithTagMatches(items, sequence, OnError);
                 },
-                error =>
+                OnError);
+        }
+
+        /// <summary>
+        /// marketplace-api's own <c>search</c> param (already applied by the caller's CatalogQuery)
+        /// only matches item name/description, with no concept of tags - so a query like "jacket"
+        /// misses an item named "Black Jacket" that's tagged "Jacket" but doesn't say so in its name.
+        /// The catalyst lambdas endpoint (<see cref="CatalystTextSearchService"/>) indexes tags, so
+        /// it's used here purely to find items marketplace-api's name search missed. Those extra
+        /// items are built directly from the lambdas payload (name/thumbnail/rarity/slot/bodyShapes)
+        /// rather than hydrated through marketplace-api's URN lookup - that lookup only resolves
+        /// collections-v2 (Polygon) URNs and silently returns nothing for legacy collections-v1
+        /// (Ethereum) items, which are exactly the kind of older item this tag search tends to
+        /// surface. The current slot/rarity/gender filters are re-applied to the extras client-side,
+        /// since they only ever went through the lambdas query, not marketplace-api's own filtering.
+        /// </summary>
+        private void AugmentWithTagMatches(CatalogItem[] nameMatches, int sequence, Action<string> onError)
+        {
+            CatalystTextSearchService.SearchItems(_query.Category, _query.Search, TAG_SEARCH_CAP,
+                tagMatches =>
                 {
                     if (sequence != _searchSequence) return;
-                    SetStatus($"Catalog error: {error}", true);
-                });
+
+                    var knownUrns = nameMatches.Select(i => i.urn).ToHashSet();
+                    var extras = tagMatches.Where(i => !knownUrns.Contains(i.urn) && MatchesActiveFilters(i));
+
+                    var merged = nameMatches.Concat(extras).ToArray();
+                    _fetchedItems = merged;
+                    _fetchedTotal = merged.Length;
+                    ApplySortAndRebuild();
+                },
+                onError);
+        }
+
+        /// <summary>
+        /// Re-applies the slot/rarity/gender filters an ordinary marketplace-api browse would already
+        /// have enforced server-side (see CatalogService.BuildUrl) - needed only for tag-matched items
+        /// built from the lambdas payload, which was never filtered by any of these. Gender is
+        /// approximated from bodyShapes (matches the live API's own observed behavior: "male"/"female"
+        /// match items serving that shape at all, "unisex" requires both).
+        /// </summary>
+        private bool MatchesActiveFilters(CatalogItem item)
+        {
+            var wearableSlot = _query.Category == "emote" ? _query.EmoteCategory : _query.WearableCategory;
+            if (!string.IsNullOrEmpty(wearableSlot) && item.Slot != wearableSlot) return false;
+
+            if (!string.IsNullOrEmpty(_query.Rarity) && item.rarity != _query.Rarity) return false;
+
+            if (!string.IsNullOrEmpty(_query.Gender))
+            {
+                var bodyShapes = item.data?.wearable?.bodyShapes ?? item.data?.emote?.bodyShapes;
+                var hasMale = bodyShapes?.Contains("BaseMale") ?? false;
+                var hasFemale = bodyShapes?.Contains("BaseFemale") ?? false;
+                var matchesGender = _query.Gender switch
+                {
+                    "male" => hasMale,
+                    "female" => hasFemale,
+                    "unisex" => hasMale && hasFemale,
+                    _ => true
+                };
+                if (!matchesGender) return false;
+            }
+
+            return true;
         }
 
         private void UpdateInvertSortButton()

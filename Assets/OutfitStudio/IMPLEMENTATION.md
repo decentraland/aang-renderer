@@ -128,6 +128,71 @@ GET https://marketplace-api.decentraland.{org|zone}/v1/items
 Thumbnails: static `Dictionary<string, Texture2D>` cache in the window +
 `UnityWebRequestTexture`, textures marked `HideAndDontSave`.
 
+### 5a. Tag-aware search augmentation (2026-07-27)
+
+marketplace-api's `search` param only matches `name`/`description` — it has **no `tags` field at
+all** (verified against the live API and its docs). This meant a query like "jacket" would miss an
+item named e.g. "Black Jacket" that's tagged "Jacket" but doesn't literally have that word in a
+matching position, or any item whose name doesn't contain the query word at all despite being
+tagged with it — a real gap versus the web marketplace/game client, which do search tags.
+
+`CatalystTextSearchService` (new, `Runtime/CatalystTextSearchService.cs`) hits the catalyst
+content-server's lambdas collections endpoint instead, which *does* index tags:
+
+```
+GET https://peer.decentraland.{org|zone}/lambdas/collections/wearables|emotes
+    ?textSearch=text&limit=N[&lastId=<urn of last item from previous page>]
+```
+
+Cursor-paginated (`response.pagination.next` present ⇒ more pages; `lastId` = the previous page's
+last item's `id`, which is its URN). Parsed with `Newtonsoft.Json.Linq` (`JObject`/`JArray`), same
+convention as `BuilderCollectionService.cs`, since the payload is nested/inconsistent (`i18n[]`,
+`data.tags[]`, `data.representations[]`) rather than the flat shape `JsonUtility` needs. Returns
+only matched URNs — no commerce data (price/rarity/on-sale), so it's a discovery-only pass.
+
+`OutfitStudioWindow.RunSearch` (only when `_query.Search` is non-empty):
+1. Runs the normal marketplace-api name/description search unchanged (`CatalogService.SearchAll`).
+2. `AugmentWithTagMatches` runs `CatalystTextSearchService.SearchUrns` (capped at
+   `TAG_SEARCH_CAP=500`) and diffs its matched URNs against what the name search already found.
+3. `HydrateTagMatches` hydrates just the *extra* tag-only URNs via the existing
+   `CatalogQuery.Urns` direct-lookup path (chunked at `TAG_HYDRATE_CHUNK=50` items per request to
+   keep URLs short), then `MatchesActiveFilters` re-applies the current slot/rarity/gender filters
+   to that small extra set client-side — a direct URN lookup bypasses those filters server-side
+   (see the `[&urn=...]` note above), so this is needed to keep results consistent with what's
+   selected in the Slot/Rarity/Body popups. Gender is approximated from `bodyShapes` (verified
+   empirically against the live API: "male"/"female" match items serving that shape at all,
+   "unisex" requires both).
+
+Net effect: results = old name/description matches ∪ tag-matched items the old code could never
+surface, with sort/slot/rarity/gender filters still fully respected. Separate from (and may
+partially help) the 2026-07-22 "bare brand-word returns 0" quirk noted in §10 — that one is a
+marketplace-api fuzzy-match oddity on the name search itself, still unfixed; this is an additive
+tag-search layer on top.
+
+**Editor-verified bug round + fix (same day):** Mauricio repro'd with a real item — "Cyber Xmas
+Helmet" (`urn:decentraland:ethereum:collections-v1:xmas_2019:m_cyber_xmas_helmet`) never appeared
+searching "xmas helmet" even after the fix above. Diagnosed via a temp `Debug.Log` in
+`AugmentWithTagMatches`: the lambdas tag search *did* find both body-shape variants correctly (2 tag
+matches), but they still never made it into the grid. Root cause: the original design hydrated
+tag-matched URNs through marketplace-api's `CatalogQuery.Urns` direct lookup (`?urn=...`) - verified
+via curl that **this lookup only resolves collections-v2 (Polygon) URNs and silently returns
+`{"data":[],"total":0}` (HTTP 200, no error) for legacy collections-v1 (Ethereum) items**, even
+though those items are completely valid and do show up via marketplace-api's own name search. Tested
+against a second unrelated collections-v1 URN (Barbarian Helmet) to confirm it's a general gap, not
+item-specific. This silently dropped every hydration for older L1 collections - exactly the kind of
+item a tag search tends to surface (newer items usually have decent names already).
+
+**Fix:** rewrote `CatalystTextSearchService.SearchUrns` → `SearchItems`, which builds `CatalogItem`s
+directly from the lambdas payload (`i18n[0].text` for name, `thumbnail`, `rarity`, `data.category`/
+`emoteDataADR74.category` for slot, `representations[].bodyShapes` reduced to `"BaseMale"`/
+`"BaseFemale"` markers) instead of bouncing back through marketplace-api at all. This sidesteps the
+v1-URN gap entirely and drops a network round-trip. `OutfitStudioWindow.AugmentWithTagMatches` no
+longer needs `HydrateTagMatches`/`ChunkUrns`/`TAG_HYDRATE_CHUNK` (removed) - it merges tag matches
+straight in, filtered through the client-side `MatchesActiveFilters` (unchanged). Trade-off:
+lambdas-only items don't carry price/on-sale/exact listing dates, so they sort last under
+price/date-based sorts - acceptable since this is a supplementary path, not the primary browse.
+NOT yet re-verified in the editor after this second fix.
+
 ## 6. Renderer change: emote URNs as poses
 
 `PreviewController.LoadForBuilder` previously supported only embedded emotes
