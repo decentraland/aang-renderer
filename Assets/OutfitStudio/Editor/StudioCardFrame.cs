@@ -525,7 +525,11 @@ namespace OutfitStudio.Editor
             return s.y > 1e-4f ? s.x / s.y : 0.66f;
         }
 
-        private static Camera FindCamera()
+        // internal (not private): reused by StudioFlyCameraController, which needs the exact same
+        // "which camera is actually live" resolution — the studio scene can have more than one
+        // GameObject tagged MainCamera (e.g. before the Configurator camera is stripped per §14), so
+        // Camera.main alone isn't reliable there.
+        internal static Camera FindCamera()
         {
             // Parent to the same camera OutfitCapture renders (Camera.main) so the quads stay aligned
             // in the capture. Fall back to the studio PreviewCamera / highest-depth enabled camera

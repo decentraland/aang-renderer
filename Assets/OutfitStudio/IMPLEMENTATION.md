@@ -547,6 +547,37 @@ third **Debug** tab and hides the overlay for a clean, avatar-only Game view:
   (editor-only, mirroring the presenter) and triggers a `Reload` so `PreviewController`
   re-applies the mode-dependent control visibility.
 
+### 12a. Fly camera (2026-07-28, studio scene + play mode only)
+
+Debug tab, "Fly Camera" section: hold the right mouse button and use WASD/QE (Shift = faster) to
+free-fly the camera, Scene-view style — on top of the existing LMB-drag avatar rotation and
+Zoom In/Out (those are unaffected; RMB was otherwise unclaimed). Off by default (`Enable` toggle),
+plus Move/Look speed sliders and a "Reset View" button.
+
+**Why it needs to fight Cinemachine:** the studio camera is normally driven every frame by whichever
+`CinemachineCamera` vcam is prioritized, through the `CinemachineBrain` on the camera GameObject —
+writing `transform.position/rotation` directly would just get overwritten next frame. `StudioFlyCamera`
+(`Assets/OutfitStudio/Runtime/StudioFlyCamera.cs`, a plain runtime `MonoBehaviour`) disables the brain
+the moment RMB is first pressed, so its own writes stick; it deliberately does **not** re-enable the
+brain on RMB release (that would snap the view back to the vcam's authored framing mid-fly, defeating
+the point of "fly around and stay there") — `ReleaseToCinemachine()` (wired to the "Reset View" button)
+hands framing back explicitly. Yaw/pitch are re-synced from the live transform at the *start* of each
+fly session (not just once in `Awake`), so releasing, resetting the view, and flying again doesn't snap
+to a stale angle from a previous session.
+
+**Bootstrap (poll-based, like `StudioCardFrame`/`StudioAvatarShaderSwitcher`):**
+`Assets/OutfitStudio/Editor/StudioFlyCameraController.cs` ([InitializeOnLoad], EditorPrefs keys
+`OutfitStudio.FlyCamera.*`) adds/removes `StudioFlyCamera` on the studio's live camera every 0.5 s
+tick, gated on studio-scene + `Application.isPlaying` + the `Enabled` toggle. The 0.5 s cadence is fine
+here because the poll only needs to notice on/off and scene/play-mode transitions — the actual
+per-frame fly movement runs inside `StudioFlyCamera.Update()`, driven by Unity's normal player loop
+(correct ordering against `CinemachineBrain`, no jitter). Camera resolution reuses
+`StudioCardFrame.FindCamera()` (promoted from `private` to `internal`) rather than raw `Camera.main`,
+since the studio scene can have more than one GameObject tagged `MainCamera` (e.g. before the
+Configurator camera is stripped, same reason `StudioCardFrame` needed the fallback search).
+Uses the new Input System (`Mouse.current`/`Keyboard.current`) — legacy `Input.*` is disabled
+project-wide (`activeInputHandler: 1`).
+
 ## 13. Load from Collection (iteration 4)
 
 Debug-tab section mirroring the explorer's `--self-preview-builder-collections` flag: paste a

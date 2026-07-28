@@ -1019,6 +1019,31 @@ namespace OutfitStudio.Editor
 
             pane.Add(actionsRow);
 
+            // --- Fly camera (Scene-view-style RMB + WASD navigation, studio scene + play mode only)
+            pane.Add(Header("Fly Camera"));
+            pane.Add(new Label("Hold the right mouse button and use WASD/QE to fly (Shift to go " +
+                               "faster) — like Unity's Scene view. Play mode only.")
+            {
+                style = { fontSize = 10, unityFontStyleAndWeight = FontStyle.Italic, whiteSpace = WhiteSpace.Normal, marginBottom = 4 }
+            });
+
+            var flyEnabled = new Toggle("Enable")
+            {
+                value = StudioFlyCameraController.Enabled,
+                tooltip = "Takes over the camera's transform from Cinemachine while the right mouse " +
+                          "button is held. The view stays wherever you fly it on release — use " +
+                          "\"Reset View\" below to hand framing back to Cinemachine."
+            };
+            flyEnabled.RegisterValueChangedCallback(evt => StudioFlyCameraController.Enabled = evt.newValue);
+            pane.Add(flyEnabled);
+
+            CardSlider(pane, "Move Speed", 1f, 20f,
+                () => StudioFlyCameraController.MoveSpeed, v => StudioFlyCameraController.MoveSpeed = v);
+            CardSlider(pane, "Look Speed", 0.02f, 0.5f,
+                () => StudioFlyCameraController.LookSpeed, v => StudioFlyCameraController.LookSpeed = v);
+
+            pane.Add(new Button(StudioFlyCameraController.ResetView) { text = "Reset View" });
+
             _configField = new TextField { multiline = true, isReadOnly = true };
             _configField.style.whiteSpace = WhiteSpace.Normal;
             _configField.style.marginTop = 4;
