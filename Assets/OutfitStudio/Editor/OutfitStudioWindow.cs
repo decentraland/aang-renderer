@@ -389,7 +389,7 @@ namespace OutfitStudio.Editor
 
             root.Add(BuildToolbar());
 
-            var split = new TwoPaneSplitView(0, 380, TwoPaneSplitViewOrientation.Horizontal);
+            var split = new TwoPaneSplitView(0, 450, TwoPaneSplitViewOrientation.Horizontal);
             split.style.flexGrow = 1;
             split.Add(BuildBrowserPane());
             split.Add(BuildOutfitPane());
