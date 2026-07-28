@@ -1085,14 +1085,32 @@ three:
   colour over the legs.
 - **Border** (`_Mode 4`) — queue 4000, ZTest Always, alpha blend. Drawn **last, on top of
   everything** (avatar, fade, side-mask) so the card outline is never occluded — this is why the
-  border is a separate quad and not baked into the card panel. Ring in the SDF band
-  `dist ∈ (-_BorderWidth, 0)`, built as `saturate(sInner - sOuter)` (difference of the inner/outer
-  edge smoothsteps) so it collapses to **exactly** 0 at `_BorderWidth == 0` — do **not** revert to
-  `mask * innerCut`, which peaks at ~0.25 on the edge and leaves a ~1px hairline around the whole
-  card even at width 0. **Open at the top**: the border
-  fades out above `_BorderTopFade` (uv.y 0.88) so it frames only the sides + bottom and the head
-  overflows the top freely (without this the top edge draws across the neck/shoulders — same intent
-  as the side-mask leaving the top open).
+  border is a separate quad and not baked into the card panel. Two rings straddle the card edge
+  (`dist == 0`): an **inner** ring in the band `dist ∈ (-_InnerBorderWidth, 0)` and an **outer** ring
+  in `dist ∈ (0, _OuterBorderWidth)` that extends past the card into the avatar/fade/side-mask layers
+  beneath. Each is built as `saturate(sInner - sInnerCutoff)` / `saturate(sOuterCutoff - sOuter)`
+  (difference of edge smoothsteps straddling the band) so it collapses to **exactly** 0 at width 0 —
+  do **not** revert to `mask * innerCut`, which peaks at ~0.25 on the edge and leaves a ~1px hairline
+  around the whole card even at width 0. The two are summed and saturated into one `ring` value.
+  **Cutoff bias (2026-07-28 fix):** a naive shared cutoff at exactly `dist == 0` for both rings only
+  reaches 50% coverage right on the seam (correct AA for a hard edge) — fine when both rings are
+  active (their two 50%s sum to 1), but with only ONE width non-zero the other 50% was never filled
+  in, showing whatever's underneath (avatar/background) through as a ~1px line at the card edge. Each
+  ring's cutoff is now nudged ~1px (`aa`) past `dist 0` into the *other* ring's territory
+  (`sInnerCutoff = smoothstep(-aa, aa, dist - innerBias)`, `sOuterCutoff` mirrored with `+outerBias`),
+  where `innerBias`/`outerBias` ramp from 0 (at width 0, keeping the cutoff identical in form to the
+  ring's own smoothstep so the exactly-0 cancellation still holds) up to `aa` for any usable width.
+  **Open at the top**: both rings fade out above `_BorderTopFade` (uv.y 0.88) so the border frames
+  only the sides + bottom and the head overflows the top freely (without this the top edge draws
+  across the neck/shoulders — same intent as the side-mask leaving the top open).
+  **Outer-ring quad sizing**: the SDF only has values to sample for `dist > 0` if the Border quad's
+  own mesh physically extends past the card rect, so (unlike Card/Fade) the Border quad is scaled up
+  by `_BorderOversize` around the same centre (`StudioCardFrame.Layout()`), sized from the card's
+  aspect so the tightest reach direction still clears the slider's max width plus AA slack. The
+  shader remaps the Border quad's raw UV back into the card's normalized SDF space
+  (`uv = (uv - 0.5) * _BorderOversize + 0.5`, mode 4 only) before the shared `dist` calculation below,
+  so `dist == 0` still lands exactly on the card edge and `topOpen`'s `uv.y` check still means the
+  same thing.
 
 The card, fade, and border quads share the same rect; only the background (and the side mask) are
 fullscreen. Placement Z is a fixed `PLANE_Z = 50` (behind a ~2 m avatar, inside the far plane);
@@ -1123,7 +1141,8 @@ the Fortnite cards, where arms/hands are clipped at the card edge but the head p
 All knobs live on `StudioCardFrame` as EditorPrefs-backed static properties (keys
 `OutfitStudio.Card.*`); the window builds fields from them (`BuildCardFrame`/`BuildCardBody`),
 setters push live. Groups: **Background** (top/bottom colour, glow colour+height+size), **Card**
-(top/bottom colour, side/top/bottom margins, corner radius, border colour+width), **Bottom fade**
+(top/bottom colour, side/top/bottom margins, corner radius, border colour + inner/outer width),
+**Bottom fade**
 (colour, height, softness). "Reset card defaults" clears the keys. Defaults are tuned to the
 reference look (bg `#16143A`→`#3A1E5C`, card `#6B3FA0`→`#4A2870`, top margin 0.12 for head overflow).
 Master **Enable** toggle (default off, opt-in). **Enable background** toggle (2026-07-27, default

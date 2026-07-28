@@ -2098,7 +2098,8 @@ namespace OutfitStudio.Editor
             CardSlider(c, "Margin Bottom", 0f, 0.3f, () => StudioCardFrame.MarginBottom, v => StudioCardFrame.MarginBottom = v);
             CardSlider(c, "Corner Radius", 0f, 0.5f, () => StudioCardFrame.CornerRadius, v => StudioCardFrame.CornerRadius = v);
             CardColor(c, "Border", () => StudioCardFrame.Border, v => StudioCardFrame.Border = v);
-            CardSlider(c, "Border Width", 0f, 0.05f, () => StudioCardFrame.BorderWidth, v => StudioCardFrame.BorderWidth = v);
+            CardSlider(c, "Inner Border Width", 0f, 0.05f, () => StudioCardFrame.InnerBorderWidth, v => StudioCardFrame.InnerBorderWidth = v);
+            CardSlider(c, "Outer Border Width", 0f, 0.05f, () => StudioCardFrame.OuterBorderWidth, v => StudioCardFrame.OuterBorderWidth = v);
 
             c.Add(Section("Bottom fade"));
             CardColor(c, "Color", () => StudioCardFrame.Fade, v => StudioCardFrame.Fade = v);

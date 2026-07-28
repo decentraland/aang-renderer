@@ -46,8 +46,13 @@ Shader "Custom/StudioCardFrame"
         _CardAspect ("Card Aspect (w/h)", Float) = 0.66
         _CornerRadius ("Corner Radius", Range(0,1)) = 0.08
         _BorderColor ("Border Color", Color) = (0.72, 0.55, 0.88, 1)
-        _BorderWidth ("Border Width", Range(0,0.2)) = 0.0
+        _InnerBorderWidth ("Inner Border Width", Range(0,0.2)) = 0.0
+        _OuterBorderWidth ("Outer Border Width", Range(0,0.2)) = 0.0
         _BorderTopFade ("Border Top Fade Start (uv.y)", Range(0,1)) = 0.88
+        // Border quad only: how much bigger (as a scale factor) the border's own quad is than the
+        // card's, so the shader has room to paint the outer ring beyond the card edge. Driven from
+        // StudioCardFrame.Layout(), not user-facing. See the mode-4 UV remap below.
+        _BorderOversize ("Border Oversize (internal)", Float) = 1.0
 
         // Fade (mode 2)
         _FadeColor ("Fade Color", Color) = (0.23, 0.12, 0.36, 1)
@@ -95,7 +100,7 @@ Shader "Custom/StudioCardFrame"
             float4 _ColorA, _ColorB;
             float4 _HighlightColor;
             float2 _HighlightCenter, _HighlightSize;
-            float _CardAspect, _CornerRadius, _BorderWidth, _BorderTopFade;
+            float _CardAspect, _CornerRadius, _InnerBorderWidth, _OuterBorderWidth, _BorderTopFade, _BorderOversize;
             float4 _BorderColor;
             float4 _FadeColor;
             float _FadeStart, _FadeEnd;
@@ -222,7 +227,13 @@ Shader "Custom/StudioCardFrame"
                     return float4(col, 1.0 - inside);                            // paint bg only outside
                 }
 
-                // Shared rounded-rect mask for card + fade
+                // Border's quad is oversized relative to the card (see _BorderOversize / the C#
+                // Layout() comment) so there's physical room to paint a ring outside the card edge.
+                // Remap its raw UV back into the same normalized card space Card/Fade use — where
+                // the card edge sits at dist==0 — before the shared SDF below runs.
+                if (_Mode > 3.5) uv = (uv - 0.5) * _BorderOversize + 0.5;
+
+                // Shared rounded-rect mask for card + fade (+ border, after the remap above)
                 float dist = RoundedBoxSDF(uv, _CardAspect, _CornerRadius);
                 float aa = max(fwidth(dist), 1e-5);
                 float mask = 1.0 - smoothstep(-aa, aa, dist);                    // 1 inside, 0 outside
@@ -242,16 +253,29 @@ Shader "Custom/StudioCardFrame"
                 }
 
                 // --- Border (mode 4) — drawn LAST, on top of the avatar / fade / side-mask ------
-                // Ring in the band dist ∈ (-_BorderWidth, 0): inside the edge but not deep interior.
-                // Written as the difference of two edge smoothsteps (outer at dist 0, inner at
-                // dist -_BorderWidth) so the band collapses to EXACTLY zero when _BorderWidth is 0 —
-                // the old mask*innerCut form peaked at ~0.25 on the edge, leaving a ~1px hairline
-                // around the whole card even at width 0.
-                // Faded out near the top so the border only frames the sides/bottom and the head
-                // overflows the top freely (same intent as the side mask leaving the top open).
-                float sOuter = smoothstep(-aa, aa, dist);                                // 0 inside → 1 outside
-                float sInner = smoothstep(-_BorderWidth - aa, -_BorderWidth + aa, dist); // 0 deep-inside → 1 inward of ring
-                float ring = saturate(sInner - sOuter);
+                // Two rings straddling the card edge (dist == 0): an inner one in the band
+                // dist ∈ (-_InnerBorderWidth, 0) and an outer one in dist ∈ (0, _OuterBorderWidth),
+                // each written as the difference of two edge smoothsteps so it collapses to EXACTLY
+                // zero when its width is 0 — the old mask*innerCut form peaked at ~0.25 on the edge,
+                // leaving a ~1px hairline around the whole card even at width 0.
+                //
+                // Each ring's edge-side cutoff is nudged by ~aa (one pixel) past dist 0, into the
+                // OTHER ring's territory (inner reaches ~1px outward, outer reaches ~1px inward),
+                // via a per-ring `bias` fed into the SAME cutoff formula dist compares against — not
+                // a separately-centered smoothstep. That keeps the cutoff identical in form to the
+                // ring's own smoothstep whenever its width is 0 (bias also collapses to 0 then), so
+                // the "collapses to EXACTLY zero" invariant above still holds. Without this bias,
+                // whichever width was 0 left the OTHER ring's cutoff centred exactly on dist 0 —
+                // fine when both rings compensate each other's 50%, but the moment only one width
+                // was non-zero its own cutoff alone still only reached 50% coverage right on the
+                // seam, showing whatever's underneath (avatar/background) through as a ~1px line.
+                float innerBias = aa * smoothstep(0.0, aa, _InnerBorderWidth);
+                float outerBias = aa * smoothstep(0.0, aa, _OuterBorderWidth);
+                float sInner = smoothstep(-_InnerBorderWidth - aa, -_InnerBorderWidth + aa, dist);     // 0 deep-inside → 1 inward of ring
+                float sInnerCutoff = smoothstep(-aa, aa, dist - innerBias);                            // ring stays full through dist 0 (and ~innerBias past it)
+                float sOuter = smoothstep(_OuterBorderWidth - aa, _OuterBorderWidth + aa, dist);        // 0 within outer band → 1 beyond it
+                float sOuterCutoff = smoothstep(-aa, aa, dist + outerBias);                             // ring stays full through dist 0 (and ~outerBias before it)
+                float ring = saturate(saturate(sInner - sInnerCutoff) + saturate(sOuterCutoff - sOuter));
                 float topOpen = 1.0 - smoothstep(_BorderTopFade, 1.0, uv.y);
                 return float4(_BorderColor.rgb, ring * topOpen * _BorderColor.a);
             }

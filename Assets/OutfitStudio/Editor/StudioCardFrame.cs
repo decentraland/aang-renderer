@@ -32,6 +32,13 @@ namespace OutfitStudio.Editor
         private const float PLANE_Z = 50f; // camera-local Z; safely behind a ~2 m avatar, well inside the far plane
         private const float BG_OVERSIZE = 1.04f; // background quad scale over the frustum (hides edge slivers)
 
+        // The border quad's own scale must exceed the card's by enough that the shader's mode-4 UV
+        // remap (see StudioCardFrame.shader) has physical room to paint the outer ring past the card
+        // edge, even at the slider's max width. Recomputed per Layout() from the card's own aspect —
+        // see the comment there for the derivation.
+        private const float MAX_BORDER_WIDTH = 0.2f; // matches both border-width shader Range(0,0.2) sliders
+        private const float BORDER_OVERSIZE_MARGIN = 0.05f; // extra slack past the slider max for AA softening
+
         // Ported from Explorer's loading-screen background; see the shader's DclBackground() comment.
         private const string DCL_BG_TEXTURE_PATH = "Assets/OutfitStudio/Textures/DclBackgroundPattern.png";
 
@@ -52,7 +59,8 @@ namespace OutfitStudio.Editor
         private const string K_MARGIN_BOTTOM = "OutfitStudio.Card.MarginBottom";
         private const string K_RADIUS = "OutfitStudio.Card.Radius";
         private const string K_BORDER = "OutfitStudio.Card.Border";
-        private const string K_BORDER_W = "OutfitStudio.Card.BorderWidth";
+        private const string K_INNER_BORDER_W = "OutfitStudio.Card.BorderWidth"; // key unchanged so existing tuned values carry over from before the inner/outer split
+        private const string K_OUTER_BORDER_W = "OutfitStudio.Card.OuterBorderWidth";
         private const string K_FADE = "OutfitStudio.Card.Fade";
         private const string K_FADE_H = "OutfitStudio.Card.FadeHeight";
         private const string K_FADE_S = "OutfitStudio.Card.FadeSoftness";
@@ -67,7 +75,9 @@ namespace OutfitStudio.Editor
         private static readonly int CardAspectId = Shader.PropertyToID("_CardAspect");
         private static readonly int CornerRadiusId = Shader.PropertyToID("_CornerRadius");
         private static readonly int BorderColorId = Shader.PropertyToID("_BorderColor");
-        private static readonly int BorderWidthId = Shader.PropertyToID("_BorderWidth");
+        private static readonly int InnerBorderWidthId = Shader.PropertyToID("_InnerBorderWidth");
+        private static readonly int OuterBorderWidthId = Shader.PropertyToID("_OuterBorderWidth");
+        private static readonly int BorderOversizeId = Shader.PropertyToID("_BorderOversize");
         private static readonly int FadeColorId = Shader.PropertyToID("_FadeColor");
         private static readonly int FadeStartId = Shader.PropertyToID("_FadeStart");
         private static readonly int FadeEndId = Shader.PropertyToID("_FadeEnd");
@@ -91,6 +101,7 @@ namespace OutfitStudio.Editor
 
         private static GameObject _root;
         private static Renderer _bg, _card, _fade, _mask, _border;
+        private static float _borderOversize = 1f; // set by Layout(), consumed by PushParams()
         private static double _nextCheck;
         private static bool _warnedMissingShader;
 
@@ -208,7 +219,8 @@ namespace OutfitStudio.Editor
         public static float MarginBottom { get => EditorPrefs.GetFloat(K_MARGIN_BOTTOM, 0.05f); set => SetFloat(K_MARGIN_BOTTOM, value); }
         public static float CornerRadius { get => EditorPrefs.GetFloat(K_RADIUS, 0.08f); set => SetFloat(K_RADIUS, value); }
         public static Color Border { get => GetColor(K_BORDER, DefBorder); set => SetColor(K_BORDER, value); }
-        public static float BorderWidth { get => EditorPrefs.GetFloat(K_BORDER_W, 0f); set => SetFloat(K_BORDER_W, value); }
+        public static float InnerBorderWidth { get => EditorPrefs.GetFloat(K_INNER_BORDER_W, 0f); set => SetFloat(K_INNER_BORDER_W, value); }
+        public static float OuterBorderWidth { get => EditorPrefs.GetFloat(K_OUTER_BORDER_W, 0f); set => SetFloat(K_OUTER_BORDER_W, value); }
         public static Color Fade { get => GetColor(K_FADE, DefFade); set => SetColor(K_FADE, value); }
         public static float FadeHeight { get => EditorPrefs.GetFloat(K_FADE_H, 0.4f); set => SetFloat(K_FADE_H, value); }
         public static float FadeSoftness { get => EditorPrefs.GetFloat(K_FADE_S, 0.55f); set => SetFloat(K_FADE_S, value); }
@@ -218,8 +230,8 @@ namespace OutfitStudio.Editor
             foreach (var k in new[]
                      {
                          K_BG_TOP, K_BG_BOTTOM, K_GLOW, K_GLOW_H, K_GLOW_S, K_CARD_TOP, K_CARD_BOTTOM,
-                         K_MARGIN_X, K_MARGIN_TOP, K_MARGIN_BOTTOM, K_RADIUS, K_BORDER, K_BORDER_W,
-                         K_FADE, K_FADE_H, K_FADE_S
+                         K_MARGIN_X, K_MARGIN_TOP, K_MARGIN_BOTTOM, K_RADIUS, K_BORDER, K_INNER_BORDER_W,
+                         K_OUTER_BORDER_W, K_FADE, K_FADE_H, K_FADE_S
                      })
                 EditorPrefs.DeleteKey(k);
             Refresh();
@@ -423,12 +435,26 @@ namespace OutfitStudio.Editor
             var cx = ((mL + (1f - mR)) * 0.5f - 0.5f) * w; // world offset of the card centre
             var cy = ((mB + (1f - mT)) * 0.5f - 0.5f) * h;
 
-            foreach (var r in new[] { _card, _fade, _border })
+            foreach (var r in new[] { _card, _fade })
             {
                 r.transform.localScale = new Vector3(cw, ch, 1f);
                 r.transform.localPosition = new Vector3(cx, cy, PLANE_Z);
                 r.transform.localRotation = Quaternion.identity;
             }
+
+            // The border quad is scaled up beyond the card so the shader (mode 4) has physical room
+            // to paint the outer ring past the card edge; it remaps its raw UV back into the card's
+            // normalized SDF space by this same factor (see _BorderOversize in the shader). Derived
+            // from the card's own aspect: in RoundedBoxSDF's normalized space the box half-extents
+            // are (aspect, 1), so the tightest reach direction — straight out from a flat edge — is
+            // whichever of those two is smaller; the oversize must clear the slider's max width in
+            // that direction, plus a little slack for the AA smoothstep band.
+            var cardAspect = cw / Mathf.Max(ch, 1e-4f);
+            var minExtent = Mathf.Max(Mathf.Min(cardAspect, 1f), 0.01f);
+            _borderOversize = 1f + (MAX_BORDER_WIDTH + BORDER_OVERSIZE_MARGIN) / minExtent;
+            _border.transform.localScale = new Vector3(cw * _borderOversize, ch * _borderOversize, 1f);
+            _border.transform.localPosition = new Vector3(cx, cy, PLANE_Z);
+            _border.transform.localRotation = Quaternion.identity;
         }
 
         private static void PushParams()
@@ -456,7 +482,9 @@ namespace OutfitStudio.Editor
             border.SetFloat(CardAspectId, cardAspect);
             border.SetFloat(CornerRadiusId, CornerRadius);
             border.SetColor(BorderColorId, Border);
-            border.SetFloat(BorderWidthId, BorderWidth);
+            border.SetFloat(InnerBorderWidthId, InnerBorderWidth);
+            border.SetFloat(OuterBorderWidthId, OuterBorderWidth);
+            border.SetFloat(BorderOversizeId, _borderOversize);
             border.SetFloat(BorderTopFadeId, 0.88f); // fade the border out over the top 12% (head overflow)
 
             var fade = _fade.sharedMaterial;
