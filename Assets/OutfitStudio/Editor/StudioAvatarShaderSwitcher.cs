@@ -227,6 +227,42 @@ namespace OutfitStudio.Editor
             Apply();
         }
 
+        // --- Presets (save/apply the full knob set to/from a ScriptableObject) -------------------
+
+        /// <summary>Snapshot of every knob's current value for <paramref name="mode"/> into a preset,
+        /// used by the window's "Save current…" preset button.</summary>
+        public static void CaptureKnobValues(StudioShaderMode mode, StudioShaderPreset preset)
+        {
+            foreach (var knob in KnobsFor(mode))
+            {
+                if (knob.Kind == StudioKnobKind.Float)
+                    preset.floats.Add(new StudioShaderPreset.FloatEntry { property = knob.Property, value = GetFloat(mode, knob) });
+                else
+                    preset.colors.Add(new StudioShaderPreset.ColorEntry { property = knob.Property, value = GetColor(mode, knob) });
+            }
+        }
+
+        /// <summary>Applies a saved preset's values onto the live knobs for <paramref name="mode"/>.
+        /// Entries for knobs the current knob table no longer declares are ignored.</summary>
+        public static void ApplyPreset(StudioShaderMode mode, StudioShaderPreset preset)
+        {
+            var knobs = KnobsFor(mode);
+
+            foreach (var entry in preset.floats)
+            {
+                var knob = Array.Find(knobs, k => k.Kind == StudioKnobKind.Float && k.Property == entry.property);
+                if (knob != null) EditorPrefs.SetFloat(KnobKey(mode, knob), entry.value);
+            }
+
+            foreach (var entry in preset.colors)
+            {
+                var knob = Array.Find(knobs, k => k.Kind == StudioKnobKind.Color && k.Property == entry.property);
+                if (knob != null) EditorPrefs.SetString(KnobKey(mode, knob), "#" + ColorUtility.ToHtmlStringRGBA(entry.value));
+            }
+
+            Apply();
+        }
+
         private static void Update()
         {
             if (EditorApplication.timeSinceStartup < _nextCheck) return;

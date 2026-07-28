@@ -246,6 +246,11 @@ namespace OutfitStudio.Editor
         // anywhere - they're discovered project-wide by type).
         private const string CARD_PRESETS_DIR = "Assets/OutfitStudio/CardPresets";
 
+        // Default folders the shader tuning presets' "Save current…" dialogs point at (same
+        // discover-by-type convention as CARD_PRESETS_DIR).
+        private const string TOON_SHADER_PRESETS_DIR = "Assets/OutfitStudio/ShaderPresets/Toon";
+        private const string PBR_SHADER_PRESETS_DIR = "Assets/OutfitStudio/ShaderPresets/PBR";
+
         private static readonly Dictionary<string, Color> RARITY_COLORS = new()
         {
             ["common"] = new Color(0.67f, 0.79f, 0.85f),
@@ -1941,6 +1946,14 @@ namespace OutfitStudio.Editor
                 return;
             }
 
+            // Shader tuning presets — save/apply the full knob set (all sliders + colors below) as
+            // a reusable asset. One preset type per shader since their knob tables differ.
+            container.Add(new Label("Presets") { style = { unityFontStyleAndWeight = FontStyle.Bold, marginTop = 6 } });
+            if (mode == StudioShaderMode.DclToonStudio)
+                BuildShaderPresetsRow<StudioToonShaderPreset>(container, mode, TOON_SHADER_PRESETS_DIR);
+            else
+                BuildShaderPresetsRow<StudioPbrShaderPreset>(container, mode, PBR_SHADER_PRESETS_DIR);
+
             // Matcap selector — the metal reflection texture bound to stylized-metal materials.
             // Both studio shaders use it; the list comes from the loaded MatcapPresets library.
             var matcapNames = StudioAvatarShaderSwitcher.GetMatcapNames();
@@ -1998,6 +2011,62 @@ namespace OutfitStudio.Editor
                 BuildShaderTuning(container); // reflect reset values back into the fields
             }) { text = "Reset shader defaults", style = { marginTop = 4 } });
         }
+
+        // One button per preset asset of type T (applies it to the live knobs) plus "Save current…"
+        // (snapshots the live knobs into a new asset under dir) and "⟳ Rescan" — same layout as the
+        // card-colour presets' button row (see BuildCardBody).
+        private void BuildShaderPresetsRow<T>(VisualElement container, StudioShaderMode mode, string dir)
+            where T : StudioShaderPreset
+        {
+            var presetRow = new VisualElement { style = { flexDirection = FlexDirection.Row, flexWrap = Wrap.Wrap } };
+
+            foreach (var preset in LoadShaderPresets<T>())
+            {
+                var p = preset; // capture per-iteration
+                presetRow.Add(new Button(() =>
+                {
+                    StudioAvatarShaderSwitcher.ApplyPreset(mode, p);
+                    BuildShaderTuning(container);
+                }) { text = p.name, style = { marginRight = 2, marginBottom = 2 } });
+            }
+
+            if (presetRow.childCount == 0)
+                presetRow.Add(new Label($"No presets — create via Assets ▸ Create ▸ Outfit Studio ▸ {ObjectNames.NicifyVariableName(typeof(T).Name)}")
+                {
+                    style = { unityFontStyleAndWeight = FontStyle.Italic, opacity = 0.7f, marginRight = 4 }
+                });
+
+            presetRow.Add(new Button(() =>
+            {
+                EnsureFolder(dir); // so the dialog opens in the intended default folder
+                var path = EditorUtility.SaveFilePanelInProject($"Save {ObjectNames.NicifyVariableName(typeof(T).Name)}",
+                    typeof(T).Name, "asset", "Save the current shader tuning values as a reusable preset.", dir);
+                if (string.IsNullOrEmpty(path)) return;
+
+                var preset = ScriptableObject.CreateInstance<T>();
+                StudioAvatarShaderSwitcher.CaptureKnobValues(mode, preset);
+                AssetDatabase.CreateAsset(preset, path);
+                AssetDatabase.SaveAssets();
+                BuildShaderTuning(container); // show the new preset button
+            }) { text = "Save current…", tooltip = "Save the current tuning values as a new preset asset", style = { marginRight = 2, marginBottom = 2 } });
+
+            presetRow.Add(new Button(() => BuildShaderTuning(container))
+            {
+                text = "⟳", tooltip = "Rescan for preset assets", style = { marginBottom = 2 }
+            });
+
+            container.Add(presetRow);
+        }
+
+        // All assets of type T, sorted by name (one button each) — same discover-by-type pattern as
+        // LoadCardPresets.
+        private static List<T> LoadShaderPresets<T>() where T : StudioShaderPreset =>
+            AssetDatabase.FindAssets($"t:{typeof(T).Name}")
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadAssetAtPath<T>)
+                .Where(p => p != null)
+                .OrderBy(p => p.name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
         // Fortnite-style "item card" frame around the avatar (background gradient → rounded card →
         // avatar → bottom fade), composed by StudioCardFrame as camera-parented quads so it renders
