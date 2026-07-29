@@ -37,7 +37,7 @@ Shader "Custom/StudioCardFrame"
         _DclOverlayAlpha ("DCL Overlay Alpha", Range(0,1)) = 0.573
         _DclGlowColor ("DCL Glow Color", Color) = (0.66, 0, 0.745, 1)
         _DclGlowStrength ("DCL Glow Strength", Float) = 0.59
-        _DclGlowCenter ("DCL Glow Center", Vector) = (0.68, 0.5, 0, 0)
+        _DclGlowCenter ("DCL Glow Center", Vector) = (0.5, 0.5, 0, 0)
         _DclGlowRadius ("DCL Glow Radius", Vector) = (0.05, -0.13, 0, 0)
         _DclGlowSmoothness ("DCL Glow Smoothness", Float) = 3.61
         _DclLuminosityStrength ("DCL Luminosity Strength", Range(0,1)) = 0.541

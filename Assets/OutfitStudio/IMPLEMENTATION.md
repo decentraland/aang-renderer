@@ -1235,9 +1235,11 @@ toggle property:
   "luminosity blend" (`RgbToHsv`/`HsvToRgb` helpers): the overlay's own hue/value stay, but its
   saturation/hue get pulled toward the vignette's, so the pattern tints purple instead of showing raw
   white/gray.
-- **Off-center glow:** a second radial highlight (`_DclGlowColor`/`_DclGlowCenter`/`_DclGlowRadius`)
-  matches the reference's asymmetric hotspot, independent of the existing `_HighlightColor` glow
-  (which is skipped while the DCL mode is active).
+- **Secondary glow:** a second radial highlight (`_DclGlowColor`/`_DclGlowCenter`/`_DclGlowRadius`),
+  independent of the existing `_HighlightColor` glow (which is skipped while the DCL mode is active).
+  The reference material's hotspot sits off-center (`_DclGlowCenter` (0.68, 0.5)), but since this
+  background composites behind a centered avatar rather than filling an unrelated loading screen,
+  `_DclGlowCenter` was recentered to (0.5, 0.5) here so the glow lines up behind the subject.
 - Reuses the same opaque `return float4(col, 1.0)` exit as the gradient path for mode 0, and the same
   side-mask repaint logic for mode 3 — so **Mask avatar to card sides** repaints with the DCL pattern
   too when both toggles are on, staying seamless with the background quad exactly as it already did

@@ -45,7 +45,10 @@ namespace OutfitStudio.Editor
         // EditorPrefs keys
         private const string K_ENABLED = "OutfitStudio.Card.Enabled";
         private const string K_BG_ENABLED = "OutfitStudio.Card.BgEnabled";
+        private const string K_DISABLE_MIDDLE_CARD = "OutfitStudio.Card.DisableMiddleCard";
         private const string K_USE_DCL_BG = "OutfitStudio.Card.UseDclBg";
+        private const string K_DCL_INNER = "OutfitStudio.Card.DclInnerColor";
+        private const string K_DCL_OUTER = "OutfitStudio.Card.DclOuterColor";
         private const string K_SIDEMASK = "OutfitStudio.Card.SideMask";
         private const string K_BG_TOP = "OutfitStudio.Card.BgTop";
         private const string K_BG_BOTTOM = "OutfitStudio.Card.BgBottom";
@@ -85,6 +88,8 @@ namespace OutfitStudio.Editor
         private static readonly int BorderTopFadeId = Shader.PropertyToID("_BorderTopFade");
         private static readonly int UseDclBgId = Shader.PropertyToID("_UseDclBg");
         private static readonly int DclOverlayTexId = Shader.PropertyToID("_DclOverlayTex");
+        private static readonly int DclInnerColorId = Shader.PropertyToID("_DclInnerColor");
+        private static readonly int DclOuterColorId = Shader.PropertyToID("_DclOuterColor");
         private static readonly int ZTestId = Shader.PropertyToID("_ZTest");
         private static readonly int ZWriteId = Shader.PropertyToID("_ZWrite");
         private static readonly int SrcBlendId = Shader.PropertyToID("_SrcBlend");
@@ -98,6 +103,10 @@ namespace OutfitStudio.Editor
         private static readonly Color DefCardBottom = Hex("#4A2870");
         private static readonly Color DefBorder = Hex("#B98CE0");
         private static readonly Color DefFade = Hex("#4A2870");
+        // Matches the shader's own Properties-block defaults (StudioCardFrame.shader), ported 1:1
+        // from Explorer's BackgroundLoading.mat.
+        private static readonly Color DefDclInner = Hex("#BF00FF");
+        private static readonly Color DefDclOuter = Hex("#4D0080");
 
         private static GameObject _root;
         private static Renderer _bg, _card, _fade, _mask, _border;
@@ -129,6 +138,16 @@ namespace OutfitStudio.Editor
             set { EditorPrefs.SetBool(K_BG_ENABLED, value); Refresh(); }
         }
 
+        /// <summary>Hide the middle card panel, its border, and the bottom fade, leaving only the
+        /// background (plain gradient or, if <see cref="UseDclBackground"/> is on, the Decentraland
+        /// pattern) behind the avatar. Off by default (identical to the original look). Independent of
+        /// <see cref="SideMask"/>, which stays as configured.</summary>
+        public static bool DisableMiddleCard
+        {
+            get => EditorPrefs.GetBool(K_DISABLE_MIDDLE_CARD, false);
+            set { EditorPrefs.SetBool(K_DISABLE_MIDDLE_CARD, value); Refresh(); }
+        }
+
         /// <summary>Replace the gradient background (and the side-mask repaint, if that's on too)
         /// with the animated purple pattern from the Decentraland Explorer loading screens. Off by
         /// default. No effect while <see cref="BackgroundEnabled"/> is off.</summary>
@@ -142,6 +161,18 @@ namespace OutfitStudio.Editor
 
         private static Texture2D DclBgTexture =>
             _dclBgTexture ??= AssetDatabase.LoadAssetAtPath<Texture2D>(DCL_BG_TEXTURE_PATH);
+
+        /// <summary>The two vignette colours the DCL background's radial gradient blends between
+        /// (inner → outer). Only have any visible effect while <see cref="UseDclBackground"/> is on.</summary>
+        public static Color DclInnerColor { get => GetColor(K_DCL_INNER, DefDclInner); set => SetColor(K_DCL_INNER, value); }
+        public static Color DclOuterColor { get => GetColor(K_DCL_OUTER, DefDclOuter); set => SetColor(K_DCL_OUTER, value); }
+
+        public static void ResetDclColors()
+        {
+            EditorPrefs.DeleteKey(K_DCL_INNER);
+            EditorPrefs.DeleteKey(K_DCL_OUTER);
+            Refresh();
+        }
 
         /// <summary>Clip the avatar to the card's sides/bottom (arms/hands that spill past the card
         /// edge are hidden), leaving the top open so the head still overflows. Off by default.</summary>
@@ -231,7 +262,7 @@ namespace OutfitStudio.Editor
                      {
                          K_BG_TOP, K_BG_BOTTOM, K_GLOW, K_GLOW_H, K_GLOW_S, K_CARD_TOP, K_CARD_BOTTOM,
                          K_MARGIN_X, K_MARGIN_TOP, K_MARGIN_BOTTOM, K_RADIUS, K_BORDER, K_INNER_BORDER_W,
-                         K_OUTER_BORDER_W, K_FADE, K_FADE_H, K_FADE_S
+                         K_OUTER_BORDER_W, K_FADE, K_FADE_H, K_FADE_S, K_DCL_INNER, K_DCL_OUTER
                      })
                 EditorPrefs.DeleteKey(k);
             Refresh();
@@ -469,8 +500,14 @@ namespace OutfitStudio.Editor
             bg.SetVector(HighlightCenterId, new Vector4(0.5f, GlowHeight, 0f, 0f));
             bg.SetVector(HighlightSizeId, new Vector4(GlowSize, GlowSize, 0f, 0f));
             bg.SetFloat(UseDclBgId, UseDclBackground ? 1f : 0f);
-            if (UseDclBackground && DclBgTexture != null) bg.SetTexture(DclOverlayTexId, DclBgTexture);
+            if (UseDclBackground)
+            {
+                if (DclBgTexture != null) bg.SetTexture(DclOverlayTexId, DclBgTexture);
+                bg.SetColor(DclInnerColorId, DclInnerColor);
+                bg.SetColor(DclOuterColorId, DclOuterColor);
+            }
 
+            _card.enabled = !DisableMiddleCard;
             var card = _card.sharedMaterial;
             card.SetColor(ColorAId, CardTop);
             card.SetColor(ColorBId, CardBottom);
@@ -478,6 +515,7 @@ namespace OutfitStudio.Editor
             card.SetFloat(CornerRadiusId, CornerRadius);
 
             // Border is its own top-most quad (drawn over the avatar/fade/mask), not baked into the card.
+            _border.enabled = !DisableMiddleCard;
             var border = _border.sharedMaterial;
             border.SetFloat(CardAspectId, cardAspect);
             border.SetFloat(CornerRadiusId, CornerRadius);
@@ -487,6 +525,7 @@ namespace OutfitStudio.Editor
             border.SetFloat(BorderOversizeId, _borderOversize);
             border.SetFloat(BorderTopFadeId, 0.88f); // fade the border out over the top 12% (head overflow)
 
+            _fade.enabled = !DisableMiddleCard;
             var fade = _fade.sharedMaterial;
             fade.SetColor(FadeColorId, Fade);
             fade.SetFloat(CardAspectId, cardAspect);
@@ -507,7 +546,12 @@ namespace OutfitStudio.Editor
                 mask.SetVector(HighlightCenterId, new Vector4(0.5f, GlowHeight, 0f, 0f));
                 mask.SetVector(HighlightSizeId, new Vector4(GlowSize, GlowSize, 0f, 0f));
                 mask.SetFloat(UseDclBgId, UseDclBackground ? 1f : 0f);
-                if (UseDclBackground && DclBgTexture != null) mask.SetTexture(DclOverlayTexId, DclBgTexture);
+                if (UseDclBackground)
+                {
+                    if (DclBgTexture != null) mask.SetTexture(DclOverlayTexId, DclBgTexture);
+                    mask.SetColor(DclInnerColorId, DclInnerColor);
+                    mask.SetColor(DclOuterColorId, DclOuterColor);
+                }
                 mask.SetFloat(CardAspectId, cardAspect);
                 mask.SetFloat(CornerRadiusId, CornerRadius);
                 float U(float f) => 0.5f + (f - 0.5f) / BG_OVERSIZE;

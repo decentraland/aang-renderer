@@ -2090,14 +2090,30 @@ namespace OutfitStudio.Editor
             enableBackground.RegisterValueChangedCallback(evt => StudioCardFrame.BackgroundEnabled = evt.newValue);
             fold.Add(enableBackground);
 
+            var disableMiddleCard = new Toggle("Disable Middle Card")
+            {
+                value = StudioCardFrame.DisableMiddleCard,
+                tooltip = "Hides the middle card panel, its border, and the bottom fade, leaving only " +
+                          "the background (plain gradient or the Decentraland pattern) behind the avatar."
+            };
+            disableMiddleCard.RegisterValueChangedCallback(evt => StudioCardFrame.DisableMiddleCard = evt.newValue);
+            fold.Add(disableMiddleCard);
+
             var useDclBackground = new Toggle("Use Decentraland Background")
             {
                 value = StudioCardFrame.UseDclBackground,
                 tooltip = "Replaces the background gradient with the animated purple pattern from " +
                           "the Decentraland Explorer loading screens. Off by default."
             };
-            useDclBackground.RegisterValueChangedCallback(evt => StudioCardFrame.UseDclBackground = evt.newValue);
+            var dclColors = new VisualElement { style = { marginLeft = 12 } };
+            BuildDclColors(dclColors);
+            useDclBackground.RegisterValueChangedCallback(evt =>
+            {
+                StudioCardFrame.UseDclBackground = evt.newValue;
+                BuildDclColors(dclColors);
+            });
             fold.Add(useDclBackground);
+            fold.Add(dclColors);
 
             var sideMask = new Toggle("Mask avatar to card sides")
             {
@@ -2221,6 +2237,22 @@ namespace OutfitStudio.Editor
             var f = new ColorField(label) { value = get(), showAlpha = showAlpha };
             f.RegisterValueChangedCallback(e => set(e.newValue));
             c.Add(f);
+        }
+
+        // The DCL background's two vignette colours, shown only while "Use Decentraland Background"
+        // is on — irrelevant otherwise since the shader only reads them in that path.
+        private static void BuildDclColors(VisualElement c)
+        {
+            c.Clear();
+            if (!StudioCardFrame.UseDclBackground) return;
+
+            CardColor(c, "Inner Color", () => StudioCardFrame.DclInnerColor, v => StudioCardFrame.DclInnerColor = v);
+            CardColor(c, "Outer Color", () => StudioCardFrame.DclOuterColor, v => StudioCardFrame.DclOuterColor = v);
+            c.Add(new Button(() =>
+            {
+                StudioCardFrame.ResetDclColors();
+                BuildDclColors(c);
+            }) { text = "Reset to default", style = { marginTop = 2, marginBottom = 4 } });
         }
 
         // All CardColorPreset assets in the project, sorted by name (one button each).
