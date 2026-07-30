@@ -88,6 +88,7 @@ namespace OutfitStudio.Editor
         private static readonly int BorderTopFadeId = Shader.PropertyToID("_BorderTopFade");
         private static readonly int UseDclBgId = Shader.PropertyToID("_UseDclBg");
         private static readonly int DclOverlayTexId = Shader.PropertyToID("_DclOverlayTex");
+        private static readonly int DclUvScaleId = Shader.PropertyToID("_DclUvScale");
         private static readonly int DclInnerColorId = Shader.PropertyToID("_DclInnerColor");
         private static readonly int DclOuterColorId = Shader.PropertyToID("_DclOuterColor");
         private static readonly int ZTestId = Shader.PropertyToID("_ZTest");
@@ -505,6 +506,9 @@ namespace OutfitStudio.Editor
                 if (DclBgTexture != null) bg.SetTexture(DclOverlayTexId, DclBgTexture);
                 bg.SetColor(DclInnerColorId, DclInnerColor);
                 bg.SetColor(DclOuterColorId, DclOuterColor);
+                // Cancel the quad's oversize so the DCL look is evaluated over exactly the visible
+                // frame, matching Explorer's fullscreen quad (see _DclUvScale in the shader).
+                bg.SetFloat(DclUvScaleId, BG_OVERSIZE);
             }
 
             _card.enabled = !DisableMiddleCard;
@@ -551,6 +555,7 @@ namespace OutfitStudio.Editor
                     if (DclBgTexture != null) mask.SetTexture(DclOverlayTexId, DclBgTexture);
                     mask.SetColor(DclInnerColorId, DclInnerColor);
                     mask.SetColor(DclOuterColorId, DclOuterColor);
+                    mask.SetFloat(DclUvScaleId, BG_OVERSIZE); // same quad transform as the BG → same scale
                 }
                 mask.SetFloat(CardAspectId, cardAspect);
                 mask.SetFloat(CornerRadiusId, CornerRadius);

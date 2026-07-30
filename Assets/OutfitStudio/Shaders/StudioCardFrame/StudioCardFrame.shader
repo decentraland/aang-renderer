@@ -26,10 +26,14 @@ Shader "Custom/StudioCardFrame"
         // (unity-explorer's TileableTexture.shader / BackgroundLoading.mat). See IMPLEMENTATION.md §18.
         [Toggle] _UseDclBg ("Use DCL Background", Float) = 0
         _DclOverlayTex ("DCL Overlay Tex", 2D) = "white" {}
+        // Explorer draws this on an exactly-fullscreen UI quad; our BG/side-mask quad is oversized
+        // past the frustum (BG_OVERSIZE), so its raw UV 0..1 covers MORE than the visible frame.
+        // Driven from StudioCardFrame.PushParams() to put the visible frame back at 0..1.
+        _DclUvScale ("DCL UV Scale (internal)", Float) = 1.0
         _DclInnerColor ("DCL Inner Color", Color) = (0.75, 0, 1, 1)
         _DclOuterColor ("DCL Outer Color", Color) = (0.3, 0, 0.5, 1)
-        _DclRadius ("DCL Radius", Range(0,1)) = 0.42
-        _DclSmoothness ("DCL Smoothness", Range(0.01,1)) = 0.55
+        _DclRadius ("DCL Radius", Range(0,1)) = 0.167
+        _DclSmoothness ("DCL Smoothness", Range(0.01,1)) = 0.5
         _DclOverlayColor ("DCL Overlay Color", Color) = (1, 1, 1, 1)
         _DclOverlayTiling ("DCL Overlay Tiling", Float) = 1.66
         _DclOverlayDirection ("DCL Overlay Direction", Vector) = (1, -1.25, 0, 0)
@@ -37,6 +41,9 @@ Shader "Custom/StudioCardFrame"
         _DclOverlayAlpha ("DCL Overlay Alpha", Range(0,1)) = 0.573
         _DclGlowColor ("DCL Glow Color", Color) = (0.66, 0, 0.745, 1)
         _DclGlowStrength ("DCL Glow Strength", Float) = 0.59
+        // Reference material has this off-center at (0.68, 0.5); kept centered here on purpose so the
+        // hotspot sits behind the avatar rather than beside it (Mauricio, 2026-07-27 and again on
+        // 2026-07-30 after the parity pass) — the one deliberate deviation from BackgroundLoading.mat.
         _DclGlowCenter ("DCL Glow Center", Vector) = (0.5, 0.5, 0, 0)
         _DclGlowRadius ("DCL Glow Radius", Vector) = (0.05, -0.13, 0, 0)
         _DclGlowSmoothness ("DCL Glow Smoothness", Float) = 3.61
@@ -109,6 +116,7 @@ Shader "Custom/StudioCardFrame"
             float _UseDclBg;
             TEXTURE2D(_DclOverlayTex);
             SAMPLER(sampler_DclOverlayTex);
+            float _DclUvScale;
             float4 _DclInnerColor, _DclOuterColor;
             float _DclRadius, _DclSmoothness;
             float4 _DclOverlayColor;
@@ -152,6 +160,15 @@ Shader "Custom/StudioCardFrame"
             // and an off-center radial glow. Opaque (alpha handled by the caller), so no _Mode<3.5 mask.
             float3 DclBackground (float2 uv)
             {
+                // Explorer's quad spans the screen exactly; ours is BG_OVERSIZE bigger than the frustum
+                // (to hide edge slivers), so scale the UV about the centre to put the *visible* frame
+                // back at 0..1. Without this the whole look — vignette falloff, glow position, pattern
+                // tiling — is off by that factor, and the frame corners (UV radius 0.68 instead of
+                // 0.707) never quite reach the full outer colour. Only the DCL path needs it: the
+                // gradient path is vertical-only and the mode-3 card-rect mask works in the raw quad
+                // UV space _MaskRect is expressed in, so both keep using the unscaled UV.
+                uv = (uv - 0.5) * _DclUvScale + 0.5;
+
                 float radius = length(uv - 0.5);
                 float mask = smoothstep(_DclRadius + _DclSmoothness, _DclRadius, radius);
                 float3 vignette = lerp(_DclOuterColor.rgb, _DclInnerColor.rgb, mask);
@@ -170,7 +187,14 @@ Shader "Custom/StudioCardFrame"
 
                 float2 glowDelta = (uv - _DclGlowCenter) / _DclGlowRadius;
                 float glowMask = 1.0 - smoothstep(1.0, 1.0 + _DclGlowSmoothness, length(glowDelta));
-                col += _DclGlowColor.rgb * glowMask * _DclGlowStrength * _DclGlowColor.a;
+                // The reference builds the glow as a full float4 (`_GlowColor * glowMask * _GlowStrength`)
+                // and then adds `glow.rgb * glow.a` — so mask AND strength each land on the result
+                // TWICE. Replicated verbatim rather than folded into one multiply: the material's tuned
+                // _GlowStrength 0.59 is really an effective 0.35, and the squared mask makes the hotspot
+                // much tighter. Linearising it (as the first port did) blew the glow out into a wide
+                // bright wash that flattened the vignette.
+                float glow = glowMask * _DclGlowStrength;
+                col += _DclGlowColor.rgb * glow * glow * _DclGlowColor.a;
                 return col;
             }
 

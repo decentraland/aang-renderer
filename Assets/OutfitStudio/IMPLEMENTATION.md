@@ -1273,7 +1273,8 @@ toggle property:
   independent of the existing `_HighlightColor` glow (which is skipped while the DCL mode is active).
   The reference material's hotspot sits off-center (`_DclGlowCenter` (0.68, 0.5)), but since this
   background composites behind a centered avatar rather than filling an unrelated loading screen,
-  `_DclGlowCenter` was recentered to (0.5, 0.5) here so the glow lines up behind the subject.
+  `_DclGlowCenter` stays recentered to (0.5, 0.5) here so the glow lines up behind the subject —
+  the one deliberate deviation left after the 2026-07-30 parity pass (below).
 - Reuses the same opaque `return float4(col, 1.0)` exit as the gradient path for mode 0, and the same
   side-mask repaint logic for mode 3 — so **Mask avatar to card sides** repaints with the DCL pattern
   too when both toggles are on, staying seamless with the background quad exactly as it already did
@@ -1291,7 +1292,43 @@ toggle property:
   widened to `Range(0.01,1)` to fit). At these values the full-bright disc now covers most of the
   frame and the falloff only reaches the outer color out past the UV corner distance (~0.707), so
   mid-edges stay mostly bright and only the corners darken — an actual vignette instead of the
-  reference's small hot-spot-in-a-dark-field look.
+  reference's small hot-spot-in-a-dark-field look. **Reverted 2026-07-30** (below) — the ask flipped
+  to exact reference parity.
+
+**2026-07-30: DCL background made pixel-identical to Explorer's.** Side-by-side (studio vs. the
+Explorer welcome screen) the purple read far too bright and the vignette barely showed. Sampling the
+comparison screenshot pinned it down: the *Explorer* half's frame corners are exactly `_OuterColor`
+in gamma (77,0,128 @8-bit), i.e. the raw shader output with no tonemapping — and the studio half's
+corners were (153,0,199), which reproduces the port's own math exactly. So this was never a color
+space / post-processing gap (ACES would have lifted G off 0 on both halves, and it's 0 in both); it
+was four concrete deviations, all now fixed:
+1. `_DclRadius` 0.42 → **0.167** and `_DclSmoothness` 0.55 → **0.5** — reverts the 2026-07-27 retune
+   above. Note 0.5 is the value in `BackgroundLoading.mat`; the original port's 0.25 had picked up
+   `TileableTexture.shader`'s Properties-block default instead of the material's override (every
+   other constant was taken from the material correctly).
+2. `_DclGlowCenter` **stays at (0.5,0.5)**, not the material's (0.68,0.5). Briefly moved to the
+   reference value during this pass and immediately put back (Mauricio) — the recentering is wanted:
+   the hotspot belongs behind the avatar, not beside it. Only deliberate deviation that survives.
+3. **Glow falloff was linearised.** The reference builds `float4 glow = _GlowColor * glowMask *
+   _GlowStrength` and then adds `glow.rgb * glow.a`, so mask and strength each apply *twice*; the
+   port applied each once. That turned a tight hotspot at effective strength 0.35 into a wide wash at
+   0.59, washing out what vignette was left. Now replicated verbatim as `glow*glow` (see the shader
+   comment — it looks like a redundant multiply and must not be "simplified" away).
+4. **New `_DclUvScale`** (pushed from `PushParams()` as `BG_OVERSIZE`). The BG/side-mask quad is 4%
+   bigger than the frustum to hide edge slivers, so its raw UV 0..1 spans more than the visible
+   frame — the whole DCL look was evaluated 4% off-scale, and the visible corners sat at UV radius
+   0.68 instead of 0.707 (worth ~7/255 on its own). `DclBackground()` now scales UV about the centre
+   to undo it; the gradient path and the mode-3 card-rect mask keep the raw UV (that's the space
+   `_MaskRect` is expressed in).
+
+With these applied, a simulation of the fixed shader lands within 1–3/255 of the Explorer pixels
+measured at seven background points (corner exact; residual is the animated pattern's phase). The
+glow ellipse is the sole exception, and only because it's deliberately translated: its peak is the
+same (~(200,0,255) @8-bit) but now sits at UV x 0.5 instead of 0.68, so the frame centre reads ~22/255
+brighter than Explorer's and x=0.68 correspondingly darker. Everything outside that small ellipse is
+unaffected by the move. The
+palette, texture (byte-identical PNG, same sRGB/repeat import), tiling/speed/alpha, luminosity blend
+and remaining glow constants were already 1:1 and were left alone.
 
 ### Lifecycle
 Quads are `HideFlags.DontSave` (never serialized → no scene churn) and parented to the camera so they
