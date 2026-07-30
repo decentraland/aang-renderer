@@ -1633,4 +1633,19 @@ body, registered once outside `BuildCardBody` so rebuilds don't stack up pollers
 since the same fraction is a different pixel count after a capture-size change and there's no event for
 it. It skips whatever currently has focus, so it can't fight a drag or overwrite a half-typed number, and
 it writes with `SetValueWithoutNotify`, so its display rounding (2 dp) can never feed back into the
-model. A `Card is W × H px of a W × H capture` readout sits under the margins.
+model.
+
+**The `Card is W × H px of a W × H capture` readout** under the margins reports the card's **fill** rect.
+Mauricio asked whether the outer border should count — it should: that ring is drawn at
+`dist ∈ (0, _OuterBorderWidth)`, i.e. *outside* the card edge, so it enlarges the footprint even though
+the fill rect doesn't move. Once it's non-zero the readout appends the painted size, **asymmetrically**:
+the ring fades out over the top 12% (`_BorderTopFade`, so the head can still overflow), so it adds width
+on *both* sides but height only at the *bottom* — `W + 2×outer` by `H + outer`. It reports
+`EffectiveOuterBorderWidth`, i.e. post-clamp, so it can never claim a border wider than what's drawn.
+The inner ring is deliberately absent from the readout: it's painted inside the card, so it changes
+nothing about the footprint.
+
+While adding that, `CardHeightFraction` and the three `Effective*` clamps moved onto `StudioCardFrame` as
+properties — `1 - MarginTop - MarginBottom` and the clamp formulas each had two or three copies across
+`PushParams`, the window's `CardHPx` and now the readout, which is exactly the kind of duplication that
+drifts. `PushParams` reads the same properties, so there's one definition of each.

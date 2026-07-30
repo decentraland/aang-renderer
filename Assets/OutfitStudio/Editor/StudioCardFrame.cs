@@ -333,6 +333,21 @@ namespace OutfitStudio.Editor
 
         public static float FadeSoftness { get => EditorPrefs.GetFloat(K_FADE_S, 0.7f); set => SetFloat(K_FADE_S, value); }
 
+        /// <summary>The card's height as a fraction of the frame's. Shared by the pattern's tile scale, the
+        /// px conversions in the window, and the clamps below — one definition so they can't drift.</summary>
+        public static float CardHeightFraction => Mathf.Max(0.01f, 1f - MarginTop - MarginBottom);
+
+        // The three card-relative knobs as PushParams will actually use them: clamped in frame-height terms
+        // BEFORE the conversion to the shader's units (see PushParams for why that ordering matters).
+        // Exposed because the window reports the card's painted footprint, which the outer ring extends.
+        internal static float EffectiveCornerRadius => Mathf.Min(CornerRadius, 0.25f * CardHeightFraction);
+
+        internal static float EffectiveInnerBorderWidth =>
+            Mathf.Min(InnerBorderWidth, MAX_BORDER_WIDTH * CardHeightFraction * 0.5f);
+
+        internal static float EffectiveOuterBorderWidth =>
+            Mathf.Min(OuterBorderWidth, MAX_BORDER_WIDTH * CardHeightFraction * 0.5f);
+
         public static void ResetDefaults()
         {
             foreach (var k in new[]
@@ -579,25 +594,24 @@ namespace OutfitStudio.Editor
         {
             var cardAspect = AspectOf(_card); // cw / ch
 
-            // The card's height as a fraction of the frame's. Used for three things: the pattern's tile
-            // scale (keeps its on-screen icon size put as the margins change — see DclCardPaint), and the
-            // two unit conversions below.
-            var cardHFrac = Mathf.Max(0.01f, 1f - MarginTop - MarginBottom);
+            // The card's height as a fraction of the frame's. Used for the pattern's tile scale (keeps its
+            // on-screen icon size put as the margins change — see DclCardPaint) and the conversions below.
+            var cardHFrac = CardHeightFraction;
 
             // Corner radius and the border widths are STORED as fractions of the frame HEIGHT, so a given
             // pixel size survives the card being stretched either way (§20). RoundedBoxSDF, though, works
             // in a space normalized to the *card's* HALF-height — hence × 2 / cardHFrac.
             //
-            // Clamping happens here, in frame-height terms, BEFORE the conversion, so that every quad
-            // derives its own value from the same clamped physical size and they can't disagree: the card
-            // and the mask must round their corners identically or the mask's edge stops landing on the
-            // card's. A radius past SDF 0.5 is meaningless (RoundedBoxSDF clamps it to the box anyway) and
-            // a border past MAX_BORDER_WIDTH would overflow the border quad, whose oversize is sized for
-            // exactly that maximum (see Layout()). At sane margins neither clamp is reachable; they only
-            // bite once the card is squashed to a sliver.
-            var radiusFH = Mathf.Min(CornerRadius, 0.25f * cardHFrac);                     // → SDF ≤ 0.5
-            var innerFH = Mathf.Min(InnerBorderWidth, MAX_BORDER_WIDTH * cardHFrac * 0.5f); // → SDF ≤ 0.2
-            var outerFH = Mathf.Min(OuterBorderWidth, MAX_BORDER_WIDTH * cardHFrac * 0.5f);
+            // Clamping happens in frame-height terms, BEFORE the conversion (in the Effective* properties
+            // above), so that every quad derives its own value from the same clamped physical size and they
+            // can't disagree: the card and the mask must round their corners identically or the mask's edge
+            // stops landing on the card's. A radius past SDF 0.5 is meaningless (RoundedBoxSDF clamps it to
+            // the box anyway) and a border past MAX_BORDER_WIDTH would overflow the border quad, whose
+            // oversize is sized for exactly that maximum (see Layout()). At sane margins neither clamp is
+            // reachable; they only bite once the card is squashed to a sliver.
+            var radiusFH = EffectiveCornerRadius;  // → SDF ≤ 0.5
+            var innerFH = EffectiveInnerBorderWidth; // → SDF ≤ MAX_BORDER_WIDTH
+            var outerFH = EffectiveOuterBorderWidth;
 
             // Frame-height fraction → RoundedBoxSDF units, for a rect of the given height (the card for
             // most quads; the extended keep-rect for the mask).

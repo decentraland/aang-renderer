@@ -2307,7 +2307,11 @@ namespace OutfitStudio.Editor
 
             _cardSizeLabel = new Label
             {
-                style = { fontSize = 10, opacity = 0.7f, marginLeft = 3, marginBottom = 2 }
+                style =
+                {
+                    whiteSpace = WhiteSpace.Normal, // grows to two lines once the outer-border half is shown
+                    fontSize = 10, opacity = 0.7f, marginLeft = 3, marginBottom = 2
+                }
             };
             c.Add(_cardSizeLabel);
 
@@ -2365,7 +2369,7 @@ namespace OutfitStudio.Editor
         // Note CardWPx is off FrameHPx, not FrameWPx — the card's width is stored per frame height so its
         // shape survives an aspect change (see StudioCardFrame.Layout).
         private float CardWPx => FrameHPx * Mathf.Max(0.01f, StudioCardFrame.CardWidth);
-        private float CardHPx => FrameHPx * Mathf.Max(0.01f, 1f - StudioCardFrame.MarginTop - StudioCardFrame.MarginBottom);
+        private float CardHPx => FrameHPx * StudioCardFrame.CardHeightFraction;
 
         private readonly List<(Slider slider, Func<float> maxPx, Func<float> toPx)> _cardPxSync = new();
         private Label _cardSizeLabel;
@@ -2406,8 +2410,22 @@ namespace OutfitStudio.Editor
             }
 
             if (_cardSizeLabel?.panel != null)
-                _cardSizeLabel.text = $"Card is {CardWPx:0} × {CardHPx:0} px " +
-                                      $"of a {FrameWPx:0} × {FrameHPx:0} capture.";
+            {
+                var text = $"Card is {CardWPx:0} × {CardHPx:0} px of a {FrameWPx:0} × {FrameHPx:0} capture.";
+
+                // The outer border ring is painted OUTSIDE the card edge (dist ∈ (0, _OuterBorderWidth)),
+                // so it genuinely enlarges the card's footprint while the fill rect above stays the same.
+                // Asymmetric on purpose: the ring fades out over the top 12% (_BorderTopFade, so the head
+                // can overflow), so it adds width on both sides but height only at the bottom. Uses the
+                // Effective* value, i.e. after the clamp PushParams applies, so the number can't claim a
+                // border wider than what actually gets drawn.
+                var outerPx = StudioCardFrame.EffectiveOuterBorderWidth * FrameHPx;
+                if (outerPx >= 0.5f)
+                    text += $" With the {outerPx:0.#} px outer border it paints " +
+                            $"{CardWPx + 2f * outerPx:0} × {CardHPx + outerPx:0} px (no ring across the top).";
+
+                _cardSizeLabel.text = text;
+            }
         }
 
         private static void CardColor(VisualElement c, string label, Func<Color> get, Action<Color> set,
