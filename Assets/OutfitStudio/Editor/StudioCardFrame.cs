@@ -11,14 +11,18 @@ namespace OutfitStudio.Editor
     /// the studio scene and captured for free (it's camera geometry, not a UI overlay — runtime UI
     /// overlays don't render through the capture camera; see IMPLEMENTATION.md §8/§18).
     ///
-    /// Three camera-parented quads, ordered purely by render queue so no per-avatar depth math is
-    /// needed:
-    ///   • Background (queue 1000, ZWrite On) — fullscreen gradient + glow; writes depth so the
-    ///     skybox is occluded without touching the camera's clear flags.
-    ///   • Card panel (queue 1500, ZTest Always) — rounded rect behind the avatar. The avatar
-    ///     (opaque, queue 2000) draws over it, so the head overflowing the top edge is free.
+    /// Four camera-parented quads, ordered purely by render queue so no per-avatar depth math is
+    /// needed. There is deliberately NO background layer (2026-07-30): outside the card you see
+    /// whatever the camera clears to — which this drives to transparent black — so a still exports
+    /// with only the card and the avatar opaque.
+    ///   • Card panel (queue 1500, ZWrite On) — rounded rect behind the avatar, painted with the
+    ///     Decentraland vignette/pattern. The avatar (opaque, queue 2000) draws over it, so the head
+    ///     overflowing the top edge is free. It's the only depth-writing layer, standing in for the
+    ///     old background quad so a Skybox clear can't paint over the card.
+    ///   • Side mask (queue 3200, ZTest Always) — optional; ERASES to transparent outside the card.
     ///   • Bottom fade (queue 3500, ZTest Always) — drawn after the avatar; fades the legs into the
-    ///     card colour, clipped to the same rounded rect so its bottom corners match.
+    ///     card's own paint, clipped to the same rounded rect so its bottom corners match.
+    ///   • Border (queue 4000, ZTest Always) — the ring, over everything.
     ///
     /// Poll-based and studio-scene-gated like StudioAvatarShaderSwitcher / the pipeline switcher.
     /// The quads are HideFlags.DontSave (never serialized into the scene) and recreated after a
@@ -30,33 +34,29 @@ namespace OutfitStudio.Editor
         private const string ROOT_NAME = "__OutfitStudio_CardFrame";
         private const string SHADER_NAME = "Custom/StudioCardFrame";
         private const float PLANE_Z = 50f; // camera-local Z; safely behind a ~2 m avatar, well inside the far plane
-        private const float BG_OVERSIZE = 1.04f; // background quad scale over the frustum (hides edge slivers)
+        // The side-mask quad spans the whole frame (it has to cover everything outside the card) and is
+        // scaled slightly past the frustum so no edge sliver survives on an aspect mismatch. The card
+        // rect is handed to it in this quad's UV space — see U() in PushParams().
+        private const float MASK_OVERSIZE = 1.04f;
 
-        // The border quad's own scale must exceed the card's by enough that the shader's mode-4 UV
+        // The border quad's own scale must exceed the card's by enough that the shader's mode-3 UV
         // remap (see StudioCardFrame.shader) has physical room to paint the outer ring past the card
         // edge, even at the slider's max width. Recomputed per Layout() from the card's own aspect —
         // see the comment there for the derivation.
         private const float MAX_BORDER_WIDTH = 0.2f; // matches both border-width shader Range(0,0.2) sliders
         private const float BORDER_OVERSIZE_MARGIN = 0.05f; // extra slack past the slider max for AA softening
 
-        // Ported from Explorer's loading-screen background; see the shader's DclBackground() comment.
+        // The card's paint, ported from Explorer's loading screen; see the shader's DclCardPaint().
         private const string DCL_BG_TEXTURE_PATH = "Assets/OutfitStudio/Textures/DclBackgroundPattern.png";
 
         // EditorPrefs keys
         private const string K_ENABLED = "OutfitStudio.Card.Enabled";
-        private const string K_BG_ENABLED = "OutfitStudio.Card.BgEnabled";
         private const string K_DISABLE_MIDDLE_CARD = "OutfitStudio.Card.DisableMiddleCard";
-        private const string K_USE_DCL_BG = "OutfitStudio.Card.UseDclBg";
         private const string K_DCL_INNER = "OutfitStudio.Card.DclInnerColor";
         private const string K_DCL_OUTER = "OutfitStudio.Card.DclOuterColor";
+        private const string K_PATTERN = "OutfitStudio.Card.PatternTex"; // asset GUID, empty = bundled default
         private const string K_SIDEMASK = "OutfitStudio.Card.SideMask";
-        private const string K_BG_TOP = "OutfitStudio.Card.BgTop";
-        private const string K_BG_BOTTOM = "OutfitStudio.Card.BgBottom";
-        private const string K_GLOW = "OutfitStudio.Card.Glow";
-        private const string K_GLOW_H = "OutfitStudio.Card.GlowHeight";
-        private const string K_GLOW_S = "OutfitStudio.Card.GlowSize";
-        private const string K_CARD_TOP = "OutfitStudio.Card.CardTop";
-        private const string K_CARD_BOTTOM = "OutfitStudio.Card.CardBottom";
+        private const string K_BOTTOMMASK = "OutfitStudio.Card.BottomMask";
         private const string K_MARGIN_X = "OutfitStudio.Card.MarginX";
         private const string K_MARGIN_TOP = "OutfitStudio.Card.MarginTop";
         private const string K_MARGIN_BOTTOM = "OutfitStudio.Card.MarginBottom";
@@ -64,53 +64,40 @@ namespace OutfitStudio.Editor
         private const string K_BORDER = "OutfitStudio.Card.Border";
         private const string K_INNER_BORDER_W = "OutfitStudio.Card.BorderWidth"; // key unchanged so existing tuned values carry over from before the inner/outer split
         private const string K_OUTER_BORDER_W = "OutfitStudio.Card.OuterBorderWidth";
-        private const string K_FADE = "OutfitStudio.Card.Fade";
         private const string K_FADE_H = "OutfitStudio.Card.FadeHeight";
         private const string K_FADE_S = "OutfitStudio.Card.FadeSoftness";
 
         // Shader property ids
         private static readonly int ModeId = Shader.PropertyToID("_Mode");
-        private static readonly int ColorAId = Shader.PropertyToID("_ColorA");
-        private static readonly int ColorBId = Shader.PropertyToID("_ColorB");
-        private static readonly int HighlightColorId = Shader.PropertyToID("_HighlightColor");
-        private static readonly int HighlightCenterId = Shader.PropertyToID("_HighlightCenter");
-        private static readonly int HighlightSizeId = Shader.PropertyToID("_HighlightSize");
         private static readonly int CardAspectId = Shader.PropertyToID("_CardAspect");
         private static readonly int CornerRadiusId = Shader.PropertyToID("_CornerRadius");
         private static readonly int BorderColorId = Shader.PropertyToID("_BorderColor");
         private static readonly int InnerBorderWidthId = Shader.PropertyToID("_InnerBorderWidth");
         private static readonly int OuterBorderWidthId = Shader.PropertyToID("_OuterBorderWidth");
         private static readonly int BorderOversizeId = Shader.PropertyToID("_BorderOversize");
-        private static readonly int FadeColorId = Shader.PropertyToID("_FadeColor");
         private static readonly int FadeStartId = Shader.PropertyToID("_FadeStart");
         private static readonly int FadeEndId = Shader.PropertyToID("_FadeEnd");
         private static readonly int MaskRectId = Shader.PropertyToID("_MaskRect");
         private static readonly int BorderTopFadeId = Shader.PropertyToID("_BorderTopFade");
-        private static readonly int UseDclBgId = Shader.PropertyToID("_UseDclBg");
         private static readonly int DclOverlayTexId = Shader.PropertyToID("_DclOverlayTex");
-        private static readonly int DclUvScaleId = Shader.PropertyToID("_DclUvScale");
+        private static readonly int DclTileScaleId = Shader.PropertyToID("_DclTileScale");
         private static readonly int DclInnerColorId = Shader.PropertyToID("_DclInnerColor");
         private static readonly int DclOuterColorId = Shader.PropertyToID("_DclOuterColor");
         private static readonly int ZTestId = Shader.PropertyToID("_ZTest");
         private static readonly int ZWriteId = Shader.PropertyToID("_ZWrite");
         private static readonly int SrcBlendId = Shader.PropertyToID("_SrcBlend");
         private static readonly int DstBlendId = Shader.PropertyToID("_DstBlend");
+        private static readonly int SrcBlendAId = Shader.PropertyToID("_SrcBlendA");
+        private static readonly int DstBlendAId = Shader.PropertyToID("_DstBlendA");
 
-        // Sensible defaults tuned to the reference cards (purple card on dark-indigo → violet bg).
-        private static readonly Color DefBgTop = Hex("#16143A");
-        private static readonly Color DefBgBottom = Hex("#3A1E5C");
-        private static readonly Color DefGlow = new(0.42f, 0.30f, 0.58f, 0.25f);
-        private static readonly Color DefCardTop = Hex("#6B3FA0");
-        private static readonly Color DefCardBottom = Hex("#4A2870");
-        private static readonly Color DefBorder = Hex("#B98CE0");
-        private static readonly Color DefFade = Hex("#4A2870");
+        private static readonly Color DefBorder = Hex("#FF8158");
         // Matches the shader's own Properties-block defaults (StudioCardFrame.shader), ported 1:1
         // from Explorer's BackgroundLoading.mat.
         private static readonly Color DefDclInner = Hex("#BF00FF");
         private static readonly Color DefDclOuter = Hex("#4D0080");
 
         private static GameObject _root;
-        private static Renderer _bg, _card, _fade, _mask, _border;
+        private static Renderer _card, _fade, _mask, _border;
         private static float _borderOversize = 1f; // set by Layout(), consumed by PushParams()
         private static double _nextCheck;
         private static bool _warnedMissingShader;
@@ -128,59 +115,95 @@ namespace OutfitStudio.Editor
             set { EditorPrefs.SetBool(K_ENABLED, value); Refresh(); }
         }
 
-        /// <summary>Draw the fullscreen gradient background quad. On by default (identical to the
-        /// original look). Turning it off leaves the card/fade/border/mask untouched, so with a
-        /// transparent-clear capture the frame area outside the card is transparent while the card
-        /// panel and the avatar stay opaque — the background quad is what forces the whole capture
-        /// opaque (see the shader's "over" alpha blend comment), so skipping it is all this needs.</summary>
-        public static bool BackgroundEnabled
-        {
-            get => EditorPrefs.GetBool(K_BG_ENABLED, true);
-            set { EditorPrefs.SetBool(K_BG_ENABLED, value); Refresh(); }
-        }
-
-        /// <summary>Hide the middle card panel, its border, and the bottom fade, leaving only the
-        /// background (plain gradient or, if <see cref="UseDclBackground"/> is on, the Decentraland
-        /// pattern) behind the avatar. Off by default (identical to the original look). Independent of
-        /// <see cref="SideMask"/>, which stays as configured.</summary>
+        /// <summary>Hide the middle card panel, its border, and the bottom fade, leaving just the
+        /// avatar over the empty (transparent) frame. Off by default. Switching it ON also clears
+        /// <see cref="SideMask"/> and <see cref="BottomMask"/> — cropping the avatar to a card that
+        /// isn't drawn is never what you want, and the crop is invisible until you export.</summary>
         public static bool DisableMiddleCard
         {
             get => EditorPrefs.GetBool(K_DISABLE_MIDDLE_CARD, false);
-            set { EditorPrefs.SetBool(K_DISABLE_MIDDLE_CARD, value); Refresh(); }
+            set
+            {
+                EditorPrefs.SetBool(K_DISABLE_MIDDLE_CARD, value);
+                // Written straight to the prefs rather than through the properties so this is one
+                // Refresh(), not three. Deliberately ONE-WAY: turning the card back on doesn't silently
+                // re-enable the masks (that would need remembered hidden state), you re-tick them.
+                if (value)
+                {
+                    EditorPrefs.SetBool(K_SIDEMASK, false);
+                    EditorPrefs.SetBool(K_BOTTOMMASK, false);
+                }
+                Refresh();
+            }
         }
 
-        /// <summary>Replace the gradient background (and the side-mask repaint, if that's on too)
-        /// with the animated purple pattern from the Decentraland Explorer loading screens. Off by
-        /// default. No effect while <see cref="BackgroundEnabled"/> is off.</summary>
-        public static bool UseDclBackground
+        private static Texture2D _defaultPattern;
+
+        private static Texture2D DefaultPattern =>
+            _defaultPattern ??= AssetDatabase.LoadAssetAtPath<Texture2D>(DCL_BG_TEXTURE_PATH);
+
+        /// <summary>
+        /// The tiling pattern sampled over the card's vignette. Defaults to the bundled
+        /// <c>DclBackgroundPattern.png</c> (Explorer's icon atlas); point it at any other texture to
+        /// re-skin the card. Clearing the field falls back to the default rather than leaving the card
+        /// pattern-less — the paint's luminosity blend has no neutral texture value, so "no pattern"
+        /// isn't expressible without a shader gate; use a flat texture if you want the vignette alone.
+        /// Tile it with Wrap Mode = Repeat, or it'll clamp into streaks at the card edges.
+        /// </summary>
+        public static Texture2D PatternTexture
         {
-            get => EditorPrefs.GetBool(K_USE_DCL_BG, false);
-            set { EditorPrefs.SetBool(K_USE_DCL_BG, value); Refresh(); }
+            get
+            {
+                var guid = EditorPrefs.GetString(K_PATTERN, null);
+                if (!string.IsNullOrEmpty(guid))
+                {
+                    var path = AssetDatabase.GUIDToAssetPath(guid);
+                    if (!string.IsNullOrEmpty(path))
+                    {
+                        var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                        if (tex != null) return tex;
+                    }
+                }
+                return DefaultPattern;
+            }
+            set
+            {
+                // Store the GUID, not the path, so moving or renaming the asset doesn't break the
+                // reference. A null (or a non-asset texture, e.g. a built-in) clears back to the default.
+                var guid = "";
+                if (value != null)
+                {
+                    var path = AssetDatabase.GetAssetPath(value);
+                    if (!string.IsNullOrEmpty(path)) guid = AssetDatabase.AssetPathToGUID(path);
+                }
+                EditorPrefs.SetString(K_PATTERN, guid);
+                Refresh();
+            }
         }
 
-        private static Texture2D _dclBgTexture;
-
-        private static Texture2D DclBgTexture =>
-            _dclBgTexture ??= AssetDatabase.LoadAssetAtPath<Texture2D>(DCL_BG_TEXTURE_PATH);
-
-        /// <summary>The two vignette colours the DCL background's radial gradient blends between
-        /// (inner → outer). Only have any visible effect while <see cref="UseDclBackground"/> is on.</summary>
+        /// <summary>The two colours the card's radial vignette blends between (inner → outer). These
+        /// are the card's colours — the rest of the Decentraland paint (pattern, glow, tiling, speed)
+        /// is fixed at the values ported from the reference material.</summary>
         public static Color DclInnerColor { get => GetColor(K_DCL_INNER, DefDclInner); set => SetColor(K_DCL_INNER, value); }
         public static Color DclOuterColor { get => GetColor(K_DCL_OUTER, DefDclOuter); set => SetColor(K_DCL_OUTER, value); }
 
-        public static void ResetDclColors()
-        {
-            EditorPrefs.DeleteKey(K_DCL_INNER);
-            EditorPrefs.DeleteKey(K_DCL_OUTER);
-            Refresh();
-        }
-
-        /// <summary>Clip the avatar to the card's sides/bottom (arms/hands that spill past the card
-        /// edge are hidden), leaving the top open so the head still overflows. Off by default.</summary>
+        /// <summary>Erase the avatar where it spills past the card's left/right edges (arms/hands),
+        /// leaving the top open so the head still overflows. On by default. Independent of
+        /// <see cref="BottomMask"/> — both feed the same quad, which erases outside whichever edges
+        /// are switched on.</summary>
         public static bool SideMask
         {
-            get => EditorPrefs.GetBool(K_SIDEMASK, false);
+            get => EditorPrefs.GetBool(K_SIDEMASK, true);
             set { EditorPrefs.SetBool(K_SIDEMASK, value); Refresh(); }
+        }
+
+        /// <summary>Erase the avatar where it hangs below the card's bottom edge (feet/shoes on a
+        /// tall pose). On by default — a subject poking out of the bottom of the card reads as a bug,
+        /// unlike the head overflowing the top, which is the intended card look.</summary>
+        public static bool BottomMask
+        {
+            get => EditorPrefs.GetBool(K_BOTTOMMASK, true);
+            set { EditorPrefs.SetBool(K_BOTTOMMASK, value); Refresh(); }
         }
 
         /// <summary>Suppress the avatar's outline (a thin silhouette line, visible over the head
@@ -239,31 +262,63 @@ namespace OutfitStudio.Editor
             }
         }
 
-        public static Color BgTop { get => GetColor(K_BG_TOP, DefBgTop); set => SetColor(K_BG_TOP, value); }
-        public static Color BgBottom { get => GetColor(K_BG_BOTTOM, DefBgBottom); set => SetColor(K_BG_BOTTOM, value); }
-        public static Color Glow { get => GetColor(K_GLOW, DefGlow, true); set => SetColor(K_GLOW, value); }
-        public static float GlowHeight { get => EditorPrefs.GetFloat(K_GLOW_H, 0.62f); set => SetFloat(K_GLOW_H, value); }
-        public static float GlowSize { get => EditorPrefs.GetFloat(K_GLOW_S, 0.7f); set => SetFloat(K_GLOW_S, value); }
-        public static Color CardTop { get => GetColor(K_CARD_TOP, DefCardTop); set => SetColor(K_CARD_TOP, value); }
-        public static Color CardBottom { get => GetColor(K_CARD_BOTTOM, DefCardBottom); set => SetColor(K_CARD_BOTTOM, value); }
-        public static float MarginX { get => EditorPrefs.GetFloat(K_MARGIN_X, 0.06f); set => SetFloat(K_MARGIN_X, value); }
+        private static CameraClearFlags? _originalClearFlags; // captured on first override, restored when the frame is switched off
+        private static Color _originalClearColor;
+
+        /// <summary>
+        /// With the background layer gone, "outside the card" is just the camera's clear — so while the
+        /// frame is on, clear to transparent black. That makes the live view match the export (which
+        /// OutfitCapture already forces to a transparent clear) instead of showing the scene camera's
+        /// authored purple behind the card. Play mode only: in edit mode the preview renders through
+        /// the Scene view (which owns its own background) and writing to the scene camera there would
+        /// dirty the scene. Restored as soon as the frame is disabled or the studio scene is left.
+        /// </summary>
+        private static void SyncCameraClear()
+        {
+            if (!Application.isPlaying) return;
+
+            var inStudio = SceneManager.GetActiveScene().path == OutfitStudioWindow.STUDIO_SCENE_PATH;
+            var cam = inStudio ? FindCamera() : null;
+            if (cam == null) return;
+
+            if (inStudio && Enabled)
+            {
+                if (!_originalClearFlags.HasValue)
+                {
+                    _originalClearFlags = cam.clearFlags;
+                    _originalClearColor = cam.backgroundColor;
+                }
+                cam.clearFlags = CameraClearFlags.SolidColor;
+                cam.backgroundColor = new Color(0f, 0f, 0f, 0f);
+            }
+            else if (_originalClearFlags.HasValue)
+            {
+                cam.clearFlags = _originalClearFlags.Value;
+                cam.backgroundColor = _originalClearColor;
+                _originalClearFlags = null;
+            }
+        }
+
+        // Defaults below are the look Mauricio dialled in on 2026-07-30 (see IMPLEMENTATION.md §18), not
+        // the original 2026-07-17 ones. Note MarginX 0.35 is per side, so the card is 30% of the frame's
+        // width — that reads as a portrait card on a WIDE Game view (16:9 → card aspect ≈ 0.64). On an
+        // already-portrait Game view it'll come out as a narrow sliver; drop the margin in that case.
+        public static float MarginX { get => EditorPrefs.GetFloat(K_MARGIN_X, 0.35f); set => SetFloat(K_MARGIN_X, value); }
         public static float MarginTop { get => EditorPrefs.GetFloat(K_MARGIN_TOP, 0.12f); set => SetFloat(K_MARGIN_TOP, value); }
         public static float MarginBottom { get => EditorPrefs.GetFloat(K_MARGIN_BOTTOM, 0.05f); set => SetFloat(K_MARGIN_BOTTOM, value); }
         public static float CornerRadius { get => EditorPrefs.GetFloat(K_RADIUS, 0.08f); set => SetFloat(K_RADIUS, value); }
         public static Color Border { get => GetColor(K_BORDER, DefBorder); set => SetColor(K_BORDER, value); }
-        public static float InnerBorderWidth { get => EditorPrefs.GetFloat(K_INNER_BORDER_W, 0f); set => SetFloat(K_INNER_BORDER_W, value); }
+        public static float InnerBorderWidth { get => EditorPrefs.GetFloat(K_INNER_BORDER_W, 0.008f); set => SetFloat(K_INNER_BORDER_W, value); }
         public static float OuterBorderWidth { get => EditorPrefs.GetFloat(K_OUTER_BORDER_W, 0f); set => SetFloat(K_OUTER_BORDER_W, value); }
-        public static Color Fade { get => GetColor(K_FADE, DefFade); set => SetColor(K_FADE, value); }
-        public static float FadeHeight { get => EditorPrefs.GetFloat(K_FADE_H, 0.4f); set => SetFloat(K_FADE_H, value); }
-        public static float FadeSoftness { get => EditorPrefs.GetFloat(K_FADE_S, 0.55f); set => SetFloat(K_FADE_S, value); }
+        public static float FadeHeight { get => EditorPrefs.GetFloat(K_FADE_H, 0.2f); set => SetFloat(K_FADE_H, value); }
+        public static float FadeSoftness { get => EditorPrefs.GetFloat(K_FADE_S, 0.7f); set => SetFloat(K_FADE_S, value); }
 
         public static void ResetDefaults()
         {
             foreach (var k in new[]
                      {
-                         K_BG_TOP, K_BG_BOTTOM, K_GLOW, K_GLOW_H, K_GLOW_S, K_CARD_TOP, K_CARD_BOTTOM,
                          K_MARGIN_X, K_MARGIN_TOP, K_MARGIN_BOTTOM, K_RADIUS, K_BORDER, K_INNER_BORDER_W,
-                         K_OUTER_BORDER_W, K_FADE, K_FADE_H, K_FADE_S, K_DCL_INNER, K_DCL_OUTER
+                         K_OUTER_BORDER_W, K_FADE_H, K_FADE_S, K_DCL_INNER, K_DCL_OUTER, K_PATTERN
                      })
                 EditorPrefs.DeleteKey(k);
             Refresh();
@@ -277,6 +332,7 @@ namespace OutfitStudio.Editor
             _nextCheck = EditorApplication.timeSinceStartup + 0.5;
             SyncOutline();
             SyncDebugOverrides();
+            SyncCameraClear();
             Refresh();
         }
 
@@ -341,7 +397,7 @@ namespace OutfitStudio.Editor
         {
             if (_root != null) Object.DestroyImmediate(_root);
             _root = null;
-            _bg = _card = _fade = _mask = _border = null;
+            _card = _fade = _mask = _border = null;
         }
 
         private static bool TryReattach()
@@ -352,12 +408,11 @@ namespace OutfitStudio.Editor
                 if (go.name != ROOT_NAME) continue;
                 if (go.scene != SceneManager.GetActiveScene()) continue;
                 _root = go;
-                _bg = FindChild("BG");
                 _card = FindChild("Card");
                 _fade = FindChild("Fade");
                 _mask = FindChild("Mask");
                 _border = FindChild("Border");
-                if (_bg != null && _card != null && _fade != null && _mask != null && _border != null)
+                if (_card != null && _fade != null && _mask != null && _border != null)
                     return true;
                 Object.DestroyImmediate(go); // malformed — rebuild from scratch
                 _root = null;
@@ -390,36 +445,43 @@ namespace OutfitStudio.Editor
             _root = new GameObject(ROOT_NAME) { hideFlags = HideFlags.DontSave };
             _root.transform.SetParent(cam.transform, false);
 
-            // queue, mode, and render state per layer
-            _bg = MakeQuad("BG", shader, mode: 0, queue: 1000,
+            // queue, mode, and render state per layer.
+            //
+            // Card: ZWrite On, because it's the only opaque-queue layer left after the background quad
+            // was dropped — without a depth write the skybox (drawn after the opaque queue) paints
+            // straight over it wherever the view clears to Skybox. The shader clips the card's fully
+            // transparent pixels so only the rounded rect writes depth.
+            //
+            // ZTest LessEqual (not Always): the card sits behind the avatar (far Z), so it must respect
+            // depth. The avatar outline draws BeforeRenderingOpaques and writes near depth in its ring;
+            // with ZTest Always the card painted over that ring (the outline showed the card colour).
+            // LessEqual leaves the nearer outline ring — and the opaque avatar — untouched.
+            _card = MakeQuad("Card", shader, mode: 0, queue: 1500,
                 zTest: (int)CompareFunction.LessEqual, zWrite: 1,
-                src: (int)BlendMode.One, dst: (int)BlendMode.Zero);
-            // LessEqual (not Always): the card panel sits behind the avatar (far Z), so it must
-            // respect depth. The avatar outline draws BeforeRenderingOpaques and writes near depth in
-            // its ring; with ZTest Always the card painted over that ring (outline showed the card
-            // color). LessEqual lets the card draw over the BG quad (same far Z) but leaves the nearer
-            // outline ring — and the opaque avatar — untouched.
-            _card = MakeQuad("Card", shader, mode: 1, queue: 1500,
-                zTest: (int)CompareFunction.LessEqual, zWrite: 0,
                 src: (int)BlendMode.SrcAlpha, dst: (int)BlendMode.OneMinusSrcAlpha);
-            _fade = MakeQuad("Fade", shader, mode: 2, queue: 3500,
+            _fade = MakeQuad("Fade", shader, mode: 1, queue: 3500,
                 zTest: (int)CompareFunction.Always, zWrite: 0,
                 src: (int)BlendMode.SrcAlpha, dst: (int)BlendMode.OneMinusSrcAlpha);
-            // Side mask sits in front of the avatar (queue 3200, after opaque + transparent
-            // wearables) but before the bottom fade; only enabled when SideMask is on.
-            _mask = MakeQuad("Mask", shader, mode: 3, queue: 3200,
+            // Side mask sits in front of the avatar (queue 3200, after opaque + transparent wearables)
+            // but before the bottom fade and border, so it can't erase either of those. Zero /
+            // OneMinusSrcAlpha on BOTH pairs makes it an eraser: dst *= (1 - srcAlpha), so colour and
+            // alpha both go to 0 outside the card instead of being repainted (there's no background
+            // to repaint with any more). Only enabled when SideMask is on.
+            _mask = MakeQuad("Mask", shader, mode: 2, queue: 3200,
                 zTest: (int)CompareFunction.Always, zWrite: 0,
-                src: (int)BlendMode.SrcAlpha, dst: (int)BlendMode.OneMinusSrcAlpha);
+                src: (int)BlendMode.Zero, dst: (int)BlendMode.OneMinusSrcAlpha,
+                srcA: (int)BlendMode.Zero, dstA: (int)BlendMode.OneMinusSrcAlpha);
             // Border is drawn LAST (queue 4000) so the card outline sits on top of the avatar,
             // the bottom fade, and the side mask.
-            _border = MakeQuad("Border", shader, mode: 4, queue: 4000,
+            _border = MakeQuad("Border", shader, mode: 3, queue: 4000,
                 zTest: (int)CompareFunction.Always, zWrite: 0,
                 src: (int)BlendMode.SrcAlpha, dst: (int)BlendMode.OneMinusSrcAlpha);
             return true;
         }
 
         private static Renderer MakeQuad(string name, Shader shader, float mode, int queue,
-            int zTest, int zWrite, int src, int dst)
+            int zTest, int zWrite, int src, int dst,
+            int srcA = (int)BlendMode.One, int dstA = (int)BlendMode.OneMinusSrcAlpha)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Quad);
             go.name = name;
@@ -433,6 +495,8 @@ namespace OutfitStudio.Editor
             mat.SetFloat(ZWriteId, zWrite);
             mat.SetFloat(SrcBlendId, src);
             mat.SetFloat(DstBlendId, dst);
+            mat.SetFloat(SrcBlendAId, srcA);
+            mat.SetFloat(DstBlendAId, dstA);
 
             var r = go.GetComponent<MeshRenderer>();
             r.sharedMaterial = mat;
@@ -449,15 +513,10 @@ namespace OutfitStudio.Editor
             var h = 2f * PLANE_Z * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
             var w = h * cam.aspect;
 
-            // Background: full frame (slightly oversized to hide any edge sliver on aspect mismatch).
-            _bg.transform.localScale = new Vector3(w * BG_OVERSIZE, h * BG_OVERSIZE, 1f);
-            _bg.transform.localPosition = new Vector3(0f, 0f, PLANE_Z);
-            _bg.transform.localRotation = Quaternion.identity;
-
-            // Side mask shares the background's exact transform so its repainted gradient is
-            // pixel-identical (no seam); the card rect is passed to it as _MaskRect in this UV space.
-            _mask.transform.localScale = _bg.transform.localScale;
-            _mask.transform.localPosition = _bg.transform.localPosition;
+            // Side mask covers the whole frame (slightly oversized to hide any edge sliver on aspect
+            // mismatch); the card rect is passed to it as _MaskRect in this quad's UV space.
+            _mask.transform.localScale = new Vector3(w * MASK_OVERSIZE, h * MASK_OVERSIZE, 1f);
+            _mask.transform.localPosition = new Vector3(0f, 0f, PLANE_Z);
             _mask.transform.localRotation = Quaternion.identity;
 
             // Card rect in viewport fractions: x ∈ [mL, 1-mR], y ∈ [mB, 1-mT] (y up).
@@ -474,7 +533,7 @@ namespace OutfitStudio.Editor
                 r.transform.localRotation = Quaternion.identity;
             }
 
-            // The border quad is scaled up beyond the card so the shader (mode 4) has physical room
+            // The border quad is scaled up beyond the card so the shader (mode 3) has physical room
             // to paint the outer ring past the card edge; it remaps its raw UV back into the card's
             // normalized SDF space by this same factor (see _BorderOversize in the shader). Derived
             // from the card's own aspect: in RoundedBoxSDF's normalized space the box half-extents
@@ -493,29 +552,13 @@ namespace OutfitStudio.Editor
         {
             var cardAspect = AspectOf(_card); // cw / ch
 
-            _bg.enabled = BackgroundEnabled;
-            var bg = _bg.sharedMaterial;
-            bg.SetColor(ColorAId, BgTop);
-            bg.SetColor(ColorBId, BgBottom);
-            bg.SetColor(HighlightColorId, Glow);
-            bg.SetVector(HighlightCenterId, new Vector4(0.5f, GlowHeight, 0f, 0f));
-            bg.SetVector(HighlightSizeId, new Vector4(GlowSize, GlowSize, 0f, 0f));
-            bg.SetFloat(UseDclBgId, UseDclBackground ? 1f : 0f);
-            if (UseDclBackground)
-            {
-                if (DclBgTexture != null) bg.SetTexture(DclOverlayTexId, DclBgTexture);
-                bg.SetColor(DclInnerColorId, DclInnerColor);
-                bg.SetColor(DclOuterColorId, DclOuterColor);
-                // Cancel the quad's oversize so the DCL look is evaluated over exactly the visible
-                // frame, matching Explorer's fullscreen quad (see _DclUvScale in the shader).
-                bg.SetFloat(DclUvScaleId, BG_OVERSIZE);
-            }
+            // The card's height as a fraction of the frame's, so the pattern's on-screen icon size
+            // (and scroll speed) stay put as the margins change. See DclCardPaint() in the shader.
+            var tileScale = Mathf.Max(0.01f, 1f - MarginTop - MarginBottom);
 
             _card.enabled = !DisableMiddleCard;
             var card = _card.sharedMaterial;
-            card.SetColor(ColorAId, CardTop);
-            card.SetColor(ColorBId, CardBottom);
-            card.SetFloat(CardAspectId, cardAspect);
+            PushCardPaint(card, cardAspect, tileScale);
             card.SetFloat(CornerRadiusId, CornerRadius);
 
             // Border is its own top-most quad (drawn over the avatar/fade/mask), not baked into the card.
@@ -529,43 +572,58 @@ namespace OutfitStudio.Editor
             border.SetFloat(BorderOversizeId, _borderOversize);
             border.SetFloat(BorderTopFadeId, 0.88f); // fade the border out over the top 12% (head overflow)
 
+            // The fade shares the card's transform and gets the same paint inputs, so its colour is a
+            // pixel-exact continuation of the card's — it only adds the vertical alpha ramp.
             _fade.enabled = !DisableMiddleCard;
             var fade = _fade.sharedMaterial;
-            fade.SetColor(FadeColorId, Fade);
-            fade.SetFloat(CardAspectId, cardAspect);
+            PushCardPaint(fade, cardAspect, tileScale);
             fade.SetFloat(CornerRadiusId, CornerRadius);
             var end = Mathf.Clamp01(FadeHeight);
             fade.SetFloat(FadeEndId, end);
             fade.SetFloat(FadeStartId, end * (1f - Mathf.Clamp01(FadeSoftness)));
 
-            // Side mask: same gradient as the background, plus the card rect in the (oversized) bg UV
-            // space. U() maps a viewport fraction to that space. Enabled only when the toggle is on.
-            _mask.enabled = SideMask;
-            if (SideMask)
+            // Side/bottom mask: geometry only (it erases, it doesn't paint). The shader keeps whatever
+            // is inside the rect it's handed and erases the rest, so the two toggles are expressed by
+            // building that rect: start from the card, then push the edges we're NOT masking far out of
+            // frame so the SDF never cuts there. The top edge is always the card's — the head-overflow
+            // column in the shader owns that one.
+            _mask.enabled = SideMask || BottomMask;
+            if (_mask.enabled)
             {
                 var mask = _mask.sharedMaterial;
-                mask.SetColor(ColorAId, BgTop);
-                mask.SetColor(ColorBId, BgBottom);
-                mask.SetColor(HighlightColorId, Glow);
-                mask.SetVector(HighlightCenterId, new Vector4(0.5f, GlowHeight, 0f, 0f));
-                mask.SetVector(HighlightSizeId, new Vector4(GlowSize, GlowSize, 0f, 0f));
-                mask.SetFloat(UseDclBgId, UseDclBackground ? 1f : 0f);
-                if (UseDclBackground)
-                {
-                    if (DclBgTexture != null) mask.SetTexture(DclOverlayTexId, DclBgTexture);
-                    mask.SetColor(DclInnerColorId, DclInnerColor);
-                    mask.SetColor(DclOuterColorId, DclOuterColor);
-                    mask.SetFloat(DclUvScaleId, BG_OVERSIZE); // same quad transform as the BG → same scale
-                }
-                mask.SetFloat(CardAspectId, cardAspect);
-                mask.SetFloat(CornerRadiusId, CornerRadius);
-                float U(float f) => 0.5f + (f - 0.5f) / BG_OVERSIZE;
-                mask.SetVector(MaskRectId, new Vector4(
-                    U(MarginX), U(1f - MarginX), U(MarginBottom), U(1f - MarginTop)));
+
+                float l = MarginX, r = 1f - MarginX, b = MarginBottom, t = 1f - MarginTop; // viewport fractions
+                if (!SideMask) { l = -0.5f; r = 1.5f; }
+                if (!BottomMask) b = -0.5f;
+
+                var cardW = Mathf.Max(1f - 2f * MarginX, 1e-4f);
+                var cardH = Mathf.Max(1f - MarginTop - MarginBottom, 1e-4f);
+                float effW = r - l, effH = t - b;
+                // Both of these are expressed RELATIVE to the rect the SDF works on, so both have to be
+                // restated once that rect is no longer the card: the aspect scales with the new w/h
+                // ratio, and the corner radius (which RoundedBoxSDF measures in half-heights) shrinks by
+                // the same factor the rect grew, so the corners stay the card's physical size and the
+                // mask's edge still lands exactly on the card's own AA edge where the two coincide.
+                mask.SetFloat(CardAspectId, cardAspect * (effW / effH) * (cardH / cardW));
+                mask.SetFloat(CornerRadiusId, CornerRadius * (cardH / effH));
+
+                float U(float f) => 0.5f + (f - 0.5f) / MASK_OVERSIZE; // viewport fraction → mask-quad UV
+                mask.SetVector(MaskRectId, new Vector4(U(l), U(r), U(b), U(t)));
             }
 
             EditorApplication.QueuePlayerLoopUpdate();
             SceneView.RepaintAll();
+        }
+
+        /// <summary>The Decentraland card paint inputs, shared by the card and the bottom fade.</summary>
+        private static void PushCardPaint(Material mat, float cardAspect, float tileScale)
+        {
+            var pattern = PatternTexture;
+            if (pattern != null) mat.SetTexture(DclOverlayTexId, pattern);
+            mat.SetColor(DclInnerColorId, DclInnerColor);
+            mat.SetColor(DclOuterColorId, DclOuterColor);
+            mat.SetFloat(DclTileScaleId, tileScale);
+            mat.SetFloat(CardAspectId, cardAspect);
         }
 
         private static float AspectOf(Renderer r)

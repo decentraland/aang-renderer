@@ -58,11 +58,10 @@ namespace OutfitStudio.Editor
                 return;
             }
 
-            // The card frame's background quad is what forces the capture fully opaque (it's the
-            // only opaque, ZWrite-On layer); with it off, clearing at alpha 0 lets that area come
-            // through transparent while the card panel/avatar (still opaque) are unaffected.
-            var cardBgOff = StudioCardFrame.Enabled && !StudioCardFrame.BackgroundEnabled;
-            var wantsAlpha = transparentBackground || cardBgOff;
+            // The card frame has no background layer at all (2026-07-30), so whenever it's on the
+            // capture wants alpha: clearing at alpha 0 leaves everything outside the card transparent
+            // while the card panel and avatar (both opaque) are unaffected.
+            var wantsAlpha = transparentBackground || StudioCardFrame.Enabled;
 
             var previousFlags = camera.clearFlags;
             var previousColor = camera.backgroundColor;

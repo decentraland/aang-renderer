@@ -2094,10 +2094,12 @@ namespace OutfitStudio.Editor
                 .OrderBy(p => p.name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-        // Fortnite-style "item card" frame around the avatar (background gradient → rounded card →
-        // avatar → bottom fade), composed by StudioCardFrame as camera-parented quads so it renders
-        // through the capture camera. Studio scene only; a collapsible section since it's beauty-shot
-        // dressing, not part of the outfit. See IMPLEMENTATION.md §18.
+        // Fortnite-style "item card" frame around the avatar (rounded card → avatar → bottom fade →
+        // border), composed by StudioCardFrame as camera-parented quads so it renders through the
+        // capture camera. There's no background layer — outside the card is empty (black live,
+        // transparent on export) and the card itself carries the Decentraland vignette/pattern paint.
+        // Studio scene only; a collapsible section since it's beauty-shot dressing, not part of the
+        // outfit. See IMPLEMENTATION.md §18.
         private void BuildCardFrame(VisualElement pane)
         {
             var fold = new Foldout { text = "Card frame (beauty shot)", value = false, style = { marginTop = 4 } };
@@ -2106,49 +2108,44 @@ namespace OutfitStudio.Editor
             enable.RegisterValueChangedCallback(evt => StudioCardFrame.Enabled = evt.newValue);
             fold.Add(enable);
 
-            var enableBackground = new Toggle("Enable background")
-            {
-                value = StudioCardFrame.BackgroundEnabled,
-                tooltip = "Off leaves the card panel and avatar untouched but skips the fullscreen " +
-                          "gradient behind them, so captures come out with a transparent background " +
-                          "instead of the gradient."
-            };
-            enableBackground.RegisterValueChangedCallback(evt => StudioCardFrame.BackgroundEnabled = evt.newValue);
-            fold.Add(enableBackground);
-
             var disableMiddleCard = new Toggle("Disable Middle Card")
             {
                 value = StudioCardFrame.DisableMiddleCard,
-                tooltip = "Hides the middle card panel, its border, and the bottom fade, leaving only " +
-                          "the background (plain gradient or the Decentraland pattern) behind the avatar."
+                tooltip = "Hides the card panel, its border, and the bottom fade, leaving just the " +
+                          "avatar over an empty (transparent) frame."
             };
-            disableMiddleCard.RegisterValueChangedCallback(evt => StudioCardFrame.DisableMiddleCard = evt.newValue);
             fold.Add(disableMiddleCard);
-
-            var useDclBackground = new Toggle("Use Decentraland Background")
-            {
-                value = StudioCardFrame.UseDclBackground,
-                tooltip = "Replaces the background gradient with the animated purple pattern from " +
-                          "the Decentraland Explorer loading screens. Off by default."
-            };
-            var dclColors = new VisualElement { style = { marginLeft = 12 } };
-            BuildDclColors(dclColors);
-            useDclBackground.RegisterValueChangedCallback(evt =>
-            {
-                StudioCardFrame.UseDclBackground = evt.newValue;
-                BuildDclColors(dclColors);
-            });
-            fold.Add(useDclBackground);
-            fold.Add(dclColors);
 
             var sideMask = new Toggle("Mask avatar to card sides")
             {
                 value = StudioCardFrame.SideMask,
-                tooltip = "Clip arms/hands that spill past the card's sides/bottom (the head still " +
-                          "overflows the top), like the Fortnite cards."
+                tooltip = "Erase arms/hands that spill past the card's left/right edges (the head " +
+                          "still overflows the top), like the Fortnite cards. On by default; switched " +
+                          "off automatically by Disable Middle Card."
             };
             sideMask.RegisterValueChangedCallback(evt => StudioCardFrame.SideMask = evt.newValue);
             fold.Add(sideMask);
+
+            var bottomMask = new Toggle("Mask avatar below card")
+            {
+                value = StudioCardFrame.BottomMask,
+                tooltip = "Erase feet/shoes that hang below the card's bottom edge on a tall pose. " +
+                          "On by default — unlike the head overflowing the top, a subject poking out " +
+                          "of the bottom reads as a mistake. Switched off automatically by Disable " +
+                          "Middle Card."
+            };
+            bottomMask.RegisterValueChangedCallback(evt => StudioCardFrame.BottomMask = evt.newValue);
+            fold.Add(bottomMask);
+
+            // Registered after the two mask toggles exist, since hiding the card also clears them (see
+            // StudioCardFrame.DisableMiddleCard) and the checkboxes have to follow — otherwise they'd
+            // sit visibly ticked while the crop was actually off.
+            disableMiddleCard.RegisterValueChangedCallback(evt =>
+            {
+                StudioCardFrame.DisableMiddleCard = evt.newValue;
+                sideMask.SetValueWithoutNotify(StudioCardFrame.SideMask);
+                bottomMask.SetValueWithoutNotify(StudioCardFrame.BottomMask);
+            });
 
             var hideOutline = new Toggle("Hide avatar outline")
             {
@@ -2172,7 +2169,8 @@ namespace OutfitStudio.Editor
 
             Label Section(string t) => new(t) { style = { unityFontStyleAndWeight = FontStyle.Bold, marginTop = 6 } };
 
-            // Colour presets — one button per CardColorPreset asset. Applies ONLY the 7 frame colours,
+            // Colour presets — one button per CardColorPreset asset. Applies ONLY the card paint (3
+            // colours + the pattern texture),
             // leaving the current margins/sizes/toggles intact. The whole body is rebuilt on apply so
             // the ColorFields below reflect the new values.
             c.Add(Section("Presets"));
@@ -2197,21 +2195,18 @@ namespace OutfitStudio.Editor
             {
                 EnsureFolder(CARD_PRESETS_DIR); // so the dialog opens in the intended default folder
                 var path = EditorUtility.SaveFilePanelInProject("Save Card Color Preset", "CardColorPreset",
-                    "asset", "Save the current 7 frame colours as a reusable preset.", CARD_PRESETS_DIR);
+                    "asset", "Save the current card colours + pattern as a reusable preset.", CARD_PRESETS_DIR);
                 if (string.IsNullOrEmpty(path)) return;
 
                 var preset = ScriptableObject.CreateInstance<CardColorPreset>();
-                preset.backgroundTop = StudioCardFrame.BgTop;
-                preset.backgroundBottom = StudioCardFrame.BgBottom;
-                preset.glow = StudioCardFrame.Glow;
-                preset.cardTop = StudioCardFrame.CardTop;
-                preset.cardBottom = StudioCardFrame.CardBottom;
+                preset.cardInner = StudioCardFrame.DclInnerColor;
+                preset.cardOuter = StudioCardFrame.DclOuterColor;
                 preset.border = StudioCardFrame.Border;
-                preset.bottomFade = StudioCardFrame.Fade;
+                preset.pattern = StudioCardFrame.PatternTexture;
                 AssetDatabase.CreateAsset(preset, path);
                 AssetDatabase.SaveAssets();
                 BuildCardBody(c); // show the new preset button
-            }) { text = "Save current…", tooltip = "Save the current 7 colours as a new preset asset", style = { marginRight = 2, marginBottom = 2 } });
+            }) { text = "Save current…", tooltip = "Save the current 3 colours + pattern texture as a new preset asset", style = { marginRight = 2, marginBottom = 2 } });
 
             presetRow.Add(new Button(() => BuildCardBody(c))
             {
@@ -2219,17 +2214,35 @@ namespace OutfitStudio.Editor
             });
             c.Add(presetRow);
 
-            c.Add(Section("Background"));
-            CardColor(c, "Top", () => StudioCardFrame.BgTop, v => StudioCardFrame.BgTop = v);
-            CardColor(c, "Bottom", () => StudioCardFrame.BgBottom, v => StudioCardFrame.BgBottom = v);
-            CardColor(c, "Glow", () => StudioCardFrame.Glow, v => StudioCardFrame.Glow = v, true);
-            CardSlider(c, "Glow Height", 0f, 1f, () => StudioCardFrame.GlowHeight, v => StudioCardFrame.GlowHeight = v);
-            CardSlider(c, "Glow Size", 0.1f, 1.5f, () => StudioCardFrame.GlowSize, v => StudioCardFrame.GlowSize = v);
-
+            // The card's two vignette colours (inner = centre, outer = edges/corners) plus the pattern
+            // texture tiled over them — the rest of the Decentraland paint (glow, tiling ratio, scroll)
+            // stays fixed at the reference material's values.
             c.Add(Section("Card"));
-            CardColor(c, "Top", () => StudioCardFrame.CardTop, v => StudioCardFrame.CardTop = v);
-            CardColor(c, "Bottom", () => StudioCardFrame.CardBottom, v => StudioCardFrame.CardBottom = v);
-            CardSlider(c, "Margin Sides", 0f, 0.3f, () => StudioCardFrame.MarginX, v => StudioCardFrame.MarginX = v);
+            CardColor(c, "Inner Color", () => StudioCardFrame.DclInnerColor, v => StudioCardFrame.DclInnerColor = v);
+            CardColor(c, "Outer Color", () => StudioCardFrame.DclOuterColor, v => StudioCardFrame.DclOuterColor = v);
+
+            var pattern = new ObjectField("Pattern")
+            {
+                objectType = typeof(Texture2D),
+                allowSceneObjects = false,
+                value = StudioCardFrame.PatternTexture,
+                tooltip = "Tiling pattern drawn over the card's vignette. Defaults to the bundled " +
+                          "DclBackgroundPattern (Explorer's icon atlas); clearing the field goes back " +
+                          "to it. Import the replacement with Wrap Mode = Repeat, or it will clamp " +
+                          "into streaks at the card edges."
+            };
+            pattern.RegisterValueChangedCallback(e =>
+            {
+                StudioCardFrame.PatternTexture = e.newValue as Texture2D;
+                // Clearing the field resolves back to the bundled default, so show what's actually in
+                // use rather than leaving the control empty.
+                pattern.SetValueWithoutNotify(StudioCardFrame.PatternTexture);
+            });
+            c.Add(pattern);
+
+            // Sides go to 0.5 (per side), i.e. all the way to a zero-width card — Layout() clamps the
+            // width at 0.01 so the degenerate end is harmless, it just gets very narrow.
+            CardSlider(c, "Margin Sides", 0f, 0.5f, () => StudioCardFrame.MarginX, v => StudioCardFrame.MarginX = v);
             CardSlider(c, "Margin Top", 0f, 0.4f, () => StudioCardFrame.MarginTop, v => StudioCardFrame.MarginTop = v);
             CardSlider(c, "Margin Bottom", 0f, 0.3f, () => StudioCardFrame.MarginBottom, v => StudioCardFrame.MarginBottom = v);
             CardSlider(c, "Corner Radius", 0f, 0.5f, () => StudioCardFrame.CornerRadius, v => StudioCardFrame.CornerRadius = v);
@@ -2237,8 +2250,9 @@ namespace OutfitStudio.Editor
             CardSlider(c, "Inner Border Width", 0f, 0.05f, () => StudioCardFrame.InnerBorderWidth, v => StudioCardFrame.InnerBorderWidth = v);
             CardSlider(c, "Outer Border Width", 0f, 0.05f, () => StudioCardFrame.OuterBorderWidth, v => StudioCardFrame.OuterBorderWidth = v);
 
+            // No colour here any more: the fade paints the card's own vignette/pattern at the same UV,
+            // so it's a pure alpha ramp that can't drift out of sync with the card.
             c.Add(Section("Bottom fade"));
-            CardColor(c, "Color", () => StudioCardFrame.Fade, v => StudioCardFrame.Fade = v);
             CardSlider(c, "Fade Height", 0f, 1f, () => StudioCardFrame.FadeHeight, v => StudioCardFrame.FadeHeight = v);
             CardSlider(c, "Fade Softness", 0f, 1f, () => StudioCardFrame.FadeSoftness, v => StudioCardFrame.FadeSoftness = v);
 
@@ -2265,22 +2279,6 @@ namespace OutfitStudio.Editor
             c.Add(f);
         }
 
-        // The DCL background's two vignette colours, shown only while "Use Decentraland Background"
-        // is on — irrelevant otherwise since the shader only reads them in that path.
-        private static void BuildDclColors(VisualElement c)
-        {
-            c.Clear();
-            if (!StudioCardFrame.UseDclBackground) return;
-
-            CardColor(c, "Inner Color", () => StudioCardFrame.DclInnerColor, v => StudioCardFrame.DclInnerColor = v);
-            CardColor(c, "Outer Color", () => StudioCardFrame.DclOuterColor, v => StudioCardFrame.DclOuterColor = v);
-            c.Add(new Button(() =>
-            {
-                StudioCardFrame.ResetDclColors();
-                BuildDclColors(c);
-            }) { text = "Reset to default", style = { marginTop = 2, marginBottom = 4 } });
-        }
-
         // All CardColorPreset assets in the project, sorted by name (one button each).
         private static List<CardColorPreset> LoadCardPresets() =>
             AssetDatabase.FindAssets($"t:{nameof(CardColorPreset)}")
@@ -2290,17 +2288,16 @@ namespace OutfitStudio.Editor
                 .OrderBy(p => p.name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-        // Push a preset's 7 colours onto the live card frame. Each setter refreshes the frame; the
-        // margins/sizes/toggles are deliberately not touched.
+        // Push a preset's paint onto the live card frame. Each setter refreshes the frame; the
+        // margins/sizes/toggles are deliberately not touched. A preset with no pattern (i.e. one
+        // authored before the field existed) applies the bundled default rather than keeping whatever
+        // is currently set — a preset should fully determine the look, not half-inherit it.
         private static void ApplyCardPreset(CardColorPreset p)
         {
-            StudioCardFrame.BgTop = p.backgroundTop;
-            StudioCardFrame.BgBottom = p.backgroundBottom;
-            StudioCardFrame.Glow = p.glow;
-            StudioCardFrame.CardTop = p.cardTop;
-            StudioCardFrame.CardBottom = p.cardBottom;
+            StudioCardFrame.DclInnerColor = p.cardInner;
+            StudioCardFrame.DclOuterColor = p.cardOuter;
             StudioCardFrame.Border = p.border;
-            StudioCardFrame.Fade = p.bottomFade;
+            StudioCardFrame.PatternTexture = p.pattern;
         }
 
         // Create an "Assets/…"-relative folder (and any missing parents) if it doesn't exist yet.

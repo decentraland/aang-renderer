@@ -1,41 +1,36 @@
 Shader "Custom/StudioCardFrame"
 {
-    // Editor-only Outfit Studio "item card" frame, drawn as three camera-parented quads:
-    //   _Mode 0 = Background  (fullscreen vertical gradient + optional radial glow, opaque, ZWrite On)
-    //   _Mode 1 = Card panel  (rounded-rect, vertical gradient fill + optional border, alpha)
-    //   _Mode 2 = Bottom fade (card rounded-rect mask * vertical fade to transparent)
-    // Render state (ZTest/ZWrite/Blend) and the queue are driven from the material by
-    // StudioCardFrame.cs so one shader covers all three layers. See IMPLEMENTATION.md §18.
+    // Editor-only Outfit Studio "item card" frame, drawn as four camera-parented quads:
+    //   _Mode 0 = Card panel  (rounded-rect, painted with the Decentraland vignette+pattern, ZWrite On)
+    //   _Mode 1 = Bottom fade (the SAME paint at the same UV → seamless, × a vertical fade to clear)
+    //   _Mode 2 = Side mask   (ERASES whatever is outside the card rect; the top stays open)
+    //   _Mode 3 = Border      (rounded-rect ring, drawn last, over avatar/fade/mask)
+    // There is deliberately NO background layer (2026-07-30): whatever the camera clears to shows
+    // outside the card, so a still exports with only the card + avatar opaque and everything else
+    // transparent. Render state (ZTest/ZWrite/Blend) and the queue are driven from the material by
+    // StudioCardFrame.cs so one shader covers all four layers. See IMPLEMENTATION.md §18.
     Properties
     {
-        [Enum(Background,0,Card,1,Fade,2,SideMask,3,Border,4)] _Mode ("Mode", Float) = 0
+        [Enum(Card,0,Fade,1,SideMask,2,Border,3)] _Mode ("Mode", Float) = 0
 
-        // Side-mask rect (mode 3), in the background quad's UV space: (left, right, bottom, top).
+        // Side-mask rect (mode 2), in the fullscreen mask quad's UV space: (left, right, bottom, top).
         _MaskRect ("Mask Rect (l,r,b,t)", Vector) = (0, 1, 0, 1)
 
-        _ColorA ("Color A (top)", Color) = (0.09, 0.08, 0.23, 1)
-        _ColorB ("Color B (bottom)", Color) = (0.23, 0.12, 0.36, 1)
-
-        // Background radial glow
-        _HighlightColor ("Highlight Color", Color) = (1, 1, 1, 0)
-        _HighlightCenter ("Highlight Center", Vector) = (0.5, 0.62, 0, 0)
-        _HighlightSize ("Highlight Size", Vector) = (0.7, 0.7, 0, 0)
-
-        // Decentraland loading-screen background (mode 0/3 only) — animated purple vignette with a
-        // scrolling icon-pattern overlay, ported from Explorer's Custom/AnimatedBackgroundMovingTexture
-        // (unity-explorer's TileableTexture.shader / BackgroundLoading.mat). See IMPLEMENTATION.md §18.
-        [Toggle] _UseDclBg ("Use DCL Background", Float) = 0
+        // The card's paint — the animated purple vignette + scrolling icon pattern from Explorer's
+        // loading screens, ported from Custom/AnimatedBackgroundMovingTexture (unity-explorer's
+        // TileableTexture.shader / BackgroundLoading.mat). Inner/Outer are the two artist-facing
+        // colours; everything else is a fixed constant from that material. See IMPLEMENTATION.md §18.
         _DclOverlayTex ("DCL Overlay Tex", 2D) = "white" {}
-        // Explorer draws this on an exactly-fullscreen UI quad; our BG/side-mask quad is oversized
-        // past the frustum (BG_OVERSIZE), so its raw UV 0..1 covers MORE than the visible frame.
-        // Driven from StudioCardFrame.PushParams() to put the visible frame back at 0..1.
-        _DclUvScale ("DCL UV Scale (internal)", Float) = 1.0
         _DclInnerColor ("DCL Inner Color", Color) = (0.75, 0, 1, 1)
         _DclOuterColor ("DCL Outer Color", Color) = (0.3, 0, 0.5, 1)
         _DclRadius ("DCL Radius", Range(0,1)) = 0.167
         _DclSmoothness ("DCL Smoothness", Range(0.01,1)) = 0.5
         _DclOverlayColor ("DCL Overlay Color", Color) = (1, 1, 1, 1)
         _DclOverlayTiling ("DCL Overlay Tiling", Float) = 1.66
+        // The card's height as a fraction of the frame's, driven from StudioCardFrame.PushParams() —
+        // keeps the pattern's on-screen icon size (and scroll speed) matching the reference whatever
+        // the card margins are. See the tiling comment in DclCardPaint().
+        _DclTileScale ("DCL Tile Scale (internal)", Float) = 1.0
         _DclOverlayDirection ("DCL Overlay Direction", Vector) = (1, -1.25, 0, 0)
         _DclOverlaySpeed ("DCL Overlay Speed", Float) = 0.06
         _DclOverlayAlpha ("DCL Overlay Alpha", Range(0,1)) = 0.573
@@ -58,19 +53,20 @@ Shader "Custom/StudioCardFrame"
         _BorderTopFade ("Border Top Fade Start (uv.y)", Range(0,1)) = 0.88
         // Border quad only: how much bigger (as a scale factor) the border's own quad is than the
         // card's, so the shader has room to paint the outer ring beyond the card edge. Driven from
-        // StudioCardFrame.Layout(), not user-facing. See the mode-4 UV remap below.
+        // StudioCardFrame.Layout(), not user-facing. See the mode-3 UV remap below.
         _BorderOversize ("Border Oversize (internal)", Float) = 1.0
 
-        // Fade (mode 2)
-        _FadeColor ("Fade Color", Color) = (0.23, 0.12, 0.36, 1)
+        // Fade (mode 1)
         _FadeStart ("Fade Start (uv.y)", Range(0,1)) = 0.18
         _FadeEnd ("Fade End (uv.y)", Range(0,1)) = 0.4
 
         // Material-driven render state
         [Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Float) = 4   // LEqual
         [Enum(Off,0,On,1)] _ZWrite ("ZWrite", Float) = 1
-        [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend ("Src Blend", Float) = 1   // One
-        [Enum(UnityEngine.Rendering.BlendMode)] _DstBlend ("Dst Blend", Float) = 0   // Zero
+        [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend ("Src Blend", Float) = 1        // One
+        [Enum(UnityEngine.Rendering.BlendMode)] _DstBlend ("Dst Blend", Float) = 0        // Zero
+        [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlendA ("Src Blend Alpha", Float) = 1 // One
+        [Enum(UnityEngine.Rendering.BlendMode)] _DstBlendA ("Dst Blend Alpha", Float) = 10 // OneMinusSrcAlpha
     }
 
     SubShader
@@ -84,16 +80,19 @@ Shader "Custom/StudioCardFrame"
             Cull Off
             ZTest [_ZTest]
             ZWrite [_ZWrite]
-            // Separate alpha blend: RGB uses the material-driven factors as before, but alpha always
-            // uses the standard "over" formula (One, OneMinusSrcAlpha). With a single shared factor
-            // pair, alpha blends as srcAlpha² + dstAlpha·(1-srcAlpha), which dips below 1 (as low as
-            // 0.75) at any anti-aliased edge composited over an opaque layer beneath — invisible in
-            // RGB (the painted color matches what's underneath) but a visible seam in the alpha
-            // channel alone (e.g. compositing the exported PNG over a different background). The
-            // correct "over" formula keeps alpha at 1 whenever the destination is already opaque,
-            // which is always true here once the BG quad has drawn — so the whole card frame,
-            // including the Fade quad's bottom gradient, now exports fully opaque, as intended.
-            Blend [_SrcBlend] [_DstBlend], One OneMinusSrcAlpha
+            // Separate alpha blend, both pairs material-driven. RGB uses the per-layer factors; alpha
+            // defaults to the standard "over" formula (One, OneMinusSrcAlpha) for every layer EXCEPT
+            // the side mask, which needs (Zero, OneMinusSrcAlpha) in both pairs so it can ERASE to
+            // fully transparent rather than paint (see mode 2).
+            //
+            // Why alpha needs its own pair at all: with a single shared factor pair, alpha blends as
+            // srcAlpha² + dstAlpha·(1-srcAlpha), which dips below 1 (as low as 0.75) at any
+            // anti-aliased edge composited over an opaque layer beneath — invisible in RGB (the
+            // painted color matches what's underneath) but a visible seam in the alpha channel alone
+            // (e.g. compositing the exported PNG over a different background). The "over" formula
+            // keeps alpha at 1 wherever the destination is already opaque, so the card and the Fade
+            // quad's bottom gradient export fully opaque, as intended.
+            Blend [_SrcBlend] [_DstBlend], [_SrcBlendA] [_DstBlendA]
 
             HLSLPROGRAM
             #pragma vertex vert
@@ -104,23 +103,17 @@ Shader "Custom/StudioCardFrame"
             struct Varyings { float4 positionCS : SV_POSITION; float2 uv : TEXCOORD0; };
 
             float _Mode;
-            float4 _ColorA, _ColorB;
-            float4 _HighlightColor;
-            float2 _HighlightCenter, _HighlightSize;
             float _CardAspect, _CornerRadius, _InnerBorderWidth, _OuterBorderWidth, _BorderTopFade, _BorderOversize;
             float4 _BorderColor;
-            float4 _FadeColor;
             float _FadeStart, _FadeEnd;
             float4 _MaskRect;
 
-            float _UseDclBg;
             TEXTURE2D(_DclOverlayTex);
             SAMPLER(sampler_DclOverlayTex);
-            float _DclUvScale;
             float4 _DclInnerColor, _DclOuterColor;
             float _DclRadius, _DclSmoothness;
             float4 _DclOverlayColor;
-            float _DclOverlayTiling;
+            float _DclOverlayTiling, _DclTileScale;
             float2 _DclOverlayDirection;
             float _DclOverlaySpeed, _DclOverlayAlpha;
             float4 _DclGlowColor;
@@ -136,8 +129,8 @@ Shader "Custom/StudioCardFrame"
                 return OUT;
             }
 
-            // RGB <-> HSV, used by the DCL background's "luminosity blend" (recolors the overlay
-            // pattern to the vignette's hue/saturation while keeping the pattern's own brightness).
+            // RGB <-> HSV, used by the card paint's "luminosity blend" (recolors the overlay pattern to
+            // the vignette's hue/saturation while keeping the pattern's own brightness).
             float3 RgbToHsv (float3 c)
             {
                 float4 K = float4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -157,24 +150,23 @@ Shader "Custom/StudioCardFrame"
 
             // Ported from Explorer's Custom/AnimatedBackgroundMovingTexture (TileableTexture.shader):
             // a radial purple vignette with a scrolling, tinted icon-pattern overlay (luminosity blend)
-            // and an off-center radial glow. Opaque (alpha handled by the caller), so no _Mode<3.5 mask.
-            float3 DclBackground (float2 uv)
+            // and a radial glow. Returns colour only — the caller owns alpha (the rounded-rect mask).
+            // `uv` is the CARD's 0..1 space (both the card and fade quads share that transform), so the
+            // vignette is centred on the card and its corners reach the outer colour at UV radius 0.707.
+            float3 DclCardPaint (float2 uv)
             {
-                // Explorer's quad spans the screen exactly; ours is BG_OVERSIZE bigger than the frustum
-                // (to hide edge slivers), so scale the UV about the centre to put the *visible* frame
-                // back at 0..1. Without this the whole look — vignette falloff, glow position, pattern
-                // tiling — is off by that factor, and the frame corners (UV radius 0.68 instead of
-                // 0.707) never quite reach the full outer colour. Only the DCL path needs it: the
-                // gradient path is vertical-only and the mode-3 card-rect mask works in the raw quad
-                // UV space _MaskRect is expressed in, so both keep using the unscaled UV.
-                uv = (uv - 0.5) * _DclUvScale + 0.5;
-
                 float radius = length(uv - 0.5);
                 float mask = smoothstep(_DclRadius + _DclSmoothness, _DclRadius, radius);
                 float3 vignette = lerp(_DclOuterColor.rgb, _DclInnerColor.rgb, mask);
 
-                float aspect = _ScreenParams.x / _ScreenParams.y;
-                float2 overlayUv = uv * float2(_DclOverlayTiling * aspect, _DclOverlayTiling);
+                // Explorer tiles a fullscreen quad by the SCREEN aspect (keeping icons square there).
+                // Here the UV spans the card, so tile by the card's own aspect instead — and scale both
+                // axes by _DclTileScale (the card's height as a fraction of the frame's) so one tile
+                // still covers the same number of on-screen pixels as it does in the reference. That
+                // keeps icon size identical regardless of the card margins, and because the scroll
+                // offset below is in tile units, it keeps the scroll speed in px/s identical too.
+                float2 tiling = _DclOverlayTiling * _DclTileScale * float2(_CardAspect, 1.0);
+                float2 overlayUv = uv * tiling;
                 overlayUv += _Time.y * _DclOverlayDirection * _DclOverlaySpeed;
                 float4 overlay = SAMPLE_TEXTURE2D(_DclOverlayTex, sampler_DclOverlayTex, overlayUv) * _DclOverlayColor;
                 overlay.a *= _DclOverlayAlpha * mask;
@@ -213,26 +205,20 @@ Shader "Custom/StudioCardFrame"
             {
                 float2 uv = IN.uv;
 
-                // --- Background (mode 0) / side-mask fill (mode 3) share the same gradient --------
-                if (_Mode < 0.5 || (_Mode > 2.5 && _Mode < 3.5))
+                // --- Side mask (mode 2) — works in the fullscreen quad's own UV, not the card's -----
+                if (_Mode > 1.5 && _Mode < 2.5)
                 {
-                    float3 col;
-                    if (_UseDclBg > 0.5)
-                    {
-                        col = DclBackground(uv);
-                    }
-                    else
-                    {
-                        col = lerp(_ColorB.rgb, _ColorA.rgb, uv.y);              // vertical gradient
-                        float2 d = (uv - _HighlightCenter) / max(_HighlightSize, 1e-4);
-                        float glow = 1.0 - smoothstep(0.0, 1.0, length(d));
-                        col = lerp(col, _HighlightColor.rgb, glow * _HighlightColor.a);
-                    }
-
-                    if (_Mode < 0.5) return float4(col, 1.0);                    // opaque background
-
-                    // Side mask: repaint the background OUTSIDE the card rect (clipping the avatar's
-                    // arms/hands), but leave the top open above the card so the head still overflows.
+                    // ERASE everything OUTSIDE _MaskRect (the avatar's arms/hands spilling past the card
+                    // sides, its feet hanging below the bottom), but leave the top open above the rect so
+                    // the head still overflows. Erasing, not repainting: there's no background layer to
+                    // repaint with any more, and the material's Zero/OneMinusSrcAlpha blend (both pairs)
+                    // turns the alpha below into dst *= 1-srcAlpha, i.e. colour AND alpha go to 0
+                    // wherever this writes alpha 1.
+                    //
+                    // _MaskRect is NOT necessarily the card rect: PushParams() pushes the edges the user
+                    // isn't masking far out of frame (and restates _CardAspect/_CornerRadius to match),
+                    // so "sides only" and "bottom only" both fall out of this same code — an edge that's
+                    // switched off simply has no geometry near the frame to cut against.
                     float2 lo = _MaskRect.xz, hi = _MaskRect.yw;                 // (left,bottom),(right,top)
                     float2 cardUv = (uv - lo) / max(hi - lo, 1e-4);
                     float md = RoundedBoxSDF(cardUv, _CardAspect, _CornerRadius);
@@ -244,39 +230,46 @@ Shader "Custom/StudioCardFrame"
                     float aboveTop = smoothstep(hi.y - ayu, hi.y + ayu, uv.y);   // open above the card top
                     // ADD (not max) the two keep-regions: at the card-top transition both the card
                     // mask and the overflow column are mid-fade (~0.5), and max(0.5,0.5)=0.5 dipped
-                    // "inside" below 1, painting a faint bg line across the head. Their sum is ~1
-                    // there (they're complementary in y), so the seam disappears; saturate caps it and
-                    // they never both fully overlap elsewhere (aboveTop is 0 below the top).
+                    // "inside" below 1, eroding a faint line across the head. Their sum is ~1 there
+                    // (they're complementary in y), so the seam disappears; saturate caps it and they
+                    // never both fully overlap elsewhere (aboveTop is 0 below the top).
                     float inside = saturate(cardMask + withinX * aboveTop);
-                    return float4(col, 1.0 - inside);                            // paint bg only outside
+                    return float4(0.0, 0.0, 0.0, 1.0 - inside);                  // erase only outside
                 }
 
                 // Border's quad is oversized relative to the card (see _BorderOversize / the C#
                 // Layout() comment) so there's physical room to paint a ring outside the card edge.
                 // Remap its raw UV back into the same normalized card space Card/Fade use — where
                 // the card edge sits at dist==0 — before the shared SDF below runs.
-                if (_Mode > 3.5) uv = (uv - 0.5) * _BorderOversize + 0.5;
+                if (_Mode > 2.5) uv = (uv - 0.5) * _BorderOversize + 0.5;
 
                 // Shared rounded-rect mask for card + fade (+ border, after the remap above)
                 float dist = RoundedBoxSDF(uv, _CardAspect, _CornerRadius);
                 float aa = max(fwidth(dist), 1e-5);
                 float mask = 1.0 - smoothstep(-aa, aa, dist);                    // 1 inside, 0 outside
 
-                // --- Card panel (mode 1) — fill only; the border is a separate top layer ---------
+                // --- Card panel (mode 0) — fill only; the border is a separate top layer -----------
+                if (_Mode < 0.5)
+                {
+                    // The card is the only depth-writing layer now that the background quad is gone
+                    // (it stands in for it: without SOME ZWrite-On layer the skybox, drawn after the
+                    // opaque queue, would paint straight over the card in any view whose clear is set
+                    // to Skybox — e.g. the Scene view). Discard the fully-transparent pixels so only
+                    // the rounded card itself writes depth, leaving the four corner notches clear.
+                    clip(mask - 1e-3);
+                    return float4(DclCardPaint(uv), mask);
+                }
+
+                // --- Bottom fade (mode 1) -------------------------------------------------------
+                // Same paint at the same UV as the card (the two quads share a transform), so the fade
+                // is a pure alpha ramp over an identical colour — no seam, and nothing to keep in sync.
                 if (_Mode < 1.5)
                 {
-                    float3 fill = lerp(_ColorB.rgb, _ColorA.rgb, uv.y);
-                    return float4(fill, mask);
-                }
-
-                // --- Bottom fade (mode 2) -------------------------------------------------------
-                if (_Mode < 2.5)
-                {
                     float fade = 1.0 - smoothstep(_FadeStart, _FadeEnd, uv.y);   // opaque at bottom
-                    return float4(_FadeColor.rgb, mask * fade);
+                    return float4(DclCardPaint(uv), mask * fade);
                 }
 
-                // --- Border (mode 4) — drawn LAST, on top of the avatar / fade / side-mask ------
+                // --- Border (mode 3) — drawn LAST, on top of the avatar / fade / side-mask ------
                 // Two rings straddling the card edge (dist == 0): an inner one in the band
                 // dist ∈ (-_InnerBorderWidth, 0) and an outer one in dist ∈ (0, _OuterBorderWidth),
                 // each written as the difference of two edge smoothsteps so it collapses to EXACTLY

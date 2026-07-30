@@ -258,8 +258,9 @@ color-desaturation issue on thin bright details, but didn't fix the missing-bloo
 needed the full switch to Recorder/`CameraInputSettings`). Superseded entirely; `RenderTexture`/
 `RenderPipeline` are no longer used anywhere in `OutfitCapture`.
 
-Transparent background (`transparentBackground` toggle, or the Card Frame's **Enable background**
-off — see §18) = temporarily set the camera to solid-color clear with alpha 0, plus
+Transparent background (`transparentBackground` toggle, or the Card Frame simply being enabled — it
+has no background layer at all as of 2026-07-30, see §18) = temporarily set the camera to solid-color
+clear with alpha 0, plus
 `CameraInputSettings.RecordTransparency` / `ImageRecorderSettings.CaptureAlpha` so the Recorder's
 copy shader preserves the channel through to the PNG.
 
@@ -1110,9 +1111,12 @@ for any existing non-URN caller). Touch point in `Assets/Scripts/Preview/Preview
 ## 18. Card frame — Fortnite-style item cards (2026-07-17)
 
 A "Card frame (beauty shot)" section (collapsible Foldout at the top of the outfit pane) composites
-a Fortnite item-card look around the avatar: **outer background gradient → rounded card panel →
-avatar → bottom fade**. The reference targets are the marketplace/Fortnite item cards (purple card
-on a dark→violet backdrop, head overflowing the top edge, legs fading into the card). Studio-scene
+a Fortnite item-card look around the avatar: **rounded card panel → avatar → bottom fade → border**,
+with **nothing behind it** (see the 2026-07-30 background-removal entry below — the original design
+had a fullscreen gradient backdrop, and the sections here describe the current, backdrop-less state).
+The reference targets are the marketplace/Fortnite item cards (head overflowing the top edge, legs
+fading into the card); the card itself is painted with the Decentraland loading-screen
+vignette/pattern. Studio-scene
 only; **fully folder-isolated — zero renderer-data / shipping-asset edits, and nothing ships to a
 build** (the shader is only referenced by editor-created runtime materials, so it's excluded from
 the WebGL build — verify in a build report, same discipline as the Nethereum DLLs in §13).
@@ -1130,25 +1134,29 @@ frame must be camera geometry to appear in the exported PNG. Two ways to get cam
 
 ### Layers (ordered by render queue, so no per-avatar depth math)
 `StudioCardFrame` ([InitializeOnLoad], 0.5 s poll, studio-scene-gated like the other helpers)
-parents three quads to the render camera (`Camera.main`, matching what `OutfitCapture` uses; falls
+parents four quads to the render camera (`Camera.main`, matching what `OutfitCapture` uses; falls
 back to a `PreviewCamera`/highest-depth search). One shader (`Custom/StudioCardFrame`, `_Mode`
-0/1/2) with **material-driven render state** (`_ZTest`/`_ZWrite`/`_SrcBlend`/`_DstBlend`) covers all
-three:
-- **Background** — queue 1000, opaque, **ZWrite On**. Fullscreen vertical gradient + optional radial
-  glow. Writing depth here occludes the skybox **without touching the camera's clear flags** (no
-  scene churn). Safe because the studio renderer has `m_DepthPrimingMode: 0` (priming would force
-  ZTest Equal and skip a quad with no DepthOnly pass) and Forward+ (`m_RenderingMode: 2`) is fine for
-  unlit quads.
-- **Card panel** — queue 1500, ZTest Always, alpha blend. Rounded-rect (SDF, aspect-corrected) with
-  a vertical gradient fill (fill only — the border is its own top layer, below). Drawn **before** the
-  avatar (opaque, queue 2000), so the avatar draws over it and the **head overflowing the top edge is
-  free** (no masking — that was the original "avatar mask" worry; it dissolves because the card is
-  just a shape *behind* the avatar). No hard side-clip by design — framing + margins keep the avatar
-  inside, matching the refs (add the SideMask toggle below for a hard clip).
-- **Bottom fade** — queue 3500, ZTest Always, alpha blend. Drawn **after** the avatar; same rounded
-  rect as the card (so its bottom corners match) × a vertical fade to transparent, painting the card
-  colour over the legs.
-- **Border** (`_Mode 4`) — queue 4000, ZTest Always, alpha blend. Drawn **last, on top of
+0/1/2/3) with **material-driven render state** (`_ZTest`/`_ZWrite`/`_SrcBlend`/`_DstBlend`, plus a
+separate `_SrcBlendA`/`_DstBlendA` pair for alpha) covers all four:
+- **Card panel** (`_Mode 0`) — queue 1500, ZTest LessEqual, **ZWrite On**, alpha blend. Rounded-rect
+  (SDF, aspect-corrected) painted with the Decentraland vignette + scrolling icon pattern (fill only
+  — the border is its own top layer, below). Drawn **before** the avatar (opaque, queue 2000), so the
+  avatar draws over it and the **head overflowing the top edge is free** (no masking — that was the
+  original "avatar mask" worry; it dissolves because the card is just a shape *behind* the avatar).
+  No hard side-clip by design — framing + margins keep the avatar inside, matching the refs (add the
+  SideMask toggle below for a hard clip). It is the **only depth-writing layer**, inheriting that job
+  from the deleted background quad: without a ZWrite-On layer the skybox (drawn after the opaque
+  queue) paints straight over the card in any view whose clear is Skybox, e.g. the Scene view. The
+  shader `clip()`s the card's fully-transparent pixels so only the rounded rect writes depth, leaving
+  the four corner notches clear. Safe because the studio renderer has `m_DepthPrimingMode: 0`
+  (priming would force ZTest Equal and skip a quad with no DepthOnly pass) and Forward+
+  (`m_RenderingMode: 2`) is fine for unlit quads. **ZTest LessEqual, not Always**, so the avatar
+  outline's near depth (written BeforeRenderingOpaques) isn't painted over by the card.
+- **Bottom fade** (`_Mode 1`) — queue 3500, ZTest Always, alpha blend. Drawn **after** the avatar;
+  same rounded rect as the card (so its bottom corners match) × a vertical fade to transparent. It
+  samples **the card's own paint at the same UV** (the two quads share a transform), so it's a pure
+  alpha ramp over an identical colour — seamless by construction, with no fade colour to keep in sync.
+- **Border** (`_Mode 3`) — queue 4000, ZTest Always, alpha blend. Drawn **last, on top of
   everything** (avatar, fade, side-mask) so the card outline is never occluded — this is why the
   border is a separate quad and not baked into the card panel. Two rings straddle the card edge
   (`dist == 0`): an **inner** ring in the band `dist ∈ (-_InnerBorderWidth, 0)` and an **outer** ring
@@ -1173,24 +1181,53 @@ three:
   by `_BorderOversize` around the same centre (`StudioCardFrame.Layout()`), sized from the card's
   aspect so the tightest reach direction still clears the slider's max width plus AA slack. The
   shader remaps the Border quad's raw UV back into the card's normalized SDF space
-  (`uv = (uv - 0.5) * _BorderOversize + 0.5`, mode 4 only) before the shared `dist` calculation below,
+  (`uv = (uv - 0.5) * _BorderOversize + 0.5`, mode 3 only) before the shared `dist` calculation below,
   so `dist == 0` still lands exactly on the card edge and `topOpen`'s `uv.y` check still means the
   same thing.
 
-The card, fade, and border quads share the same rect; only the background (and the side mask) are
-fullscreen. Placement Z is a fixed `PLANE_Z = 50` (behind a ~2 m avatar, inside the far plane);
-ordering is queue-only so the exact Z doesn't matter except for the background's depth write.
+The card, fade, and border quads share the same rect; only the side mask is fullscreen. Placement Z
+is a fixed `PLANE_Z = 50` (behind a ~2 m avatar, inside the far plane); ordering is queue-only so the
+exact Z doesn't matter except for the card's depth write.
 
-### Optional side-mask (clip arms/hands to the card) — `SideMask` toggle
-By default the avatar overflows on *all* sides (drawing behind gives top-overflow for free but no
-side clip). The **"Mask avatar to card sides"** toggle adds a 4th quad (`_Mode 3`, queue 3200 — in
-front of the avatar + transparent wearables, before the fade) that **repaints the background gradient
-over everything outside the card rect, leaving the top open** so the head still overflows (matches
-the Fortnite cards, where arms/hands are clipped at the card edge but the head pokes out the top).
-- **No seam:** the mask quad is given the **exact same transform as the background quad**, so its
-  mesh UV — and therefore the repainted gradient (incl. glow) — is pixel-identical to the background.
-  The card rect is handed to the shader as `_MaskRect (l,r,b,t)` in that shared UV space
-  (`U(f) = 0.5 + (f-0.5)/BG_OVERSIZE` maps a viewport fraction into it).
+### Optional avatar clipping — `SideMask` / `BottomMask` toggles
+Drawing the card behind the avatar gives top-overflow for free but no clip anywhere else.
+**"Mask avatar to card sides"** and **"Mask avatar below card"** — both **on** by default as of
+2026-07-30 — drive one quad (`_Mode 2`, queue 3200 — in front of the avatar + transparent wearables,
+before the fade and border so it can't erase either) that **erases everything outside the masked edges,
+leaving the top open** so the head still overflows (matches the Fortnite cards, where arms/hands are
+clipped at the card edge but the head pokes out the top). Only the top is unclipped: a subject poking
+out of the sides or bottom reads as a mistake, where the head overflowing the top is the look itself.
+⚠ Both defaults only apply to an Editor that has never toggled them — `EditorPrefs` keeps whatever was
+last set, and "Reset card defaults" deliberately doesn't clear the toggles (it resets the card's paint
+and geometry, not the on/off switches).
+- **Disable Middle Card clears both.** Cropping the avatar to a card that isn't drawn is never what you
+  want, and the crop is invisible in the live view until you export. The coupling lives in the
+  `DisableMiddleCard` setter (so any caller gets it, and it costs one `Refresh()`, not three); the
+  window re-registers that toggle's callback *after* the two mask toggles exist so it can
+  `SetValueWithoutNotify` them — otherwise the checkboxes would sit ticked while the crop was off.
+  **One-way on purpose:** turning the card back on doesn't silently restore them (that would mean
+  hidden remembered state), you re-tick.
+- **Both toggles share one rect, not one branch each.** The shader keeps what's inside `_MaskRect`
+  and erases the rest; `PushParams()` builds that rect by starting from the card and pushing the
+  edges you're *not* masking half a frame out (`l = -0.5, r = 1.5` / `b = -0.5`), so an unmasked edge
+  simply has no geometry near the frame to cut against. Sides-only, bottom-only, both and neither all
+  fall out of the same code. **`_CardAspect` and `_CornerRadius` have to be restated for that rect**
+  (both are expressed relative to whatever rect the SDF is working on): the aspect scales with the new
+  w/h ratio and the radius — which `RoundedBoxSDF` measures in half-heights — shrinks by exactly the
+  factor the rect grew. That keeps the corners at the card's *physical* size, which is what makes the
+  mask's edge land on the card's own AA edge where the two coincide (verified: physical corner radius
+  is identical in all three configurations, and "both on" reproduces the pre-split aspect/rect
+  exactly). The top edge is always the card's — the head-overflow column below owns that one.
+- **Erases, doesn't repaint (2026-07-30):** it used to repaint the background gradient over that
+  region, which needed the mask quad to carry a pixel-identical copy of the background's paint. With
+  the background layer gone there's nothing to repaint *with*, so the quad's material now uses
+  `Zero / OneMinusSrcAlpha` on **both** blend pairs — i.e. `dst *= (1 - srcAlpha)` for colour *and*
+  alpha — and the shader writes `alpha = 1` outside the card. Colour and alpha both go to 0 there, so
+  the region ends up exactly as transparent as the untouched frame around it (this is why alpha needed
+  its own material-driven factor pair; every other layer keeps the standard `One / OneMinusSrcAlpha`).
+- The mask quad spans the whole frame, scaled `MASK_OVERSIZE = 1.04` past the frustum so no edge
+  sliver survives an aspect mismatch. The rect is handed to the shader as `_MaskRect (l,r,b,t)`
+  in that quad's UV space (`U(f) = 0.5 + (f-0.5)/MASK_OVERSIZE` maps a viewport fraction into it).
 - **Shape:** the same rounded-rect SDF as the card gives clipped **sides + rounded bottom corners**;
   the region **above the card top, within the card width** is forced open (`saturate(cardMask +
   withinX*aboveTop)`) so the head overflows. **Use `+`, not `max`:** at the card-top transition both
@@ -1199,20 +1236,30 @@ the Fortnite cards, where arms/hands are clipped at the card edge but the head p
   complementary in y, and `aboveTop` is 0 below the top so they never over-add elsewhere). Bottom
   corners align with the card panel; the bottom fade draws over the inside afterwards.
 - Chosen over a stencil mask (would need every avatar shader to opt in) or a fullscreen composite
-  (would need the avatar isolated to its own RT). The repaint-outside approach needs neither and
+  (would need the avatar isolated to its own RT). The erase-outside approach needs neither and
   stays in the quad model. Only enabled when the toggle is on (`_mask.enabled = SideMask`).
 
 ### Controls & persistence
 All knobs live on `StudioCardFrame` as EditorPrefs-backed static properties (keys
 `OutfitStudio.Card.*`); the window builds fields from them (`BuildCardFrame`/`BuildCardBody`),
-setters push live. Groups: **Background** (top/bottom colour, glow colour+height+size), **Card**
-(top/bottom colour, side/top/bottom margins, corner radius, border colour + inner/outer width),
-**Bottom fade**
-(colour, height, softness). "Reset card defaults" clears the keys. Defaults are tuned to the
-reference look (bg `#16143A`→`#3A1E5C`, card `#6B3FA0`→`#4A2870`, top margin 0.12 for head overflow).
-Master **Enable** toggle (default off, opt-in). **Enable background** toggle (2026-07-27, default
-on — see below) sits directly under it, followed by **Use Decentraland Background** (2026-07-27,
-default off — see below).
+setters push live. Groups: **Card** (inner/outer vignette colour, **Pattern** texture, side/top/bottom
+margins, corner radius, border colour + inner/outer width) and **Bottom fade** (height, softness).
+**Pattern** (2026-07-30) is an `ObjectField` over `StudioCardFrame.PatternTexture`, which persists the
+chosen texture's **asset GUID** (not its path — renaming/moving the asset mustn't break the reference)
+and resolves back to the bundled `DclBackgroundPattern.png` when the key is empty or the GUID no longer
+resolves. Clearing the field therefore *reverts to the default* rather than removing the pattern; the
+field is re-shown with the resolved texture so it never reads as empty. A replacement must import with
+**Wrap Mode = Repeat** or it clamps into streaks at the card edges. Truly *removing* the pattern isn't
+expressible without a shader gate — the luminosity blend has no neutral texture value — so use a flat
+texture if you want the vignette on its own. "Reset card
+defaults" clears the keys. **Defaults were re-baselined 2026-07-30** to the look Mauricio dialled in
+(replacing the 2026-07-17 ones): vignette `#BF00FF`→`#4D0080` (unchanged — the reference material's
+pair), border `#FF8158` at inner width 0.008 / outer 0, margins 0.35 sides / 0.12 top / 0.05 bottom,
+corner radius 0.08, fade height 0.2 / softness 0.7. **`MarginX 0.35` is per side**, leaving the card at
+30% of the frame width — that's a portrait card on a *wide* Game view (16:9 → card aspect ≈ 0.64, which
+is why the Margin Sides slider was extended to 0.5); on an already-portrait Game view it comes out as a
+narrow sliver and wants a much smaller margin. Toggles, top to bottom: master **Enable** (default off,
+opt-in), **Disable Middle Card**, **Mask avatar to card sides**, **Hide avatar outline**.
 
 ### Capture
 `OutfitCapture.CaptureStill` forces `camera.aspect = width/height` and calls
@@ -1237,7 +1284,9 @@ standard "over" formula, which keeps alpha at 1 wherever the destination is alre
 what makes the card frame (with the background on) always export fully opaque regardless of edge
 antialiasing.
 
-**2026-07-27: "Enable background" toggle — transparent-with-card-frame capture.** Previously, with
+**2026-07-27: "Enable background" toggle — transparent-with-card-frame capture.** ⚠ *Superseded by the
+2026-07-30 background removal below — this toggle and the background quad it gated no longer exist;
+kept for the alpha-export reasoning, which still applies.* Previously, with
 the card frame enabled, the opaque background quad filled the entire frame, so the "Transparent
 background" capture toggle was effectively overridden (you always got the card's own gradient
 background, never true transparency). `StudioCardFrame.BackgroundEnabled` (EditorPrefs-backed,
@@ -1330,6 +1379,65 @@ unaffected by the move. The
 palette, texture (byte-identical PNG, same sRGB/repeat import), tiling/speed/alpha, luminosity blend
 and remaining glow constants were already 1:1 and were left alone.
 
+**2026-07-30, later: background layer DELETED; the Decentraland paint moved onto the card.** Mauricio:
+the frame should have no backdrop at all (black live, transparent on export) and the card itself should
+carry the colours. So the whole background concept is gone — the quad, both toggles, and every colour
+that fed them:
+
+| Removed | Replaced by |
+|---|---|
+| `_Mode 0` Background quad + `_bg` renderer | nothing — outside the card is the camera's clear |
+| **Enable background** toggle (`BackgroundEnabled`) | gone; there's no background to enable |
+| **Use Decentraland Background** toggle (`UseDclBackground`) | gone; the DCL paint is unconditional |
+| **Background** group: `BgTop`/`BgBottom`/`Glow`/`GlowHeight`/`GlowSize` (+ `_ColorA`/`_ColorB`/`_HighlightColor`/`_HighlightCenter`/`_HighlightSize`) | nothing |
+| **Card** `CardTop`/`CardBottom` gradient fill | `DclInnerColor`/`DclOuterColor` — the card is now painted by `DclCardPaint()` |
+| **Bottom fade** `Fade` colour (+ `_FadeColor`) | the fade samples the card's own paint at the same UV |
+| `_DclUvScale` (added hours earlier for the oversized BG quad) | `_DclTileScale`, see below |
+
+Modes were renumbered with mode 0 gone — **Card 0, Fade 1, SideMask 2, Border 3** (safe: `_Mode` is
+only ever set from `StudioCardFrame.Create()`, never serialized). Four consequences worth knowing:
+1. **The card writes depth now** (`ZWrite On` + `clip()` on its transparent pixels). It inherits that
+   job from the background quad — without any ZWrite-On layer, the skybox draws after the opaque queue
+   and paints over the card in any view that clears to Skybox (the Scene view). See the Card bullet
+   above.
+2. **The side mask erases instead of repainting**, which needed a second material-driven blend pair
+   for alpha (`_SrcBlendA`/`_DstBlendA`). See the side-mask section above.
+3. **Pattern scale had to be re-derived.** The reference tiles a fullscreen quad by the SCREEN aspect;
+   the card's UV spans the card, so tiling is now `_DclOverlayTiling * _DclTileScale * (cardAspect, 1)`
+   where `_DclTileScale` is the card's height as a fraction of the frame's (`1 - MarginTop -
+   MarginBottom`, pushed from `PushParams()`). That keeps each icon the same **on-screen size** as in
+   the reference at any margin setting — and since the scroll offset is in tile units, the same
+   **on-screen speed** too. Using the screen aspect here would stretch the icons; dropping
+   `_DclTileScale` would blow them up ~2.7× on a 0.66-aspect card.
+4. **Captures always want alpha while the frame is on.** `OutfitCapture`'s gate collapsed from
+   `Enabled && !BackgroundEnabled` to just `StudioCardFrame.Enabled`. `StudioCardFrame.SyncCameraClear()`
+   additionally drives the live camera to a `SolidColor (0,0,0,0)` clear while the frame is enabled
+   (saving/restoring the authored values), so the Game view matches the export instead of showing the
+   scene camera's authored purple around the card. **Play mode only** — in edit mode the preview renders
+   through the Scene view, which owns its own background, and writing to the scene camera there would
+   dirty the scene.
+
+**Same day, follow-up:** Mauricio hit a tall pose whose shoes hung below the card. The existing side
+mask *did* clip the bottom, but only bundled with the sides. Split into two independent toggles
+(`SideMask` / `BottomMask`, the latter defaulting **on**) driving one generalized rect — see the
+clipping section above. "Both on" is bit-identical to the old single-toggle behaviour, so nothing that
+was already tuned moves.
+
+**Presets keep up:** `CardColorPreset` carries the card's whole paint — `cardInner`, `cardOuter`,
+`border` and (added with the field) `pattern`, a direct `Texture2D` asset reference. Save writes all
+four, apply pushes all four and rebuilds the body so the ColorFields and the Pattern ObjectField show
+what landed. A preset with an empty `pattern` (one authored before the field existed, or a fresh asset
+from the Create menu) applies the **bundled default** rather than keeping whatever is currently set —
+a preset should fully determine the look, not half-inherit it. The three checked-in presets name
+`DclBackgroundPattern` explicitly so they're complete. Margins/sizes/radius/widths and the toggles stay
+untouched by design: a preset re-skins the current layout.
+
+`CardColorPreset` went from **7 colours to 3** (`cardInner`, `cardOuter`, `border`) — Mauricio
+pre-accepted breaking old presets. The three checked-in assets were migrated in place by mapping
+`cardTop`→`cardInner` and `cardBottom`→`cardOuter` (the lighter/darker pair maps cleanly onto
+centre/edge), keeping `border`; the four dropped fields are simply gone from the YAML. Any preset
+asset elsewhere in the project will silently come back with default inner/outer and its old border.
+
 ### Lifecycle
 Quads are `HideFlags.DontSave` (never serialized → no scene churn) and parented to the camera so they
 track the view (incl. drag-rotate, which rotates the avatar only). Recreated after a domain reload
@@ -1338,19 +1446,33 @@ track the view (incl. drag-rotate, which rotates the avatar only). Recreated aft
 
 ### Verification (needs the editor — not yet run)
 1. Focus Unity → `Custom/StudioCardFrame` compiles, no CS errors in the new files.
-2. Studio scene, edit mode: load an outfit, open **Card frame**, tick **Enable** → gradient bg +
-   rounded purple card appear behind the avatar within ~0.5 s; head overflows the top; legs fade
-   into the card at the bottom.
-3. Tweak margins/radius/colours/fade → live update. Drag-rotate → bg/card stay put, avatar rotates.
-4. Enter play, pick a pose, **Capture Still** at e.g. 900×1350 → PNG shows the framed card matching
-   the Game view (set the Game view to a 2:3 portrait aspect first).
-5. Toggle Enable off → quads vanish, plain preview returns. Prod safety: confirm the shader is absent
-   from a WebGL build report and no diffs on any `URP_*`/renderer-data asset or `Main.unity`.
+2. Studio scene, edit mode: load an outfit, open **Card frame**, tick **Enable** → the rounded card
+   appears behind the avatar within ~0.5 s, painted magenta-centre → dark-purple-edges with the icon
+   pattern over it; **nothing** behind the card; head overflows the top; legs fade into the card at
+   the bottom, with the fade's colour indistinguishable from the card's at the seam.
+3. Tweak Inner/Outer colour, margins, radius, border, fade → live update. Changing margins must NOT
+   change the pattern's icon size (that's what `_DclTileScale` is for). Drag-rotate → the card stays
+   put, the avatar rotates.
+4. Enter play → the area outside the card goes black (`SyncCameraClear`), not the scene camera's
+   purple. Pick a pose, **Capture Still** at e.g. 900×1350 → PNG shows the card + avatar opaque and
+   everything around the card **transparent** (set the Game view to a 2:3 portrait aspect first).
+5. Tick **Mask avatar to card sides** with a wide pose → arms/hands are erased at the card edge (and
+   in the export that region is transparent, not black), head still overflows, and the border's outer
+   ring still draws over the erased area. With **Mask avatar below card** on (the default) a tall pose's
+   feet stop dead at the card's bottom edge; untick it and they hang out again. Check all four
+   on/off combinations — in particular that with sides off + bottom on the cut is a clean straight
+   line across the full frame width, and that no combination bites a crescent out of the card's own
+   rounded corners (that's what the aspect/radius restatement protects).
+6. Toggle Enable off → quads vanish, plain preview returns AND the camera's original clear
+   flags/colour come back (check the Camera inspector in play mode). Prod safety: confirm the shader
+   is absent from a WebGL build report and no diffs on any `URP_*`/renderer-data asset, `Main.unity`,
+   or `OutfitStudio.unity` (the clear override is play-mode-only precisely so this holds).
 
 ### Possible v2s
-Name/price/"+" text chrome (deferred — not a DCL concept; would be a 4th quad or a captured text
+Name/price/"+" text chrome (deferred — not a DCL concept; would be an extra quad or a captured text
 layer); per-side avatar hard-clip via a stencil if a wide pose ever spills past the card; save/load
-card presets alongside outfit presets; a horizontal/radial background gradient option.
+card presets alongside outfit presets; exposing more of the Decentraland paint (vignette radius,
+pattern tiling/speed, glow) as card sliders if the fixed reference look ever needs art direction.
 
 ## 19. Avatar tab — body shape/colors relocated + curated face features (2026-07-23)
 
