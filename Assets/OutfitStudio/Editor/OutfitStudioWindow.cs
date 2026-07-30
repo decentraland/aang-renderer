@@ -996,10 +996,11 @@ namespace OutfitStudio.Editor
             });
 
             var aaOptions = new List<string> { "Scene Default", "None", "FXAA", "SMAA", "TAA" };
-            var aaPopup = new PopupField<string>("Anti-aliasing", aaOptions, 0)
+            var aaPopup = new PopupField<string>("Anti-aliasing", aaOptions, aaOptions.IndexOf("SMAA"))
             {
                 tooltip = "Scene Default is SMAA — the likely source of the outline being tinted by the card background."
             };
+            StudioCardFrame.DebugAntialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
             aaPopup.RegisterValueChangedCallback(evt =>
             {
                 StudioCardFrame.DebugAntialiasing = evt.newValue switch

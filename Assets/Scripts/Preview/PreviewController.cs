@@ -35,6 +35,7 @@ namespace Preview
         private bool _loading;
         private bool _shouldReload;
         private bool _shouldCleanup;
+        private PreviewMode? _lastMode;
 
         private void Start()
         {
@@ -141,10 +142,18 @@ namespace Preview
                     // We store the instance in case it gets recreated by a call to AangConfiguration.RecreateFrom
                     var config = AangConfiguration.Instance;
 
+                    // Only reset the orbit rotation when actually switching modes, not on every reload within
+                    // the same mode (e.g. adding/removing a wearable in Builder mode shouldn't undo the user's view)
+                    var isModeChange = _lastMode != config.Mode;
+                    _lastMode = config.Mode;
+
                     avatarRotator.enabled = false;
                     wearableRotator.enabled = false;
-                    avatarRotator.ResetRotation();
-                    wearableRotator.ResetRotation();
+                    if (isModeChange)
+                    {
+                        avatarRotator.ResetRotation();
+                        wearableRotator.ResetRotation();
+                    }
 
                     animationReference.SetActive(config.ShowAnimationReference);
                     platform.SetActive(config.Mode is PreviewMode.Authentication);
