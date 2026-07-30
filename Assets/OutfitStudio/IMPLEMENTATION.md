@@ -49,7 +49,7 @@ Assets/OutfitStudio/
 ├── IMPLEMENTATION.md              # this file
 ├── Runtime/
 │   ├── CatalogModels.cs           # CatalogQuery, CatalogPage, CatalogItem DTOs
-│   ├── CatalogService.cs          # GET /v1/items (marketplace browse + URN lookup)
+│   ├── CatalogService.cs          # GET /v2/catalog (marketplace browse + URN lookup)
 │   ├── OutfitDefinition.cs        # the outfit model + share-code round-trip
 │   ├── OutfitPreset.cs            # ScriptableObject preset asset
 │   ├── TurntableDriver.cs         # deterministic 360° spin MonoBehaviour
@@ -103,11 +103,12 @@ its initial load; our reload then supersedes it).
 `CatalogService` (Runtime, but editor-safe) hits:
 
 ```
-GET https://marketplace-api.decentraland.{org|zone}/v1/items
+GET https://marketplace-api.decentraland.{org|zone}/v2/catalog
     ?first=24&skip=N
     [&category=wearable|emote] [&search=text]
     [&wearableCategory=slot] [&emoteCategory=cat]
     [&rarity=r] [&wearableGender|emoteGender=g] [&sortBy=newest|name|cheapest]
+    [&isOnSale=true]          # only ever sent as true — see the On Sale note below
     [&urn=...&urn=...]        # direct URN lookup mode (ignores browse filters)
 ```
 
@@ -117,8 +118,11 @@ GET https://marketplace-api.decentraland.{org|zone}/v1/items
   without entering play). Uses `UnityWebRequest` + `operation.completed`.
 - Response parsed with `JsonUtility` into `CatalogPage { CatalogItem[] data; int total; }`.
   `CatalogItem` declares **only consumed fields** (`id, name, thumbnail, urn, category, rarity,
-  isOnSale, data.wearable.{bodyShapes,category,isSmart}, data.emote.{...}`) — extra JSON fields
-  are ignored, which keeps us resilient to API additions. `bodyShapes` values are
+  isOnSale, listings, price, minPrice, createdAt, updatedAt, soldAt,
+  data.wearable.{bodyShapes,category,isSmart}, data.emote.{...}`) — extra JSON fields
+  are ignored, which keeps us resilient to API additions. Note the timestamps are JSON **numbers**
+  on `/v2/catalog` (they were strings on the old `/v1/items`), hence `long` fields, `0` meaning
+  absent. `bodyShapes` values are
   `"BaseMale"`/`"BaseFemale"`.
 - `CatalogItem.Slot` → wearable category, or `"emote"` for emotes.
 - The URN-lookup mode (`CatalogQuery.Urns`) is used to **hydrate** names/thumbnails for URNs the
@@ -338,7 +342,7 @@ import the files); absolute paths allowed. Filenames `outfit_yyyyMMdd_HHmmss`.
   `GameViewInputSettings`) is Recorder 4.0+.
 - Game-view video includes runtime UI overlays; a "hide UI during recording" toggle (disable
   `UIDocument` components temporarily) is an easy v2.
-- `/v1/items` response fields were implemented from the documented schema; if the grid comes up
+- `/v2/catalog` response fields were implemented from the documented schema; if the grid comes up
   empty with a successful request, diff the live JSON against `CatalogModels.cs` first.
 - Docked 3D preview inside the window (RenderTexture) — deferred; the Game view is the viewport.
 - Possible v2s: load-outfit-from-profile (via `APIService.GetAvatar`), multi-rarity filters,
@@ -349,12 +353,11 @@ import the files); absolute paths allowed. Filenames `outfit_yyyyMMdd_HHmmss`.
 - **Catalog search quirks (2026-07-22 investigation, not a client bug):** hitting the live
   `marketplace-api.decentraland.org/v1/items` directly (outside Unity, same params `CatalogService`
   sends) confirms two upstream behaviors, not bugs in this repo:
-  1. Some single-word searches return 0 even though the item exists and is indexed — e.g.
-     `search=atari` → 0, but `search=Orange Atari` → 4 and correctly finds "Orange Atari Cap"/"Orange
-     Atari Tee". Verified `search`/`category`/`rarity`/`wearableGender`/`emoteGender`/
-     `wearableCategory`/`emoteCategory` are all otherwise correct and narrow results as expected —
-     only certain bare single-word queries (seemingly brand-name-like terms) get excluded server-
-     side. Workaround: search two words (e.g. add the item type: "atari cap").
+  1. ~~Some single-word searches return 0 even though the item exists and is indexed — e.g.
+     `search=atari` → 0, but `search=Orange Atari` → 4~~ — **`/v1/items` only; fixed 2026-07-30 by
+     moving to `/v2/catalog`** (§"On Sale" note below). Same query, same params: `/v1/items?
+     search=atari` → 0, `/v2/catalog?search=atari` → 26 (Green/Blue/Purple Atari Tee, Atari Cap, …).
+     No two-word workaround needed any more.
   2. **`sortBy` has no effect at all** — tried `newest`/`name`/`cheapest`/`recently_listed`/
      `recently_sold`/`most_expensive`/`issued_id_asc`/`issued_id_desc`, the alternate param name
      `orderBy`, combined with `sortDirection`/`isOnSale=true`, and cache-busting query params:
@@ -382,6 +385,37 @@ import the files); absolute paths allowed. Filenames `outfit_yyyyMMdd_HHmmss`.
      **not a true global sort** for a broad unfiltered browse (~11k wearables > `FETCH_CAP`) — the
      status label reads "N of total items (sort limited to the first 3000)" whenever the cap is hit,
      rather than silently truncating.
+
+     (Re-verified on `/v2/catalog` 2026-07-30: `sortBy` is *still* not honored — `newest` isn't
+     monotonic in `createdAt`, `most_expensive` isn't monotonic in `minPrice` — so the client-side
+     sort stays.)
+- **"On Sale" toggle → `/v2/catalog` (2026-07-30):** the toggle used to be filtered **client-side**
+  against each item's own `isOnSale` field, which was wrong twice over, and the endpoint the tool
+  browsed (`/v1/items`) was the root cause:
+  1. `/v1/items` serves **stale sale data**. For "Donald Dump": `isOnSale=false`, `price="0"` — while
+     `/v2/catalog` reports the same item mintable at 30 MANA with an open 50 MANA listing, and
+     `/v1/orders` confirms the live listing. That's why searching "donald" only found it with the
+     toggle **off**, the bug this replaced.
+  2. Even with fresh data, the `isOnSale` **field** ≠ the marketplace's "on sale". The field means
+     *mintable from the collection store*; the marketplace also counts items with open secondary
+     listings. A sold-out item with 1000+ open listings (e.g. "Metaverse Art Week Headset",
+     `listings=1045`) reports `isOnSale=false` yet is plainly on sale — 2671 such wearables passed
+     `isOnSale=true&onlyListing=true` at the time of writing, i.e. the old client-side filter hid
+     thousands of buyable items.
+
+  Now sent **server-side** as `isOnSale=true` (`CatalogService.BuildUrl`), which is exactly what the
+  web marketplace does (verified in the marketplace-site bundle: `onlyOnSale && append("isOnSale")`
+  against `/v{1,2}/catalog`), so the semantics match by construction. Two gotchas encoded in code:
+  - **Never send `isOnSale=false`.** It is not the neutral value — the endpoint reads it as "only
+    items that are *not* on sale" (`search=donald&isOnSale=false` → just the one unlisted hit). An
+    off toggle omits the param entirely, which is what makes "off = show everything" true.
+  - **URN-lookup mode ignores it** (like the other browse filters), so hydration is unaffected.
+
+  `CatalogItem.IsBuyable` (`isOnSale || listings > 0`) mirrors the server-side predicate for the two
+  places that still need it locally: price sorting (`OrderByPrice`, now on `minPrice` — the cheapest
+  real way to acquire the item, matching the marketplace's own cheapest/most-expensive) and the
+  lambdas tag-match extras in `MatchesActiveFilters`. Those extras carry no price/listing data at
+  all, so with the toggle on they drop out and results narrow to what marketplace-api filtered.
 
 ## 11. Edit-mode 3D preview (iteration 2)
 
@@ -584,7 +618,7 @@ Debug-tab section mirroring the explorer's `--self-preview-builder-collections` 
 collection ID → **Load** → paginated grid → click to equip.
 
 **Two ID kinds:**
-- **`0x` contract address (published)** — unauthenticated `marketplace-api /v1/items?
+- **`0x` contract address (published)** — unauthenticated `marketplace-api /v2/catalog?
   contractAddress=...` via `CatalogService` (`CatalogQuery.ContractAddress`), server-paged.
   Tiles reuse the normal URN equip flow.
 - **UUID (draft/unpublished)** — `GET builder-api.decentraland.{env}/v1/collections/{id}/items`
@@ -1295,7 +1329,7 @@ everything about the *body itself*, mirroring the marketplace's own avatar edito
   body shape would silently no-op at apply time, so those are excluded from the grid instead).
 
 **Why this needed its own data path, not `CatalogService`:** these are **base-avatar (off-chain)**
-wearables — the marketplace-api (`v1/items`) only serves collection items, so face features are
+wearables — the marketplace-api (`v2/catalog`) only serves collection items, so face features are
 resolved via the **Catalyst entities endpoint** instead (`RunFaceSearch`, async void — same
 fire-and-forget pattern `EditModeAvatarPreview.Apply` already uses for editor-only await chains).
 `DEFAULT_FACE_URNS` is a curated per-slot URN list mirroring the same set the in-game avatar

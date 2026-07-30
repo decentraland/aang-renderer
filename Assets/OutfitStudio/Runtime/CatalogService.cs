@@ -8,7 +8,13 @@ using UnityEngine.Networking;
 namespace OutfitStudio
 {
     /// <summary>
-    /// Browses the Decentraland marketplace catalog (GET /v1/items).
+    /// Browses the Decentraland marketplace catalog (GET /v2/catalog).
+    ///
+    /// /v2/catalog is what the web marketplace itself browses, and it's the only variant whose sale
+    /// data can be trusted: /v1/items reports a stale primary price and on-sale flag (verified:
+    /// "Donald Dump" comes back from /v1/items as isOnSale=false, price 0, while /v2/catalog reports
+    /// it mintable at 30 MANA with an open 50 MANA listing), and /v1/catalog misses newer
+    /// trade-based listings in its own aggregates.
     ///
     /// Callback-based (instead of Awaitable) so it works both in play mode and in the editor
     /// (the Outfit Studio window browses the catalog without entering play mode).
@@ -21,7 +27,7 @@ namespace OutfitStudio
         private const int MAX_FETCH_PAGE = 1000;
 
         private static string EndpointItems =>
-            $"https://marketplace-api.decentraland.{APIService.Environment}/v1/items";
+            $"https://marketplace-api.decentraland.{APIService.Environment}/v2/catalog";
 
         public static void Search(CatalogQuery query, Action<CatalogPage> onSuccess, Action<string> onError)
         {
@@ -79,6 +85,7 @@ namespace OutfitStudio
                 EmoteCategory = query.EmoteCategory,
                 Rarity = query.Rarity,
                 Gender = query.Gender,
+                IsOnSale = query.IsOnSale,
                 SortBy = query.SortBy,
                 Urns = query.Urns,
                 ContractAddress = query.ContractAddress,
@@ -144,6 +151,14 @@ namespace OutfitStudio
                 else
                     sb.AppendFormat("&wearableGender={0}", query.Gender);
             }
+            // Only ever sent as true, never as false: the endpoint treats isOnSale=false as its own
+            // filter ("only items that are NOT on sale") rather than as "don't filter", so an off
+            // toggle has to omit the param to mean "everything". Filtering server-side is what makes
+            // the toggle match the web marketplace: it selects mintable items OR items with open
+            // listings, which is wider than any single field on the response (a sold-out item with
+            // 1000 open listings still reports isOnSale=false but is very much on sale).
+            if (query.IsOnSale)
+                sb.Append("&isOnSale=true");
 
             if (!string.IsNullOrEmpty(query.SortBy))
                 sb.AppendFormat("&sortBy={0}", query.SortBy);

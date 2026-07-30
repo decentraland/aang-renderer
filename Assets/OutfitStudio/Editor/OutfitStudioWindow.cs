@@ -631,6 +631,21 @@ namespace OutfitStudio.Editor
             });
             filters.Add(sortPopup);
 
+            var onSaleToggle = new Toggle("On Sale")
+            {
+                value = _query.IsOnSale,
+                tooltip = "Only show items you can currently buy - mintable from their collection or " +
+                          "with an open listing - exactly like the web marketplace's \"On Sale\" filter. " +
+                          "Off shows everything, on sale or not.",
+                style = { marginLeft = 4 }
+            };
+            onSaleToggle.RegisterValueChangedCallback(evt =>
+            {
+                _query.IsOnSale = evt.newValue;
+                ResetAndSearch(); // server-side filter (see CatalogService.BuildUrl), so re-query
+            });
+            filters.Add(onSaleToggle);
+
             _invertSortButton = new Button(() =>
             {
                 _invertSort = !_invertSort;
@@ -1432,9 +1447,9 @@ namespace OutfitStudio.Editor
         }
 
         /// <summary>
-        /// Re-applies the slot/rarity/gender filters an ordinary marketplace-api browse would already
-        /// have enforced server-side (see CatalogService.BuildUrl) - needed only for tag-matched items
-        /// built from the lambdas payload, which was never filtered by any of these. Gender is
+        /// Re-applies the slot/rarity/gender/on-sale filters an ordinary marketplace-api browse would
+        /// already have enforced server-side (see CatalogService.BuildUrl) - needed only for tag-matched
+        /// items built from the lambdas payload, which was never filtered by any of these. Gender is
         /// approximated from bodyShapes (matches the live API's own observed behavior: "male"/"female"
         /// match items serving that shape at all, "unisex" requires both).
         /// </summary>
@@ -1444,6 +1459,11 @@ namespace OutfitStudio.Editor
             if (!string.IsNullOrEmpty(wearableSlot) && item.Slot != wearableSlot) return false;
 
             if (!string.IsNullOrEmpty(_query.Rarity) && item.rarity != _query.Rarity) return false;
+
+            // The lambdas payload carries no price or listing data at all, so a tag-only match can
+            // never be shown to be on sale - with the toggle on, those extras drop out and the results
+            // narrow to what marketplace-api itself filtered.
+            if (_query.IsOnSale && !item.IsBuyable) return false;
 
             if (!string.IsNullOrEmpty(_query.Gender))
             {
@@ -1525,24 +1545,29 @@ namespace OutfitStudio.Editor
                 _ => OrderByTimestamp(items, i => i.createdAt, descending: !invert), // "newest"
             };
 
+        /// <summary>
+        /// Sorts on <c>minPrice</c> (the cheapest way to actually acquire the item - its mint price or
+        /// its lowest open listing, whichever is lower), which is what the marketplace's own
+        /// cheapest/most-expensive options rank by. Items that aren't buyable at all carry 2^256-1
+        /// there rather than a real price, so they're excluded from the ranking and trail last instead.
+        /// </summary>
         private static IEnumerable<CatalogItem> OrderByPrice(CatalogItem[] items, bool descending)
         {
-            var onSale = items.Where(i => i.isOnSale);
-            var priced = descending
-                ? onSale.OrderByDescending(i => double.TryParse(i.price, out var price) ? price : 0)
-                : onSale.OrderBy(i => double.TryParse(i.price, out var price) ? price : 0);
-            return priced.Concat(items.Where(i => !i.isOnSale));
+            double Price(CatalogItem i) => double.TryParse(i.minPrice, out var price) ? price : 0;
+
+            var buyable = items.Where(i => i.IsBuyable);
+            var priced = descending ? buyable.OrderByDescending(Price) : buyable.OrderBy(Price);
+            return priced.Concat(items.Where(i => !i.IsBuyable));
         }
 
         private static IEnumerable<CatalogItem> OrderByTimestamp(CatalogItem[] items,
-            Func<CatalogItem, string> selector, bool descending)
+            Func<CatalogItem, long> selector, bool descending)
         {
-            bool HasValue(CatalogItem i) => long.TryParse(selector(i), out _);
-            var withValue = items.Where(HasValue);
+            var withValue = items.Where(i => selector(i) > 0);
             var ordered = descending
-                ? withValue.OrderByDescending(i => long.Parse(selector(i)))
-                : withValue.OrderBy(i => long.Parse(selector(i)));
-            return ordered.Concat(items.Where(i => !HasValue(i)));
+                ? withValue.OrderByDescending(selector)
+                : withValue.OrderBy(selector);
+            return ordered.Concat(items.Where(i => selector(i) <= 0));
         }
 
         private VisualElement BuildTile(CatalogItem item, Action<CatalogItem> onClick)

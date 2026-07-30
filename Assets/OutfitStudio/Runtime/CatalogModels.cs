@@ -4,7 +4,7 @@ namespace OutfitStudio
 {
     /// <summary>
     /// Query parameters for the marketplace catalog endpoint
-    /// (GET marketplace-api.decentraland.{org|zone}/v1/items).
+    /// (GET marketplace-api.decentraland.{org|zone}/v2/catalog).
     /// </summary>
     public class CatalogQuery
     {
@@ -25,6 +25,12 @@ namespace OutfitStudio
 
         /// <summary>Gender filter (male, female, unisex). Null = any.</summary>
         public string Gender;
+
+        /// <summary>Only items currently buyable (mintable from the collection store, or with at least
+        /// one open listing). Sent to the API as <c>isOnSale=true</c> when set, and omitted entirely
+        /// when not - <c>isOnSale=false</c> is not the neutral value, the endpoint reads it as "only
+        /// items that are NOT on sale".</summary>
+        public bool IsOnSale;
 
         /// <summary>
         /// Sort order. Real marketplace values: newest, recently_listed, recently_sold, cheapest,
@@ -50,7 +56,7 @@ namespace OutfitStudio
     }
 
     /// <summary>
-    /// A marketplace item as returned by /v1/items. Only the fields we consume are declared;
+    /// A marketplace item as returned by /v2/catalog. Only the fields we consume are declared;
     /// JsonUtility ignores the rest of the payload.
     /// </summary>
     [Serializable]
@@ -62,15 +68,35 @@ namespace OutfitStudio
         public string urn;
         public string category; // "wearable" | "emote"
         public string rarity;
+
+        /// <summary>Primary sale only: true when the item can still be minted from the collection
+        /// store. False for a sold-out (or never-listed) item even when it has open secondary
+        /// listings - use <see cref="IsBuyable"/> for the marketplace's "on sale" notion.</summary>
         public bool isOnSale;
-        public string price; // wei, as a decimal string (e.g. "0" when not on sale)
-        public string createdAt; // unix seconds, as a string
-        public string updatedAt; // unix seconds, as a string; bumped when the item is (re)listed
-        public string soldAt; // unix seconds, as a string; null/empty if never sold
+
+        /// <summary>Number of open secondary listings.</summary>
+        public int listings;
+
+        public string price; // primary-sale price in wei, as a decimal string ("0" when not mintable)
+
+        /// <summary>Cheapest way to acquire the item in wei (primary price or lowest listing),
+        /// as a decimal string. 2^256-1 when it isn't buyable at all.</summary>
+        public string minPrice;
+
+        public long createdAt; // unix seconds; 0 when absent
+        public long updatedAt; // unix seconds; bumped when the item is (re)listed
+        public long soldAt; // unix seconds; 0 if never sold
         public ItemData data;
 
         /// <summary>The avatar slot this item occupies (wearable category or "emote").</summary>
         public string Slot => category == "emote" ? "emote" : data?.wearable?.category;
+
+        /// <summary>
+        /// What the web marketplace calls "on sale": mintable from the store OR carrying at least one
+        /// open listing. Matches the set the endpoint's own <c>isOnSale=true</c> filter returns, which
+        /// is deliberately wider than the <see cref="isOnSale"/> field on its own.
+        /// </summary>
+        public bool IsBuyable => isOnSale || listings > 0;
 
         [Serializable]
         public class ItemData

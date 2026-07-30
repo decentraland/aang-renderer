@@ -11,7 +11,7 @@ namespace OutfitStudio
     /// Tag-aware text search against the catalyst content-server's lambdas collections endpoint
     /// (GET /lambdas/collections/wearables or /emotes, ?textSearch=...).
     ///
-    /// This exists because marketplace-api's own <c>/v1/items?search=</c> (used by
+    /// This exists because marketplace-api's own <c>/v2/catalog?search=</c> (used by
     /// <see cref="CatalogService"/> for the actual browse/filter pass) only matches item name and
     /// description - it has no notion of tags. The lambdas endpoint indexes each item's full
     /// <c>data.tags</c> array, so a query like "jacket" also matches an item named "Black Jacket"
