@@ -1893,6 +1893,52 @@ namespace OutfitStudio.Editor
             sizeRow.Add(heightField);
             pane.Add(sizeRow);
 
+            // WYSIWYG: the PNG is always exactly Size × Size (the Recorder renders the camera at that
+            // resolution regardless of the Game view), but the *framing* only matches what's on screen
+            // if the Game view renders at the same resolution too — otherwise the card is laid out for
+            // one aspect and exported at another. This pins the Game view to a Fixed Resolution entry
+            // of exactly that size. See IMPLEMENTATION.md §20.
+            var matchButton = new Button { text = "Match Game view to capture size" };
+            var matchStatus = new Label
+            {
+                style =
+                {
+                    whiteSpace = WhiteSpace.Normal, fontSize = 10, opacity = 0.8f,
+                    marginLeft = 3, marginBottom = 2
+                }
+            };
+
+            void RefreshMatchStatus()
+            {
+                var gv = StudioGameViewSize.Current;
+                if (gv.x == captureWidth && gv.y == captureHeight)
+                {
+                    matchStatus.text = $"Game view is {gv.x}×{gv.y} — matches, framing is WYSIWYG.";
+                    matchStatus.style.color = new StyleColor(new Color(0.55f, 0.8f, 0.55f));
+                }
+                else
+                {
+                    matchStatus.text = $"Game view is {gv.x}×{gv.y}, capture is {captureWidth}×{captureHeight} " +
+                                       "— the export will be framed differently from what you see.";
+                    matchStatus.style.color = new StyleColor(new Color(0.95f, 0.75f, 0.4f));
+                }
+            }
+
+            matchButton.clicked += () =>
+            {
+                if (!StudioGameViewSize.TryApply(captureWidth, captureHeight, out var error))
+                    Debug.LogWarning($"[OutfitStudio] Couldn't set the Game view size ({error}). " +
+                                     "Set it by hand: Game view ▸ size dropdown ▸ + ▸ Fixed Resolution " +
+                                     $"{captureWidth} × {captureHeight}.");
+                RefreshMatchStatus();
+            };
+            pane.Add(matchButton);
+            pane.Add(matchStatus);
+            RefreshMatchStatus();
+            // Polled rather than event-driven: the artist can change the Game view's size from its own
+            // dropdown at any time, and there's no notification for that.
+            pane.schedule.Execute(RefreshMatchStatus).Every(500);
+
             var transparentToggle = new Toggle("Transparent background") { value = transparentBackground };
             transparentToggle.RegisterValueChangedCallback(evt => transparentBackground = evt.newValue);
             pane.Add(transparentToggle);
@@ -2159,13 +2205,18 @@ namespace OutfitStudio.Editor
             var body = new VisualElement();
             BuildCardBody(body);
             fold.Add(body);
+            // Registered on `body` (which survives BuildCardBody's Clear()) rather than inside
+            // BuildCardBody, so a rebuild doesn't stack up a second poll on every preset apply.
+            body.schedule.Execute(SyncCardPxFields).Every(500);
 
             pane.Add(fold);
         }
 
-        private static void BuildCardBody(VisualElement c)
+        private void BuildCardBody(VisualElement c)
         {
             c.Clear();
+            _cardPxSync.Clear(); // the px fields we're about to replace are gone with the children
+            _cardSizeLabel = null;
 
             Label Section(string t) => new(t) { style = { unityFontStyleAndWeight = FontStyle.Bold, marginTop = 6 } };
 
@@ -2240,20 +2291,45 @@ namespace OutfitStudio.Editor
             });
             c.Add(pattern);
 
-            // Sides go to 0.5 (per side), i.e. all the way to a zero-width card — Layout() clamps the
-            // width at 0.01 so the degenerate end is harmless, it just gets very narrow.
-            CardSlider(c, "Margin Sides", 0f, 0.5f, () => StudioCardFrame.MarginX, v => StudioCardFrame.MarginX = v);
-            CardSlider(c, "Margin Top", 0f, 0.4f, () => StudioCardFrame.MarginTop, v => StudioCardFrame.MarginTop = v);
-            CardSlider(c, "Margin Bottom", 0f, 0.3f, () => StudioCardFrame.MarginBottom, v => StudioCardFrame.MarginBottom = v);
-            CardSlider(c, "Corner Radius", 0f, 0.5f, () => StudioCardFrame.CornerRadius, v => StudioCardFrame.CornerRadius = v);
+            // Every length below is shown and entered in PIXELS of the current capture size, so an artist
+            // can work straight off a Figma spec — see CardPxSlider and IMPLEMENTATION.md §20.
+            //
+            // Card Width is a WIDTH, not a pair of side margins: it's stored per frame HEIGHT so the card
+            // keeps its shape (and its size relative to the avatar) at any capture aspect. It's the field
+            // that used to be "Margin Sides", which was width-relative and reshaped the card on every
+            // resolution change. The card is always horizontally centred.
+            CardPxSlider(c, "Card Width", () => FrameWPx,
+                () => StudioCardFrame.CardWidth * FrameHPx, px => StudioCardFrame.CardWidth = px / FrameHPx);
+            CardPxSlider(c, "Margin Top", () => FrameHPx * 0.4f,
+                () => StudioCardFrame.MarginTop * FrameHPx, px => StudioCardFrame.MarginTop = px / FrameHPx);
+            CardPxSlider(c, "Margin Bottom", () => FrameHPx * 0.3f,
+                () => StudioCardFrame.MarginBottom * FrameHPx, px => StudioCardFrame.MarginBottom = px / FrameHPx);
+
+            _cardSizeLabel = new Label
+            {
+                style = { fontSize = 10, opacity = 0.7f, marginLeft = 3, marginBottom = 2 }
+            };
+            c.Add(_cardSizeLabel);
+
+            // Radius and border widths are stored per frame HEIGHT, so their px value is untouched by the
+            // margins — a 24 px radius stays 24 px however the card is stretched. The slider's *range*
+            // still tracks the card, since past ~a quarter of the card's height a "radius" stops meaning
+            // anything (PushParams clamps there for the same reason).
+            CardPxSlider(c, "Corner Radius", () => CardHPx * 0.25f,
+                () => StudioCardFrame.CornerRadius * FrameHPx, px => StudioCardFrame.CornerRadius = px / FrameHPx);
             CardColor(c, "Border", () => StudioCardFrame.Border, v => StudioCardFrame.Border = v);
-            CardSlider(c, "Inner Border Width", 0f, 0.05f, () => StudioCardFrame.InnerBorderWidth, v => StudioCardFrame.InnerBorderWidth = v);
-            CardSlider(c, "Outer Border Width", 0f, 0.05f, () => StudioCardFrame.OuterBorderWidth, v => StudioCardFrame.OuterBorderWidth = v);
+            CardPxSlider(c, "Inner Border Width", () => FrameHPx * 0.03f,
+                () => StudioCardFrame.InnerBorderWidth * FrameHPx, px => StudioCardFrame.InnerBorderWidth = px / FrameHPx);
+            CardPxSlider(c, "Outer Border Width", () => FrameHPx * 0.03f,
+                () => StudioCardFrame.OuterBorderWidth * FrameHPx, px => StudioCardFrame.OuterBorderWidth = px / FrameHPx);
 
             // No colour here any more: the fade paints the card's own vignette/pattern at the same UV,
             // so it's a pure alpha ramp that can't drift out of sync with the card.
             c.Add(Section("Bottom fade"));
-            CardSlider(c, "Fade Height", 0f, 1f, () => StudioCardFrame.FadeHeight, v => StudioCardFrame.FadeHeight = v);
+            CardPxSlider(c, "Fade Height", () => CardHPx,
+                () => StudioCardFrame.FadeHeight * FrameHPx, px => StudioCardFrame.FadeHeight = px / FrameHPx);
+            // Stays a 0-1 ratio, not px: it's how much of the fade height is ramp vs. solid, so it
+            // scales with Fade Height by design and has no length of its own.
             CardSlider(c, "Fade Softness", 0f, 1f, () => StudioCardFrame.FadeSoftness, v => StudioCardFrame.FadeSoftness = v);
 
             c.Add(new Button(() =>
@@ -2269,6 +2345,69 @@ namespace OutfitStudio.Editor
             var s = new Slider(label, min, max) { value = get(), showInputField = true };
             s.RegisterValueChangedCallback(e => set(e.newValue));
             c.Add(s);
+        }
+
+        // --- Card knobs in pixels ----------------------------------------------------------------
+        //
+        // The card's knobs are STORED as fractions of the CAPTURE, because the shader has to stay
+        // resolution-independent: the same settings must export identically at 1200×800 and at 2400×1600,
+        // just twice the pixels. Marketing artists work from Figma specs in pixels, so every length is
+        // shown and entered as px of the current capture — a plain multiply, since the stored unit is
+        // capture-relative and nothing here depends on the card's own size. That's deliberate: it's what
+        // makes a 24 px radius stay 24 px when the card is stretched. `StudioCardFrame.PushParams()` does
+        // the card-relative restatement the shader needs. Fractions remain the single source of truth —
+        // nothing about the render path or presets changes. See §20.
+        //
+        // Frame = the whole capture; card = the frame minus the margins (used for slider RANGES and the
+        // readout, never for a value conversion).
+        private float FrameWPx => Mathf.Max(1, captureWidth);
+        private float FrameHPx => Mathf.Max(1, captureHeight);
+        // Note CardWPx is off FrameHPx, not FrameWPx — the card's width is stored per frame height so its
+        // shape survives an aspect change (see StudioCardFrame.Layout).
+        private float CardWPx => FrameHPx * Mathf.Max(0.01f, StudioCardFrame.CardWidth);
+        private float CardHPx => FrameHPx * Mathf.Max(0.01f, 1f - StudioCardFrame.MarginTop - StudioCardFrame.MarginBottom);
+
+        private readonly List<(Slider slider, Func<float> maxPx, Func<float> toPx)> _cardPxSync = new();
+        private Label _cardSizeLabel;
+
+        /// <summary>
+        /// A card knob shown in pixels. <paramref name="maxPx"/> is a callback, not a value, because the
+        /// range moves with the capture size (and, for card-relative lengths, with the margins).
+        /// </summary>
+        private void CardPxSlider(VisualElement c, string label, Func<float> maxPx,
+            Func<float> toPx, Action<float> fromPx)
+        {
+            var s = new Slider($"{label} (px)", 0f, Mathf.Max(1f, maxPx())) { showInputField = true };
+            s.SetValueWithoutNotify(RoundPx(toPx()));
+            s.RegisterValueChangedCallback(e => fromPx(e.newValue));
+            c.Add(s);
+            _cardPxSync.Add((s, maxPx, toPx));
+        }
+
+        // Display only — the model keeps full float precision, and this never writes back (the sync uses
+        // SetValueWithoutNotify), so rounding here can't accumulate drift.
+        private static float RoundPx(float px) => Mathf.Round(px * 100f) / 100f;
+
+        /// <summary>
+        /// Re-read the px fields from the model. Needed because the same stored fraction is a different
+        /// pixel count after a capture-size change (or, for the card-relative ones, a margin change), and
+        /// there's no event for either. Whatever the artist is currently interacting with is skipped, so
+        /// this can never fight a drag or overwrite a half-typed number.
+        /// </summary>
+        private void SyncCardPxFields()
+        {
+            foreach (var (slider, maxPx, toPx) in _cardPxSync)
+            {
+                if (slider.panel == null) continue; // survived a rebuild in the list but not in the UI
+                var focused = slider.focusController?.focusedElement as VisualElement;
+                if (focused != null && (focused == slider || slider.Contains(focused))) continue;
+                slider.highValue = Mathf.Max(1f, maxPx());
+                slider.SetValueWithoutNotify(RoundPx(toPx()));
+            }
+
+            if (_cardSizeLabel?.panel != null)
+                _cardSizeLabel.text = $"Card is {CardWPx:0} × {CardHPx:0} px " +
+                                      $"of a {FrameWPx:0} × {FrameHPx:0} capture.";
         }
 
         private static void CardColor(VisualElement c, string label, Func<Color> get, Action<Color> set,

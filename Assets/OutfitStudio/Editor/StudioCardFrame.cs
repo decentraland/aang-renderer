@@ -57,15 +57,21 @@ namespace OutfitStudio.Editor
         private const string K_PATTERN = "OutfitStudio.Card.PatternTex"; // asset GUID, empty = bundled default
         private const string K_SIDEMASK = "OutfitStudio.Card.SideMask";
         private const string K_BOTTOMMASK = "OutfitStudio.Card.BottomMask";
-        private const string K_MARGIN_X = "OutfitStudio.Card.MarginX";
+        // Replaced K_MARGIN_X ("OutfitStudio.Card.MarginX") on 2026-07-30: side margins were a fraction of
+        // the frame WIDTH, which made the card change shape whenever the capture aspect changed. New key
+        // because the meaning is different, not just the unit — see §20.
+        private const string K_CARD_WIDTH = "OutfitStudio.Card.WidthFrameH";
         private const string K_MARGIN_TOP = "OutfitStudio.Card.MarginTop";
         private const string K_MARGIN_BOTTOM = "OutfitStudio.Card.MarginBottom";
-        private const string K_RADIUS = "OutfitStudio.Card.Radius";
         private const string K_BORDER = "OutfitStudio.Card.Border";
-        private const string K_INNER_BORDER_W = "OutfitStudio.Card.BorderWidth"; // key unchanged so existing tuned values carry over from before the inner/outer split
-        private const string K_OUTER_BORDER_W = "OutfitStudio.Card.OuterBorderWidth";
-        private const string K_FADE_H = "OutfitStudio.Card.FadeHeight";
         private const string K_FADE_S = "OutfitStudio.Card.FadeSoftness";
+        // These four changed UNIT on 2026-07-30 (card-relative → frame-height-relative, see §20), so they
+        // get new key names: a stale value under the old key would be silently misread as the new unit and
+        // quietly change someone's tuned card. Old keys are simply abandoned.
+        private const string K_RADIUS = "OutfitStudio.Card.RadiusFrameH";
+        private const string K_INNER_BORDER_W = "OutfitStudio.Card.InnerBorderWidthFrameH";
+        private const string K_OUTER_BORDER_W = "OutfitStudio.Card.OuterBorderWidthFrameH";
+        private const string K_FADE_H = "OutfitStudio.Card.FadeHeightFrameH";
 
         // Shader property ids
         private static readonly int ModeId = Shader.PropertyToID("_Mode");
@@ -99,6 +105,7 @@ namespace OutfitStudio.Editor
         private static GameObject _root;
         private static Renderer _card, _fade, _mask, _border;
         private static float _borderOversize = 1f; // set by Layout(), consumed by PushParams()
+        private static float _frameAspect = 1f;    // ditto — the only place the capture's aspect is used
         private static double _nextCheck;
         private static bool _warnedMissingShader;
 
@@ -300,24 +307,37 @@ namespace OutfitStudio.Editor
         }
 
         // Defaults below are the look Mauricio dialled in on 2026-07-30 (see IMPLEMENTATION.md §18), not
-        // the original 2026-07-17 ones. Note MarginX 0.35 is per side, so the card is 30% of the frame's
-        // width — that reads as a portrait card on a WIDE Game view (16:9 → card aspect ≈ 0.64). On an
-        // already-portrait Game view it'll come out as a narrow sliver; drop the margin in that case.
-        public static float MarginX { get => EditorPrefs.GetFloat(K_MARGIN_X, 0.35f); set => SetFloat(K_MARGIN_X, value); }
+        // the original 2026-07-17 ones.
+        //
+        // EVERY value here is a fraction of the CAPTURE (never of the card), which is what lets the window
+        // show them all as pixels: px = fraction × capture width/height, so a size in px is stable when the
+        // card is stretched and scales proportionally when the capture resolution changes. §20 has the
+        // conversion table; PushParams() restates the card-relative ones for the shader.
+        /// <summary>The card's width, as a fraction of the frame HEIGHT (not width — see Layout()). With
+        /// the height set by the top/bottom margins, this fixes the card's aspect, so the whole card is
+        /// invariant to the capture's aspect ratio. Default 0.55 against the default margins gives a card
+        /// aspect of 0.55/0.83 ≈ 0.66, the portrait item-card shape the frame was designed around.</summary>
+        public static float CardWidth { get => EditorPrefs.GetFloat(K_CARD_WIDTH, 0.55f); set => SetFloat(K_CARD_WIDTH, value); }
+
         public static float MarginTop { get => EditorPrefs.GetFloat(K_MARGIN_TOP, 0.12f); set => SetFloat(K_MARGIN_TOP, value); }
         public static float MarginBottom { get => EditorPrefs.GetFloat(K_MARGIN_BOTTOM, 0.05f); set => SetFloat(K_MARGIN_BOTTOM, value); }
-        public static float CornerRadius { get => EditorPrefs.GetFloat(K_RADIUS, 0.08f); set => SetFloat(K_RADIUS, value); }
         public static Color Border { get => GetColor(K_BORDER, DefBorder); set => SetColor(K_BORDER, value); }
-        public static float InnerBorderWidth { get => EditorPrefs.GetFloat(K_INNER_BORDER_W, 0.008f); set => SetFloat(K_INNER_BORDER_W, value); }
+
+        // Fractions of the frame HEIGHT. Defaults are the old card-relative values restated for the new
+        // unit at the default margins (cardHFrac 0.83), so the stock look is pixel-identical to before:
+        // radius 0.08 × 0.83/2 = 0.0332, inner border 0.008 × 0.83/2 = 0.00332, fade 0.2 × 0.83 = 0.166.
+        public static float CornerRadius { get => EditorPrefs.GetFloat(K_RADIUS, 0.0332f); set => SetFloat(K_RADIUS, value); }
+        public static float InnerBorderWidth { get => EditorPrefs.GetFloat(K_INNER_BORDER_W, 0.00332f); set => SetFloat(K_INNER_BORDER_W, value); }
         public static float OuterBorderWidth { get => EditorPrefs.GetFloat(K_OUTER_BORDER_W, 0f); set => SetFloat(K_OUTER_BORDER_W, value); }
-        public static float FadeHeight { get => EditorPrefs.GetFloat(K_FADE_H, 0.2f); set => SetFloat(K_FADE_H, value); }
+        public static float FadeHeight { get => EditorPrefs.GetFloat(K_FADE_H, 0.166f); set => SetFloat(K_FADE_H, value); }
+
         public static float FadeSoftness { get => EditorPrefs.GetFloat(K_FADE_S, 0.7f); set => SetFloat(K_FADE_S, value); }
 
         public static void ResetDefaults()
         {
             foreach (var k in new[]
                      {
-                         K_MARGIN_X, K_MARGIN_TOP, K_MARGIN_BOTTOM, K_RADIUS, K_BORDER, K_INNER_BORDER_W,
+                         K_CARD_WIDTH, K_MARGIN_TOP, K_MARGIN_BOTTOM, K_RADIUS, K_BORDER, K_INNER_BORDER_W,
                          K_OUTER_BORDER_W, K_FADE_H, K_FADE_S, K_DCL_INNER, K_DCL_OUTER, K_PATTERN
                      })
                 EditorPrefs.DeleteKey(k);
@@ -519,12 +539,19 @@ namespace OutfitStudio.Editor
             _mask.transform.localPosition = new Vector3(0f, 0f, PLANE_Z);
             _mask.transform.localRotation = Quaternion.identity;
 
-            // Card rect in viewport fractions: x ∈ [mL, 1-mR], y ∈ [mB, 1-mT] (y up).
-            float mL = MarginX, mR = MarginX, mT = MarginTop, mB = MarginBottom;
-            var cw = w * Mathf.Max(0.01f, 1f - mL - mR);
+            _frameAspect = cam.aspect; // stashed for PushParams (the mask rect is in viewport fractions)
+
+            // The card's width is a fraction of the frame's HEIGHT, not its width — deliberately, and it's
+            // the whole reason the card survives a resolution change (§20). The camera frames the avatar
+            // by its VERTICAL fov, so the avatar's on-screen size only ever tracks the frame height; a
+            // width-relative card would therefore change shape, and change size relative to the avatar,
+            // every time the aspect changed. Height-relative on both axes means an aspect change only
+            // alters how much empty space sits either side of the card, which is what an artist expects.
+            float mT = MarginTop, mB = MarginBottom;
+            var cw = h * Mathf.Max(0.01f, CardWidth);
             var ch = h * Mathf.Max(0.01f, 1f - mT - mB);
-            var cx = ((mL + (1f - mR)) * 0.5f - 0.5f) * w; // world offset of the card centre
-            var cy = ((mB + (1f - mT)) * 0.5f - 0.5f) * h;
+            var cx = 0f;                                    // horizontally centred
+            var cy = ((mB + (1f - mT)) * 0.5f - 0.5f) * h;   // vertical offset of the card centre
 
             foreach (var r in new[] { _card, _fade })
             {
@@ -552,23 +579,45 @@ namespace OutfitStudio.Editor
         {
             var cardAspect = AspectOf(_card); // cw / ch
 
-            // The card's height as a fraction of the frame's, so the pattern's on-screen icon size
-            // (and scroll speed) stay put as the margins change. See DclCardPaint() in the shader.
-            var tileScale = Mathf.Max(0.01f, 1f - MarginTop - MarginBottom);
+            // The card's height as a fraction of the frame's. Used for three things: the pattern's tile
+            // scale (keeps its on-screen icon size put as the margins change — see DclCardPaint), and the
+            // two unit conversions below.
+            var cardHFrac = Mathf.Max(0.01f, 1f - MarginTop - MarginBottom);
+
+            // Corner radius and the border widths are STORED as fractions of the frame HEIGHT, so a given
+            // pixel size survives the card being stretched either way (§20). RoundedBoxSDF, though, works
+            // in a space normalized to the *card's* HALF-height — hence × 2 / cardHFrac.
+            //
+            // Clamping happens here, in frame-height terms, BEFORE the conversion, so that every quad
+            // derives its own value from the same clamped physical size and they can't disagree: the card
+            // and the mask must round their corners identically or the mask's edge stops landing on the
+            // card's. A radius past SDF 0.5 is meaningless (RoundedBoxSDF clamps it to the box anyway) and
+            // a border past MAX_BORDER_WIDTH would overflow the border quad, whose oversize is sized for
+            // exactly that maximum (see Layout()). At sane margins neither clamp is reachable; they only
+            // bite once the card is squashed to a sliver.
+            var radiusFH = Mathf.Min(CornerRadius, 0.25f * cardHFrac);                     // → SDF ≤ 0.5
+            var innerFH = Mathf.Min(InnerBorderWidth, MAX_BORDER_WIDTH * cardHFrac * 0.5f); // → SDF ≤ 0.2
+            var outerFH = Mathf.Min(OuterBorderWidth, MAX_BORDER_WIDTH * cardHFrac * 0.5f);
+
+            // Frame-height fraction → RoundedBoxSDF units, for a rect of the given height (the card for
+            // most quads; the extended keep-rect for the mask).
+            float ToSdf(float frameHFraction, float rectHFrac) => frameHFraction * 2f / rectHFrac;
+
+            var cornerSdf = ToSdf(radiusFH, cardHFrac);
 
             _card.enabled = !DisableMiddleCard;
             var card = _card.sharedMaterial;
-            PushCardPaint(card, cardAspect, tileScale);
-            card.SetFloat(CornerRadiusId, CornerRadius);
+            PushCardPaint(card, cardAspect, cardHFrac);
+            card.SetFloat(CornerRadiusId, cornerSdf);
 
             // Border is its own top-most quad (drawn over the avatar/fade/mask), not baked into the card.
             _border.enabled = !DisableMiddleCard;
             var border = _border.sharedMaterial;
             border.SetFloat(CardAspectId, cardAspect);
-            border.SetFloat(CornerRadiusId, CornerRadius);
+            border.SetFloat(CornerRadiusId, cornerSdf);
             border.SetColor(BorderColorId, Border);
-            border.SetFloat(InnerBorderWidthId, InnerBorderWidth);
-            border.SetFloat(OuterBorderWidthId, OuterBorderWidth);
+            border.SetFloat(InnerBorderWidthId, ToSdf(innerFH, cardHFrac));
+            border.SetFloat(OuterBorderWidthId, ToSdf(outerFH, cardHFrac));
             border.SetFloat(BorderOversizeId, _borderOversize);
             border.SetFloat(BorderTopFadeId, 0.88f); // fade the border out over the top 12% (head overflow)
 
@@ -576,9 +625,11 @@ namespace OutfitStudio.Editor
             // pixel-exact continuation of the card's — it only adds the vertical alpha ramp.
             _fade.enabled = !DisableMiddleCard;
             var fade = _fade.sharedMaterial;
-            PushCardPaint(fade, cardAspect, tileScale);
-            fade.SetFloat(CornerRadiusId, CornerRadius);
-            var end = Mathf.Clamp01(FadeHeight);
+            PushCardPaint(fade, cardAspect, cardHFrac);
+            fade.SetFloat(CornerRadiusId, cornerSdf);
+            // FadeHeight is a frame-height fraction too, but the shader ramps over the card's own uv.y —
+            // so divide by the card's height rather than doubling. Clamped at 1 = the whole card.
+            var end = Mathf.Clamp01(FadeHeight / cardHFrac);
             fade.SetFloat(FadeEndId, end);
             fade.SetFloat(FadeStartId, end * (1f - Mathf.Clamp01(FadeSoftness)));
 
@@ -592,20 +643,23 @@ namespace OutfitStudio.Editor
             {
                 var mask = _mask.sharedMaterial;
 
-                float l = MarginX, r = 1f - MarginX, b = MarginBottom, t = 1f - MarginTop; // viewport fractions
+                // The mask quad spans the frame, so its rect is in viewport fractions of each axis. The
+                // card's width is stored in frame-HEIGHT units, so converting it to a width fraction is
+                // where the frame aspect (and only here) comes back in; the card is centred.
+                var cardWFrac = Mathf.Max(0.01f, CardWidth) / Mathf.Max(_frameAspect, 1e-4f);
+                float l = 0.5f - cardWFrac * 0.5f, r = 0.5f + cardWFrac * 0.5f;
+                float b = MarginBottom, t = 1f - MarginTop;
                 if (!SideMask) { l = -0.5f; r = 1.5f; }
                 if (!BottomMask) b = -0.5f;
 
-                var cardW = Mathf.Max(1f - 2f * MarginX, 1e-4f);
-                var cardH = Mathf.Max(1f - MarginTop - MarginBottom, 1e-4f);
                 float effW = r - l, effH = t - b;
-                // Both of these are expressed RELATIVE to the rect the SDF works on, so both have to be
-                // restated once that rect is no longer the card: the aspect scales with the new w/h
-                // ratio, and the corner radius (which RoundedBoxSDF measures in half-heights) shrinks by
-                // the same factor the rect grew, so the corners stay the card's physical size and the
-                // mask's edge still lands exactly on the card's own AA edge where the two coincide.
-                mask.SetFloat(CardAspectId, cardAspect * (effW / effH) * (cardH / cardW));
-                mask.SetFloat(CornerRadiusId, CornerRadius * (cardH / effH));
+                // Aspect is relative to whatever rect the SDF works on, so it's restated for the extended
+                // keep-rect: its two viewport fractions times the frame's own aspect. The radius needs no
+                // special case at all now that it's stored in frame-height terms — feeding the extended
+                // rect's height to the same ToSdf() gives the card's *physical* corner size, which is what
+                // keeps the mask's edge landing exactly on the card's own AA edge where the two coincide.
+                mask.SetFloat(CardAspectId, _frameAspect * (effW / effH));
+                mask.SetFloat(CornerRadiusId, ToSdf(radiusFH, effH));
 
                 float U(float f) => 0.5f + (f - 0.5f) / MASK_OVERSIZE; // viewport fraction → mask-quad UV
                 mask.SetVector(MaskRectId, new Vector4(U(l), U(r), U(b), U(t)));

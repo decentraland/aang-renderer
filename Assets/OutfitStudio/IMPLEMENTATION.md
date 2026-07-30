@@ -1254,12 +1254,14 @@ expressible without a shader gate — the luminosity blend has no neutral textur
 texture if you want the vignette on its own. "Reset card
 defaults" clears the keys. **Defaults were re-baselined 2026-07-30** to the look Mauricio dialled in
 (replacing the 2026-07-17 ones): vignette `#BF00FF`→`#4D0080` (unchanged — the reference material's
-pair), border `#FF8158` at inner width 0.008 / outer 0, margins 0.35 sides / 0.12 top / 0.05 bottom,
-corner radius 0.08, fade height 0.2 / softness 0.7. **`MarginX 0.35` is per side**, leaving the card at
-30% of the frame width — that's a portrait card on a *wide* Game view (16:9 → card aspect ≈ 0.64, which
-is why the Margin Sides slider was extended to 0.5); on an already-portrait Game view it comes out as a
-narrow sliver and wants a much smaller margin. Toggles, top to bottom: master **Enable** (default off,
-opt-in), **Disable Middle Card**, **Mask avatar to card sides**, **Hide avatar outline**.
+pair) and border `#FF8158`. The geometry defaults were then restated twice the same day as the px work
+landed (§20) — first into frame-height units, then when side margins became a card width — and now read:
+**card width 0.55**, margins **0.12** top / **0.05** bottom, corner radius **0.0332**, inner border
+**0.00332** / outer **0**, fade height **0.166** / softness **0.7**, every one of them a fraction of the
+capture height (card width included). That's a card of aspect 0.55/0.83 ≈ **0.66** — the portrait
+item-card shape the frame was designed around — and it renders identically at any capture aspect.
+Toggles, top to bottom: master **Enable** (default off, opt-in), **Disable Middle Card**, **Mask avatar
+to card sides**, **Mask avatar below card**, **Hide avatar outline**.
 
 ### Capture
 `OutfitCapture.CaptureStill` forces `camera.aspect = width/height` and calls
@@ -1514,3 +1516,121 @@ BuildPreviewOutfit()` once and passes that through instead of reading `outfit` d
 and video (which capture whatever `Apply()` last loaded, without a separate reload) pick up the
 face-feature overrides too. `outfit` itself remains the single source of truth for anything that
 gets shared/saved.
+
+## 20. Pixel-exact authoring (2026-07-30, step 1 of the px workflow)
+
+The tool's next audience is marketing artists coming from Figma/Photoshop, who think in pixels and
+expect what they frame to be what they export. Two separate things have to hold for that, and only one
+of them was already true:
+
+**1. The export is already exact.** `OutfitCapture` renders through the Recorder's `CameraInputSettings`
+with `OutputWidth`/`OutputHeight` set to the capture Size, and forces `camera.aspect = w/h` +
+`StudioCardFrame.RelayoutFor(camera)` first. So the PNG is exactly Size × Size pixels whatever the Game
+view is doing. Nothing to fix.
+
+**2. The framing was not.** The card frame lays itself out from `camera.aspect`, so a Game view at
+1920×1080 and a capture at 1200×800 produce *different framing* — the artist tunes margins against one
+composition and exports another. Fixed in `StudioGameViewSize`: **"Match Game view to capture size"**
+(under the Size fields in the Capture pane) adds — or reuses — a **Fixed Resolution** entry of exactly
+that size in the Game view's size list and selects it on every open Game view. A polled status line
+underneath reads the live size back (`Handles.GetMainGameViewSize()`, public API) and warns whenever the
+two drift apart; polled because the artist can change the Game view's own dropdown at any time and
+there's no notification for it.
+
+Setting the size is **internal API** (`UnityEditor.GameViewSizes` / `GameViewSize` /
+`GameView.selectedSizeIndex` by reflection) — Unity has never exposed the size list. The recipe is
+long-stable and verified on 6000.4.0f1, but every step is null-checked and the whole call is wrapped:
+if a future Unity renames something, the artist gets a Console warning telling them to add the Fixed
+Resolution entry by hand, never an exception. Entries we create are labelled `Outfit Studio <W>x<H>` so
+they're recognisable in what is a shared, project-wide list, and so repeat presses reuse rather than
+pile up duplicates.
+
+### What "no resizing" can and can't mean
+Worth being precise, because the two get conflated:
+- **Render size == capture size** (framing/composition WYSIWYG) — guaranteed by the above.
+- **1 game pixel == 1 monitor pixel** (so you can judge a 2 px border by eye) — *not* guaranteed. If the
+  Game view panel is smaller than the resolution, Unity scales the displayed image down to fit; it still
+  *renders* at the fixed resolution, so the capture is unaffected, but you're looking at a shrunk
+  preview. And at 125%/150% OS display scaling, Unity's 1× maps one texture pixel to one *logical*
+  point, i.e. 1.25/1.5 physical pixels. So true 1:1 needs a panel at least as large as the capture, at
+  100% OS scaling — impossible at the old 2048×2048 default on a 1080p monitor. The Scale slider at the
+  top of the Game view shows the current factor.
+
+### Step 2: every card length is now a pixel field
+Card knobs are still **stored as fractions** — that's not a compromise, it's the point: the same
+settings have to export identically at 1200×800 and 2400×1600, just at twice the pixels, and the shader
+math has to stay resolution-independent. What changed is that the *fields* show and accept pixels of the
+current capture size, so an artist types Figma numbers. `CardPxSlider` takes a `toPx`/`fromPx` pair;
+nothing about the render path, the EditorPrefs values or `CardColorPreset` changed.
+
+**Every knob is stored relative to the CAPTURE, never to the card** — that's the key decision, and it's
+what makes "a 24 px radius is 24 px" true by construction (Mauricio, and it's how Figma/CSS behave). The
+window's conversion is then a plain multiply with nothing card-dependent in it:
+
+| Knob | Stored fraction of | → px |
+|---|---|---|
+| Card Width | capture **height** (see below) | `× FrameHPx` |
+| Margin Top / Bottom | capture height | `× FrameHPx` |
+| Corner Radius, Inner/Outer Border Width | capture **height** | `× FrameHPx` |
+| Fade Height | capture height | `× FrameHPx` |
+| Fade Softness | — | stays a 0–1 ratio: it's the share of the fade that ramps, not a length |
+
+The shader still needs card-relative numbers, so **`PushParams()` restates them**, and that's the only
+place the two unit systems meet:
+- `RoundedBoxSDF` normalizes so the card's **half**-height is 1, so radius/border widths convert as
+  `frameHFraction × 2 / cardHFrac`. The ×2 is the classic thing to get wrong — miss it and every radius
+  is half what it should be.
+- The fade ramps over the card's own `uv.y`, so it's `frameHFraction / cardHFrac` (no doubling),
+  `Clamp01`'d at the whole card.
+- **Clamping happens in frame-height terms, before the conversion**, so every quad derives from the same
+  clamped physical size. That matters because the card and the side mask must round their corners
+  identically or the mask's edge stops landing on the card's AA edge — they now both call the same
+  `ToSdf(radiusFH, thatRect'sHeight)`, which also deleted the old `× (cardH/effH)` fudge in the mask.
+  Radius clamps at SDF 0.5 (`RoundedBoxSDF` clamps to the box anyway), border widths at
+  `MAX_BORDER_WIDTH` (past it the outer ring overflows the border quad, whose oversize is sized for
+  exactly that maximum). Neither is reachable at sane margins — they only bite on a squashed sliver.
+
+Verified numerically: the stock defaults reproduce the previous card-relative values *exactly*
+(radius → SDF 0.08, inner border → 0.008, fade end → 0.2), a 24 px radius stays 24.00 px across a taller
+card / a squat card / a horizontally narrowed card, and doubling the capture height doubles it to 48 px
+(proportional, which is what you want when exporting the same design at 2×).
+
+**The four keys changed unit, so they got new names** (`…RadiusFrameH`, `…InnerBorderWidthFrameH`,
+`…OuterBorderWidthFrameH`, `…FadeHeightFrameH`). A stale value under an old key would be silently
+misread as the new unit and quietly change someone's tuned card; abandoning the old keys means everyone
+lands on the restated defaults instead. Defaults are the old values converted at the default margins
+(`cardHFrac` 0.83): radius `0.08 × 0.83/2 = 0.0332`, inner border `0.00332`, fade `0.2 × 0.83 = 0.166`.
+
+### Step 3: the card no longer changes shape with the capture aspect
+Mauricio, straight after step 2: *"when i change the res, the card breaks completely."* It did, and it was
+one line in `Layout()` — the card's width came off the frame **width** (`cw = w * (1 - 2*MarginX)`) while
+everything else came off the frame **height**. Since the camera frames the avatar by its *vertical* fov,
+the avatar's on-screen size only ever tracks the frame height, so a width-relative card changed both its
+own shape *and* its size relative to the avatar every time the aspect moved. A resolution change reshaped
+the composition instead of scaling it.
+
+Fixed by replacing the **Margin Sides** knob with **Card Width**, stored as a fraction of the frame
+**height** (`cw = h * CardWidth`), card always horizontally centred. With the height already
+height-relative, the card's aspect is now fixed by its own two knobs and the capture's aspect can't touch
+it. The frame aspect survives in exactly one place — `_frameAspect`, stashed by `Layout()` — because the
+side-mask rect is expressed in viewport fractions *per axis*, so the card's width has to be converted
+back into a width fraction there. That conversion also collapsed the mask's aspect term from
+`cardAspect × (effW/effH) × (cardHFrac/cardW)` to just `_frameAspect × (effW/effH)`; the two are
+algebraically identical, the old form only looked card-dependent.
+
+Verified by simulating `Layout` + `PushParams` across resolutions: at a fixed capture height of 800, the
+card comes out **440 × 664 px at aspect 0.6627 with a 24.00 px radius** at 600×800, 800×800, 1200×800 and
+2000×800 alike; doubling the height to 1600 doubles all of it (880 × 1328, 48 px radius) and 1080×1080
+lands in between. Nothing depends on the width any more.
+
+`MarginX`'s key is abandoned rather than reinterpreted (`OutfitStudio.Card.WidthFrameH` is new), since
+the meaning changed and not just the unit.
+
+**UI mechanics.** `maxPx` is a *callback*, not a value, because ranges move with the capture size (and,
+for radius/fade, with the card — a range may track the card even though the value doesn't: past ~a
+quarter of the card's height a "radius" stops meaning anything). `SyncCardPxFields` (polled on the card
+body, registered once outside `BuildCardBody` so rebuilds don't stack up pollers) re-reads every field,
+since the same fraction is a different pixel count after a capture-size change and there's no event for
+it. It skips whatever currently has focus, so it can't fight a drag or overwrite a half-typed number, and
+it writes with `SetValueWithoutNotify`, so its display rounding (2 dp) can never feed back into the
+model. A `Card is W × H px of a W × H capture` readout sits under the margins.
