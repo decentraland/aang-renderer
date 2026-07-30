@@ -1820,26 +1820,6 @@ namespace OutfitStudio.Editor
                 if (length > 0f) _emoteSlider.highValue = length;
             }).Every(500);
 
-            // --- Share code
-            pane.Add(Header("Share code"));
-
-            _shareCodeField = new TextField { multiline = true };
-            _shareCodeField.style.whiteSpace = WhiteSpace.Normal;
-            pane.Add(_shareCodeField);
-
-            var shareButtons = new VisualElement { style = { flexDirection = FlexDirection.Row } };
-            shareButtons.Add(new Button(() =>
-            {
-                EditorGUIUtility.systemCopyBuffer = outfit.ToShareCode();
-                SetStatus("Share code copied to clipboard");
-            }) { text = "Copy" });
-            shareButtons.Add(new Button(() =>
-            {
-                LoadOutfit(OutfitDefinition.FromShareCode(_shareCodeField.value));
-                SetStatus("Outfit loaded from share code");
-            }) { text = "Load from code" });
-            pane.Add(shareButtons);
-
             // --- Presets
             pane.Add(Header("Presets"));
 
@@ -1949,6 +1929,26 @@ namespace OutfitStudio.Editor
             turntableRow.Add(turntableButton);
             turntableRow.Add(durationField);
             pane.Add(turntableRow);
+
+            // --- Share code
+            pane.Add(Header("Share code"));
+
+            _shareCodeField = new TextField { multiline = true };
+            _shareCodeField.style.whiteSpace = WhiteSpace.Normal;
+            pane.Add(_shareCodeField);
+
+            var shareButtons = new VisualElement { style = { flexDirection = FlexDirection.Row } };
+            shareButtons.Add(new Button(() =>
+            {
+                EditorGUIUtility.systemCopyBuffer = outfit.ToShareCode();
+                SetStatus("Share code copied to clipboard");
+            }) { text = "Copy" });
+            shareButtons.Add(new Button(() =>
+            {
+                LoadOutfit(OutfitDefinition.FromShareCode(_shareCodeField.value));
+                SetStatus("Outfit loaded from share code");
+            }) { text = "Load from code" });
+            pane.Add(shareButtons);
 
             return pane;
         }
