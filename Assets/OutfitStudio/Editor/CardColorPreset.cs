@@ -29,5 +29,9 @@ namespace OutfitStudio.Editor
         /// field existed) the preset applies the bundled <c>DclBackgroundPattern</c> — a preset always
         /// fully determines the look rather than half-inheriting the current one.</summary>
         public Texture2D pattern;
+
+        /// <summary>Whether the pattern draws at all. Defaults true so presets authored before this
+        /// field existed (2026-07-31) keep showing their pattern rather than silently going blank.</summary>
+        public bool patternEnabled = true;
     }
 }

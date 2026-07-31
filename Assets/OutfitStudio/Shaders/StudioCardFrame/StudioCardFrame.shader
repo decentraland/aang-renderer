@@ -34,6 +34,9 @@ Shader "Custom/StudioCardFrame"
         _DclOverlayDirection ("DCL Overlay Direction", Vector) = (1, -1.25, 0, 0)
         _DclOverlaySpeed ("DCL Overlay Speed", Float) = 0.06
         _DclOverlayAlpha ("DCL Overlay Alpha", Range(0,1)) = 0.573
+        // 0 = pattern-less card (just the inner/outer vignette); driven from
+        // StudioCardFrame.PatternEnabled, not exposed as a texture-absence hack any more.
+        _DclPatternEnabled ("DCL Pattern Enabled", Range(0,1)) = 1
         _DclGlowColor ("DCL Glow Color", Color) = (0.66, 0, 0.745, 1)
         _DclGlowStrength ("DCL Glow Strength", Float) = 0.59
         // Reference material has this off-center at (0.68, 0.5); kept centered here on purpose so the
@@ -115,7 +118,7 @@ Shader "Custom/StudioCardFrame"
             float4 _DclOverlayColor;
             float _DclOverlayTiling, _DclTileScale;
             float2 _DclOverlayDirection;
-            float _DclOverlaySpeed, _DclOverlayAlpha;
+            float _DclOverlaySpeed, _DclOverlayAlpha, _DclPatternEnabled;
             float4 _DclGlowColor;
             float _DclGlowStrength;
             float2 _DclGlowCenter, _DclGlowRadius;
@@ -169,7 +172,7 @@ Shader "Custom/StudioCardFrame"
                 float2 overlayUv = uv * tiling;
                 overlayUv += _Time.y * _DclOverlayDirection * _DclOverlaySpeed;
                 float4 overlay = SAMPLE_TEXTURE2D(_DclOverlayTex, sampler_DclOverlayTex, overlayUv) * _DclOverlayColor;
-                overlay.a *= _DclOverlayAlpha * mask;
+                overlay.a *= _DclOverlayAlpha * mask * _DclPatternEnabled;
 
                 float3 vignetteHsv = RgbToHsv(vignette);
                 float3 overlayHsv = RgbToHsv(overlay.rgb);

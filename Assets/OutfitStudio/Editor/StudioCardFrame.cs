@@ -55,6 +55,7 @@ namespace OutfitStudio.Editor
         private const string K_DCL_INNER = "OutfitStudio.Card.DclInnerColor";
         private const string K_DCL_OUTER = "OutfitStudio.Card.DclOuterColor";
         private const string K_PATTERN = "OutfitStudio.Card.PatternTex"; // asset GUID, empty = bundled default
+        private const string K_PATTERN_ENABLED = "OutfitStudio.Card.PatternEnabled";
         private const string K_SIDEMASK = "OutfitStudio.Card.SideMask";
         private const string K_BOTTOMMASK = "OutfitStudio.Card.BottomMask";
         // Replaced K_MARGIN_X ("OutfitStudio.Card.MarginX") on 2026-07-30: side margins were a fraction of
@@ -89,6 +90,7 @@ namespace OutfitStudio.Editor
         private static readonly int DclTileScaleId = Shader.PropertyToID("_DclTileScale");
         private static readonly int DclInnerColorId = Shader.PropertyToID("_DclInnerColor");
         private static readonly int DclOuterColorId = Shader.PropertyToID("_DclOuterColor");
+        private static readonly int DclPatternEnabledId = Shader.PropertyToID("_DclPatternEnabled");
         private static readonly int ZTestId = Shader.PropertyToID("_ZTest");
         private static readonly int ZWriteId = Shader.PropertyToID("_ZWrite");
         private static readonly int SrcBlendId = Shader.PropertyToID("_SrcBlend");
@@ -151,11 +153,12 @@ namespace OutfitStudio.Editor
 
         /// <summary>
         /// The tiling pattern sampled over the card's vignette. Defaults to the bundled
-        /// <c>DclBackgroundPattern.png</c> (Explorer's icon atlas); point it at any other texture to
-        /// re-skin the card. Clearing the field falls back to the default rather than leaving the card
-        /// pattern-less — the paint's luminosity blend has no neutral texture value, so "no pattern"
-        /// isn't expressible without a shader gate; use a flat texture if you want the vignette alone.
-        /// Tile it with Wrap Mode = Repeat, or it'll clamp into streaks at the card edges.
+        /// <c>DclBackgroundPattern.png</c> (Explorer's icon atlas) whenever no custom asset is chosen;
+        /// point it at any other texture to re-skin the card. Tile it with Wrap Mode = Repeat, or it'll
+        /// clamp into streaks at the card edges. Whether the pattern draws at all is
+        /// <see cref="PatternEnabled"/> — setting this to null (e.g. the Pattern field's "None") turns
+        /// the pattern off rather than reverting to the bundled default; assign an asset to turn it back
+        /// on.
         /// </summary>
         public static Texture2D PatternTexture
         {
@@ -176,7 +179,8 @@ namespace OutfitStudio.Editor
             set
             {
                 // Store the GUID, not the path, so moving or renaming the asset doesn't break the
-                // reference. A null (or a non-asset texture, e.g. a built-in) clears back to the default.
+                // reference. A null (or a non-asset texture, e.g. a built-in) clears back to the default
+                // texture reference AND switches the pattern off — see PatternEnabled.
                 var guid = "";
                 if (value != null)
                 {
@@ -184,8 +188,19 @@ namespace OutfitStudio.Editor
                     if (!string.IsNullOrEmpty(path)) guid = AssetDatabase.AssetPathToGUID(path);
                 }
                 EditorPrefs.SetString(K_PATTERN, guid);
-                Refresh();
+                PatternEnabled = value != null;
             }
+        }
+
+        /// <summary>
+        /// Whether the pattern draws at all — the shader gate that makes "no pattern" (just the
+        /// inner/outer vignette colours) expressible, since the pattern's luminosity blend has no
+        /// neutral texture value. On by default so a fresh install still shows the bundled pattern.
+        /// </summary>
+        public static bool PatternEnabled
+        {
+            get => EditorPrefs.GetBool(K_PATTERN_ENABLED, true);
+            set { EditorPrefs.SetBool(K_PATTERN_ENABLED, value); Refresh(); }
         }
 
         /// <summary>The two colours the card's radial vignette blends between (inner → outer). These
@@ -353,7 +368,8 @@ namespace OutfitStudio.Editor
             foreach (var k in new[]
                      {
                          K_CARD_WIDTH, K_MARGIN_TOP, K_MARGIN_BOTTOM, K_RADIUS, K_BORDER, K_INNER_BORDER_W,
-                         K_OUTER_BORDER_W, K_FADE_H, K_FADE_S, K_DCL_INNER, K_DCL_OUTER, K_PATTERN
+                         K_OUTER_BORDER_W, K_FADE_H, K_FADE_S, K_DCL_INNER, K_DCL_OUTER, K_PATTERN,
+                         K_PATTERN_ENABLED
                      })
                 EditorPrefs.DeleteKey(k);
             Refresh();
@@ -688,6 +704,7 @@ namespace OutfitStudio.Editor
         {
             var pattern = PatternTexture;
             if (pattern != null) mat.SetTexture(DclOverlayTexId, pattern);
+            mat.SetFloat(DclPatternEnabledId, PatternEnabled ? 1f : 0f);
             mat.SetColor(DclInnerColorId, DclInnerColor);
             mat.SetColor(DclOuterColorId, DclOuterColor);
             mat.SetFloat(DclTileScaleId, tileScale);

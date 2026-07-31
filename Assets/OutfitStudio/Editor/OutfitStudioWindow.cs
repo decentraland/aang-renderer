@@ -2254,6 +2254,7 @@ namespace OutfitStudio.Editor
                 preset.cardOuter = StudioCardFrame.DclOuterColor;
                 preset.border = StudioCardFrame.Border;
                 preset.pattern = StudioCardFrame.PatternTexture;
+                preset.patternEnabled = StudioCardFrame.PatternEnabled;
                 AssetDatabase.CreateAsset(preset, path);
                 AssetDatabase.SaveAssets();
                 BuildCardBody(c); // show the new preset button
@@ -2276,18 +2277,17 @@ namespace OutfitStudio.Editor
             {
                 objectType = typeof(Texture2D),
                 allowSceneObjects = false,
-                value = StudioCardFrame.PatternTexture,
+                value = StudioCardFrame.PatternEnabled ? StudioCardFrame.PatternTexture : null,
                 tooltip = "Tiling pattern drawn over the card's vignette. Defaults to the bundled " +
-                          "DclBackgroundPattern (Explorer's icon atlas); clearing the field goes back " +
-                          "to it. Import the replacement with Wrap Mode = Repeat, or it will clamp " +
-                          "into streaks at the card edges."
+                          "DclBackgroundPattern (Explorer's icon atlas). Set to None for no pattern at " +
+                          "all — just the Inner/Outer vignette. Import a replacement with Wrap Mode = " +
+                          "Repeat, or it will clamp into streaks at the card edges."
             };
             pattern.RegisterValueChangedCallback(e =>
             {
-                StudioCardFrame.PatternTexture = e.newValue as Texture2D;
-                // Clearing the field resolves back to the bundled default, so show what's actually in
-                // use rather than leaving the control empty.
-                pattern.SetValueWithoutNotify(StudioCardFrame.PatternTexture);
+                var tex = e.newValue as Texture2D;
+                if (tex != null) StudioCardFrame.PatternTexture = tex;
+                else StudioCardFrame.PatternEnabled = false;
             });
             c.Add(pattern);
 
@@ -2454,7 +2454,8 @@ namespace OutfitStudio.Editor
             StudioCardFrame.DclInnerColor = p.cardInner;
             StudioCardFrame.DclOuterColor = p.cardOuter;
             StudioCardFrame.Border = p.border;
-            StudioCardFrame.PatternTexture = p.pattern;
+            StudioCardFrame.PatternTexture = p.pattern; // may provisionally flip PatternEnabled if null
+            StudioCardFrame.PatternEnabled = p.patternEnabled; // preset's actual on/off wins
         }
 
         // Create an "Assets/…"-relative folder (and any missing parents) if it doesn't exist yet.

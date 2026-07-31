@@ -61,14 +61,18 @@ Assets/OutfitStudio/
 │   └── StudioCardFrame/           # unlit shader for the Fortnite-style card frame (§18)
 ├── Textures/
 │   └── DclBackgroundPattern.png   # icon-pattern overlay, ported from Explorer's loading screen (§18)
+├── CardPresets/                   # CardColorPreset assets (card paint skins, §18)
 └── Editor/
-    ├── OutfitCapture.cs           # still (RenderPipeline request) + video (Unity Recorder)
+    ├── OutfitCapture.cs           # stills + video, both via Unity Recorder (§8)
     ├── EditModeAvatarPreview.cs   # edit-mode outfit assembly on the scene skeleton (§11)
     ├── StudioAvatarShaderSwitcher.cs # 3-way shader enforcement + matcap bootstrap (§16)
-    ├── StudioCardFrame.cs         # camera-parented card-frame quads (bg/card/fade) (§18)
+    ├── StudioCardFrame.cs         # camera-parented card-frame quads (card/fade/mask/border) (§18)
+    ├── StudioGameViewSize.cs      # pins the Game view to the capture's pixel size (§20)
+    ├── CardColorPreset.cs         # ScriptableObject: the card's 3 colours + pattern (§18)
     └── OutfitStudioWindow.cs      # the EditorWindow (all UI + orchestration)
 ```
 (Plus `Editor/StudioSceneOverlayHider.cs`, `Editor/StudioRenderPipelineSwitcher.cs`,
+`Editor/StudioFlyCameraController.cs` (§12a), `Editor/StudioShaderPreset.cs`,
 `Editor/BuilderIdentity.cs`, `Editor/BuilderCollectionService.cs`, `Editor/Plugins/` (vendored
 DLLs), `Scenes/OutfitStudio.unity`, `Settings/URP_Asset_Studio.asset` — see §13/§14.)
 
@@ -1244,15 +1248,28 @@ All knobs live on `StudioCardFrame` as EditorPrefs-backed static properties (key
 `OutfitStudio.Card.*`); the window builds fields from them (`BuildCardFrame`/`BuildCardBody`),
 setters push live. Groups: **Card** (inner/outer vignette colour, **Pattern** texture, side/top/bottom
 margins, corner radius, border colour + inner/outer width) and **Bottom fade** (height, softness).
-**Pattern** (2026-07-30) is an `ObjectField` over `StudioCardFrame.PatternTexture`, which persists the
-chosen texture's **asset GUID** (not its path — renaming/moving the asset mustn't break the reference)
-and resolves back to the bundled `DclBackgroundPattern.png` when the key is empty or the GUID no longer
-resolves. Clearing the field therefore *reverts to the default* rather than removing the pattern; the
-field is re-shown with the resolved texture so it never reads as empty. A replacement must import with
-**Wrap Mode = Repeat** or it clamps into streaks at the card edges. Truly *removing* the pattern isn't
-expressible without a shader gate — the luminosity blend has no neutral texture value — so use a flat
-texture if you want the vignette on its own. "Reset card
-defaults" clears the keys. **Defaults were re-baselined 2026-07-30** to the look Mauricio dialled in
+**Pattern** (2026-07-30, gated 2026-07-31) is an `ObjectField` over `StudioCardFrame.PatternTexture`,
+which persists the chosen texture's **asset GUID** (not its path — renaming/moving the asset mustn't
+break the reference) and resolves back to the bundled `DclBackgroundPattern.png` when the key is empty
+or the GUID no longer resolves (still true whenever the pattern is *on*: assigning a texture always
+turns it back on). A replacement must import with **Wrap Mode = Repeat** or it clamps into streaks at
+the card edges.
+
+**No pattern at all (2026-07-31):** setting the field to **None** now genuinely removes the pattern —
+just the Inner/Outer vignette — rather than reverting to the bundled default the way it used to
+(Mauricio: selecting None always redrew the Decentraland pattern, which wasn't what "None" should mean).
+This needed a real shader gate, since the luminosity blend has no neutral texture value that reads as
+"no pattern" — a flat/black texture still tints the vignette. `_DclPatternEnabled` (0/1, multiplied
+straight into `overlay.a` in `DclCardPaint`) is the gate; `StudioCardFrame.PatternEnabled` is the
+EditorPrefs-backed switch behind it (`OutfitStudio.Card.PatternEnabled`, default **true** so a fresh
+install still shows the bundled pattern). `PatternTexture`'s setter flips it as a side effect (null →
+off, an asset → on) so the ObjectField alone drives both; `CardColorPreset` gained a matching
+`patternEnabled` bool (default **true**, so presets saved before this field existed keep showing
+whatever pattern they had) and `ApplyCardPreset` sets it *after* `PatternTexture`, since assigning
+`p.pattern` (possibly null, meaning "bundled default" on old presets) would otherwise stomp the correct
+enabled state via that same side effect. "Reset card
+defaults" clears the keys (including `PatternEnabled`, so a reset always comes back with the pattern
+on). **Defaults were re-baselined 2026-07-30** to the look Mauricio dialled in
 (replacing the 2026-07-17 ones): vignette `#BF00FF`→`#4D0080` (unchanged — the reference material's
 pair) and border `#FF8158`. The geometry defaults were then restated twice the same day as the px work
 landed (§20) — first into frame-height units, then when side margins became a card width — and now read:
@@ -1452,9 +1469,15 @@ track the view (incl. drag-rotate, which rotates the avatar only). Recreated aft
    appears behind the avatar within ~0.5 s, painted magenta-centre → dark-purple-edges with the icon
    pattern over it; **nothing** behind the card; head overflows the top; legs fade into the card at
    the bottom, with the fade's colour indistinguishable from the card's at the seam.
-3. Tweak Inner/Outer colour, margins, radius, border, fade → live update. Changing margins must NOT
-   change the pattern's icon size (that's what `_DclTileScale` is for). Drag-rotate → the card stays
-   put, the avatar rotates.
+3. Tweak Inner/Outer colour, Pattern, Card Width, margins, radius, border, fade → live update. Every
+   length is in **px** (§20): type a 24 px radius, then change Card Width and the top/bottom margins —
+   it must still measure 24 px, and the readout under the margins must track the card's size (plus the
+   outer border's extra footprint, width both sides / height bottom only). Changing margins must NOT
+   change the pattern's icon size either (that's what `_DclTileScale` is for). Drag-rotate → the card
+   stays put, the avatar rotates.
+3b. **Change the capture Size, then press "Match Game view to capture size"** → the status line goes
+   green and the card is *identical in shape*, just scaled: only the capture height should change any
+   pixel value, never the width (§20 step 3). This is the one that used to break the card completely.
 4. Enter play → the area outside the card goes black (`SyncCameraClear`), not the scene camera's
    purple. Pick a pose, **Capture Still** at e.g. 900×1350 → PNG shows the card + avatar opaque and
    everything around the card **transparent** (set the Game view to a 2:3 portrait aspect first).
