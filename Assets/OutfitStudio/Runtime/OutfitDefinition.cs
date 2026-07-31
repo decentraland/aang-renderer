@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using Runtime.Wearables;
 using UnityEngine;
 
 namespace OutfitStudio
@@ -32,6 +34,35 @@ namespace OutfitStudio
         /// </summary>
         public List<string> base64Items = new();
 
+        /// <summary>
+        /// Categories that render even when another equipped wearable's <c>hides</c>/<c>replaces</c>
+        /// list would suppress them — the same mechanism as a profile's <c>forceRender</c>. Studio-only:
+        /// the renderer's query string has no <c>forceRender</c> parameter, so this cannot travel in a
+        /// share code and only survives in a preset (see <see cref="ToShareCode"/>).
+        /// </summary>
+        public List<string> forceRender = new();
+
+        /// <summary>
+        /// Force-renders every category at once, so no wearable can hide another. Kept separate from
+        /// <see cref="forceRender"/> so toggling it off restores the individual picks underneath.
+        /// </summary>
+        public bool ignoreAllHides;
+
+        /// <summary>
+        /// The force-render list to hand to the avatar loader: every known category when
+        /// <see cref="ignoreAllHides"/> is set, otherwise the explicit per-slot picks.
+        ///
+        /// Note this is never null — an empty array and null are NOT equivalent inside
+        /// <c>WearableUtils.ResolveHidingConflicts</c>, and empty is what the runtime passes for a
+        /// profile with no force-render set, which is the behaviour the studio should match.
+        /// </summary>
+        public string[] EffectiveForceRender() =>
+            ignoreAllHides
+                ? WearableCategories.CATEGORIES_PRIORITY
+                    .Union(WearableCategories.SKIN_IMPLICIT_CATEGORIES)
+                    .ToArray()
+                : forceRender.ToArray();
+
         public OutfitDefinition Clone()
         {
             return new OutfitDefinition
@@ -42,7 +73,9 @@ namespace OutfitStudio
                 hairColor = hairColor,
                 eyeColor = eyeColor,
                 emote = emote,
-                base64Items = new List<string>(base64Items)
+                base64Items = new List<string>(base64Items),
+                forceRender = new List<string>(forceRender),
+                ignoreAllHides = ignoreAllHides
             };
         }
 
@@ -81,8 +114,15 @@ namespace OutfitStudio
             foreach (var base64 in base64Items)
                 sb.AppendFormat("&base64={0}", Uri.EscapeDataString(base64));
 
+            // forceRender/ignoreAllHides are deliberately NOT emitted: AangConfiguration.RecreateFrom
+            // has no parameter for them, so a code carrying one would load with the hides back on and
+            // silently differ from the studio. The window warns while an override is active.
+
             return sb.ToString();
         }
+
+        /// <summary>Whether any hide override is active (so the UI can warn that share codes drop it).</summary>
+        public bool HasForceRenderOverrides => ignoreAllHides || forceRender.Count > 0;
 
         /// <summary>
         /// Parses a share code (or any renderer URL containing one). Unknown parameters are

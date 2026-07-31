@@ -56,6 +56,16 @@ public class AangConfiguration
     public bool EmoteLoop { get; set; } = false;
 
     /// <summary>
+    /// Categories that render even when another equipped wearable hides them (same meaning as a
+    /// profile's <c>forceRender</c>, which Profile mode already honors). Builder mode has no such
+    /// field of its own, so the Outfit Studio sets this to override hides on a custom outfit; there
+    /// is deliberately no query parameter for it, so a URL-loaded avatar always keeps its hides.
+    /// Never null — empty and null are not equivalent in WearableUtils.ResolveHidingConflicts, and
+    /// empty is what a profile without force-render resolves to.
+    /// </summary>
+    public string[] ForceRender { get; set; } = Array.Empty<string>();
+
+    /// <summary>
     /// The base64 encoded GLB to load.
     /// </summary>
     public List<byte[]> Base64 { get; } = new();

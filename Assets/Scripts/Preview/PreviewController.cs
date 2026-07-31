@@ -321,7 +321,7 @@ namespace Preview
             await avatarLoader.LoadAvatar(bodyShape,
                 wearableEntities,
                 emoteEntity,
-                Array.Empty<string>(),
+                AangConfiguration.Instance.ForceRender,
                 colors);
 
             if (AangConfiguration.Instance.DisableFace)

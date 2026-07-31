@@ -109,70 +109,19 @@ namespace OutfitStudio.Editor
 
                 status("Loading outfit (edit mode)...", false);
 
-                // --- Resolve entities
-                var bodyShape = outfit.bodyShape.Equals(WearablesConstants.BODY_SHAPE_FEMALE,
-                    StringComparison.OrdinalIgnoreCase)
-                    ? BodyShape.Female
-                    : BodyShape.Male;
-
-                await EntityService.PreloadBodyEntities();
-
-                var requestedUrns = outfit.urns.Select(URNUtils.SanitizeURN).ToArray();
-                var urnEntities = await EntityService.GetEntities(requestedUrns);
+                // --- Resolve entities (shared with OutfitHidingReport so both agree on the slot rules)
+                var resolved = await OutfitEntityResolver.Resolve(outfit, status);
 
                 if (sequence != _applySequence) return;
 
-                // Entities the catalyst couldn't resolve (e.g. third-party/linked wearables)
-                // are skipped with a warning instead of failing the whole preview
-                var resolvedUrns = urnEntities.Select(e => e.URN).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                var unresolved = requestedUrns.Where(urn => !resolvedUrns.Contains(urn)).ToList();
-                if (unresolved.Count > 0)
-                {
-                    Debug.LogWarning($"[OutfitStudio] Could not resolve entities for: {string.Join(", ", unresolved)}");
-                }
+                var bodyShape = resolved.BodyShape;
+                var definitions = resolved.Definitions;
+                var unresolved = resolved.Unresolved;
 
-                // Slot dedup + body-shape validity (mirrors PreviewController.LoadForBuilder,
-                // but skips invalid representations instead of letting the loader throw)
-                var slots = new Dictionary<string, EntityDefinition>();
-                foreach (var entity in urnEntities.Where(e => e.Type != EntityType.Emote))
-                {
-                    if (!entity.HasRepresentation(bodyShape))
-                    {
-                        status($"Skipped {entity.URN[(entity.URN.LastIndexOf(':') + 1)..]}: no {bodyShape} representation", true);
-                        continue;
-                    }
-
-                    slots[entity.Category] = entity;
-                }
-
-                // Draft (builder) items — base64 wins per category, same as LoadForBuilder.
-                // Draft emotes are play-mode-only (edit mode is a static pose) and skipped here.
-                foreach (var base64 in outfit.base64Items)
-                {
-                    try
-                    {
-                        var entity = EntityDefinition.FromBase64(OutfitDefinition.DecodeBase64(base64));
-
-                        if (entity.Type == EntityType.Emote) continue;
-
-                        if (!entity.HasRepresentation(bodyShape))
-                        {
-                            status($"Skipped draft {entity.URN}: no {bodyShape} representation", true);
-                            continue;
-                        }
-
-                        slots[entity.Category] = entity;
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogWarning($"[OutfitStudio] Failed to parse draft item: {e.Message}");
-                    }
-                }
-
-                var definitions = new List<EntityDefinition> { EntityService.GetBodyEntity(bodyShape) };
-                definitions.AddRange(slots.Values);
-
-                var hiddenCategories = AvatarUtils.HideWearables(bodyShape, definitions, Array.Empty<string>());
+                // Force-render picks come from the outfit, so a hide the artist deliberately overrode
+                // in the slot list stays overridden here. Never null — see EffectiveForceRender.
+                var hiddenCategories =
+                    AvatarUtils.HideWearables(bodyShape, definitions, outfit.EffectiveForceRender());
 
                 // --- Diff current preview state
                 if (_loadedBodyShape != null && _loadedBodyShape != bodyShape)
@@ -271,9 +220,11 @@ namespace OutfitStudio.Editor
                 SampleIdlePose(avatarAnimation);
                 RepaintViews(bodyGO);
 
+                var wearableCount = definitions.Count - 1; // definitions[0] is the body entity
+
                 status(unresolved.Count > 0
-                        ? $"Preview updated — {slots.Count} wearables, {unresolved.Count} unresolved (see console)"
-                        : $"Preview updated (edit mode) — {slots.Count} wearables",
+                        ? $"Preview updated — {wearableCount} wearables, {unresolved.Count} unresolved (see console)"
+                        : $"Preview updated (edit mode) — {wearableCount} wearables",
                     unresolved.Count > 0);
             }
             catch (Exception e)

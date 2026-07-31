@@ -362,11 +362,25 @@ namespace OutfitStudio.Editor
         {
             APIService.Environment = envIndex == 1 ? "zone" : "org";
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+            OutfitHidingReport.Changed += OnHidingReportChanged;
         }
 
         private void OnDisable()
         {
             EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            OutfitHidingReport.Changed -= OnHidingReportChanged;
+        }
+
+        /// <summary>
+        /// Re-labels the slot rows once an avatar assembly has resolved which categories are hidden.
+        /// Fires from inside the loader, so the rebuild is deferred to the next frame rather than
+        /// mutating the visual tree mid-load.
+        /// </summary>
+        private void OnHidingReportChanged()
+        {
+            if (_slotsContainer == null) return;
+
+            rootVisualElement.schedule.Execute(RefreshSlots);
         }
 
         private void OnPlayModeStateChanged(PlayModeStateChange state)
@@ -2560,11 +2574,18 @@ namespace OutfitStudio.Editor
 
             _slotsContainer.Clear();
 
+            BuildHidingControls();
+
+            // Categories that got their own row, so BuildHiddenBodyRows can cover the rest
+            var rowCategories = new HashSet<string>();
+
             // Draft (builder collection) items — shown above the catalog ones
             foreach (var base64 in outfit.base64Items.ToList())
             {
                 var (name, category, isEmote) = DescribeDraft(base64);
                 if (isEmote) continue; // the pose row covers draft emotes
+
+                rowCategories.Add(category);
 
                 var row = new VisualElement
                 {
@@ -2575,6 +2596,8 @@ namespace OutfitStudio.Editor
                 {
                     style = { flexGrow = 1, overflow = Overflow.Hidden, textOverflow = TextOverflow.Ellipsis, marginLeft = 4 }
                 });
+
+                AddHidingBadge(row, category);
 
                 row.Add(new Button(() =>
                 {
@@ -2616,12 +2639,16 @@ namespace OutfitStudio.Editor
                 }
 
                 var slot = known?.Slot ?? "?";
+                rowCategories.Add(slot);
+
                 var name = known?.name ?? urn[(urn.LastIndexOf(':') + 1)..];
                 row.Add(new Label($"[{slot}] {name}")
                 {
                     tooltip = urn,
                     style = { flexGrow = 1, overflow = Overflow.Hidden, textOverflow = TextOverflow.Ellipsis, marginLeft = 4 }
                 });
+
+                AddHidingBadge(row, slot);
 
                 row.Add(new Button(() =>
                 {
@@ -2633,6 +2660,161 @@ namespace OutfitStudio.Editor
 
                 _slotsContainer.Add(row);
             }
+
+            BuildHiddenBodyRows(rowCategories);
+        }
+
+        // ---------------------------------------------------------------- Hide overrides (forceRender)
+
+        /// <summary>
+        /// The master "ignore all hides" switch plus the warning that share codes can't carry hide
+        /// overrides. Per-slot toggles live on the rows themselves (see <see cref="AddHidingBadge"/>).
+        /// </summary>
+        private void BuildHidingControls()
+        {
+            var master = new Toggle("Ignore all hides")
+            {
+                value = outfit.ignoreAllHides,
+                tooltip = "Force-renders every category, so no wearable can hide another.\n\n" +
+                          "Body parts displaced by a wearable in the same slot (bare feet under shoes) " +
+                          "stay hidden regardless — that's slot occupancy, not a hide. Expect the " +
+                          "geometry these hides existed to avoid: doubled hands on older upper bodies, " +
+                          "everything poking through a skin."
+            };
+            master.RegisterValueChangedCallback(evt =>
+            {
+                outfit.ignoreAllHides = evt.newValue;
+                RefreshSlots();
+                ScheduleApply();
+            });
+            _slotsContainer.Add(master);
+
+            if (!outfit.HasForceRenderOverrides) return;
+
+            _slotsContainer.Add(new Label("Hide overrides are preset-only — share codes and the web " +
+                                          "renderer load with the hides back on.")
+            {
+                style =
+                {
+                    unityFontStyleAndWeight = FontStyle.Italic,
+                    color = new Color(0.85f, 0.6f, 0.2f),
+                    whiteSpace = WhiteSpace.Normal,
+                    marginBottom = 2
+                }
+            });
+        }
+
+        /// <summary>
+        /// Rows for categories that are hidden but have no equipped item of their own — body geometry
+        /// like <c>hands</c> and <c>head</c>. Without these there'd be no way to reach the most common
+        /// hide of all: an older upper body suppressing the body's hands (AvatarUtils.ShouldHideHands),
+        /// since "hands" is never a slot in the outfit list.
+        /// </summary>
+        private void BuildHiddenBodyRows(HashSet<string> rowCategories)
+        {
+            // Force-rendered categories stay listed even though they're no longer hidden — otherwise
+            // forcing one removes the only row carrying its toggle and it can never be un-forced.
+            var bodyOnly = OutfitHidingReport.HiddenBy.Keys
+                .Concat(outfit.forceRender)
+                .Distinct()
+                .Where(category => !rowCategories.Contains(category))
+                .OrderBy(category => category)
+                .ToList();
+
+            if (bodyOnly.Count == 0) return;
+
+            _slotsContainer.Add(new Label("Hidden body parts")
+            {
+                style = { unityFontStyleAndWeight = FontStyle.Bold, marginTop = 6 }
+            });
+
+            foreach (var category in bodyOnly)
+            {
+                var row = new VisualElement
+                {
+                    style = { flexDirection = FlexDirection.Row, alignItems = Align.Center, marginTop = 2 }
+                };
+
+                row.Add(new Label($"[{category}]")
+                {
+                    style = { flexGrow = 1, marginLeft = 4, color = Color.gray }
+                });
+
+                AddHidingBadge(row, category);
+                _slotsContainer.Add(row);
+            }
+        }
+
+        /// <summary>
+        /// Adds the "hidden by &lt;category&gt;" label and the per-slot force-render toggle to a slot row.
+        ///
+        /// The hidden set comes from <see cref="OutfitHidingReport"/>, which runs the renderer's own
+        /// hiding rules over the outfit, so the badge reflects what the loader would do rather than a
+        /// guess. It's recomputed per apply, so a freshly equipped item is badged when the debounced
+        /// apply completes rather than on the click.
+        /// </summary>
+        private void AddHidingBadge(VisualElement row, string category)
+        {
+            if (string.IsNullOrEmpty(category) || category == "?") return;
+
+            var forced = outfit.forceRender.Contains(category);
+            var hiddenBy = OutfitHidingReport.HiddenBy.GetValueOrDefault(category);
+
+            if (hiddenBy != null)
+            {
+                row.Add(new Label($"hidden by {hiddenBy}")
+                {
+                    tooltip = $"The equipped {hiddenBy} lists {category} in its hides/replaces, " +
+                              "so this item is not rendered.",
+                    style =
+                    {
+                        unityFontStyleAndWeight = FontStyle.Italic,
+                        color = new Color(0.85f, 0.6f, 0.2f),
+                        marginRight = 4
+                    }
+                });
+            }
+            else if (forced)
+            {
+                // Nothing is hiding it anymore *because* it's forced — say so, otherwise the lit
+                // toggle looks like it's doing nothing.
+                row.Add(new Label("forced")
+                {
+                    tooltip = $"{category} is force-rendered, so other wearables can't hide it.",
+                    style =
+                    {
+                        unityFontStyleAndWeight = FontStyle.Italic,
+                        color = new Color(0.45f, 0.75f, 0.45f),
+                        marginRight = 4
+                    }
+                });
+            }
+
+            var toggle = new Button
+            {
+                text = "F",
+                tooltip = outfit.ignoreAllHides
+                    ? "Every category is already force-rendered by \"Ignore all hides\"."
+                    : $"Force-render {category}: keep it visible even when another wearable hides it.\n\n" +
+                      "Only un-hides this category — if two items hide each other, force both.",
+                style =
+                {
+                    width = 20,
+                    color = forced ? new Color(0.45f, 0.85f, 0.45f) : Color.gray,
+                    unityFontStyleAndWeight = forced ? FontStyle.Bold : FontStyle.Normal
+                }
+            };
+            // The master switch already forces everything; leaving these live would let a click
+            // toggle a list entry with no visible effect.
+            toggle.SetEnabled(!outfit.ignoreAllHides);
+            toggle.clicked += () =>
+            {
+                if (forced) outfit.forceRender.Remove(category);
+                else outfit.forceRender.Add(category);
+                RefreshSlots();
+                ScheduleApply();
+            };
+            row.Add(toggle);
         }
 
         private void RefreshShareCode()
@@ -2691,6 +2873,11 @@ namespace OutfitStudio.Editor
             HydrateKnownItems();
             RefreshSlots();
             RefreshShareCode();
+
+            // Not via ScheduleApply: with auto-apply off nothing else would recompute, leaving the
+            // badges describing the outfit that was loaded before this one.
+            OutfitHidingReport.Refresh(BuildPreviewOutfit());
+
             ScheduleApply();
         }
 
@@ -2746,6 +2933,10 @@ namespace OutfitStudio.Editor
         {
             var previewOutfit = BuildPreviewOutfit(); // outfit + local face-feature overrides, never shared
 
+            // Badges come from the outfit, not from the loaded avatar, so they're computed for both
+            // preview paths (and stay correct if a Random Profile is loaded in play mode afterwards).
+            OutfitHidingReport.Refresh(previewOutfit);
+
             if (!Application.isPlaying)
             {
                 // Edit-mode 3D preview: assembles onto the scene skeleton without play mode.
@@ -2769,6 +2960,7 @@ namespace OutfitStudio.Editor
             config.SetHairColor(ColorUtility.ToHtmlStringRGB(outfit.hairColor));
             config.SetEyeColor(ColorUtility.ToHtmlStringRGB(outfit.eyeColor));
             config.Emote = string.IsNullOrEmpty(outfit.emote) ? "idle" : outfit.emote;
+            config.ForceRender = outfit.EffectiveForceRender();
 
             // Draft (builder) items — LoadForBuilder gives base64 per-category priority
             // and a base64 emote overrides the pose
