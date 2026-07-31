@@ -653,12 +653,40 @@ namespace OutfitStudio.Editor
                           "Off shows everything, on sale or not.",
                 style = { marginLeft = 4 }
             };
+            var primarySalesToggle = new Toggle("Primary Sales")
+            {
+                value = _query.OnlyMinting,
+                tooltip = "Only show primary sales - items still mintable from the creator's own " +
+                          "collection. Every secondary sale (an item only available through someone " +
+                          "else's listing) drops out. Implies \"On Sale\", which is switched on and " +
+                          "off with it.",
+                style = { marginLeft = 4 }
+            };
+
+            // The two filters are nested, not independent: a primary sale is always on sale, so the
+            // pair is kept consistent instead of allowing the contradictory "Primary Sales on, On Sale
+            // off" state. SetValueWithoutNotify on the follower avoids a second redundant re-query.
             onSaleToggle.RegisterValueChangedCallback(evt =>
             {
                 _query.IsOnSale = evt.newValue;
+                if (!evt.newValue && _query.OnlyMinting)
+                {
+                    _query.OnlyMinting = false;
+                    primarySalesToggle.SetValueWithoutNotify(false);
+                }
+
                 ResetAndSearch(); // server-side filter (see CatalogService.BuildUrl), so re-query
             });
             filters.Add(onSaleToggle);
+
+            primarySalesToggle.RegisterValueChangedCallback(evt =>
+            {
+                _query.OnlyMinting = evt.newValue;
+                _query.IsOnSale = evt.newValue;
+                onSaleToggle.SetValueWithoutNotify(evt.newValue);
+                ResetAndSearch(); // server-side filter too, so re-query
+            });
+            filters.Add(primarySalesToggle);
 
             _invertSortButton = new Button(() =>
             {
@@ -1479,6 +1507,10 @@ namespace OutfitStudio.Editor
             // never be shown to be on sale - with the toggle on, those extras drop out and the results
             // narrow to what marketplace-api itself filtered.
             if (_query.IsOnSale && !item.IsBuyable) return false;
+
+            // Same reasoning, one step narrower: isOnSale on its own is exactly "mintable from the
+            // creator's collection", which is what onlyMinting selects server-side.
+            if (_query.OnlyMinting && !item.isOnSale) return false;
 
             if (!string.IsNullOrEmpty(_query.Gender))
             {

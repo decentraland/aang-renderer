@@ -86,6 +86,7 @@ namespace OutfitStudio
                 Rarity = query.Rarity,
                 Gender = query.Gender,
                 IsOnSale = query.IsOnSale,
+                OnlyMinting = query.OnlyMinting,
                 SortBy = query.SortBy,
                 Urns = query.Urns,
                 ContractAddress = query.ContractAddress,
@@ -159,6 +160,12 @@ namespace OutfitStudio
             // 1000 open listings still reports isOnSale=false but is very much on sale).
             if (query.IsOnSale)
                 sb.Append("&isOnSale=true");
+            // Narrows the on-sale set to primary sales only - items still mintable from the creator's
+            // collection, with listing-only (secondary) sales removed. Verified against the live API:
+            // wearables drop 6760 -> 4102 with it on, and every item returned is mintable with zero
+            // open listings (an unknown param would have been ignored and left the total unchanged).
+            if (query.OnlyMinting)
+                sb.Append("&onlyMinting=true");
 
             if (!string.IsNullOrEmpty(query.SortBy))
                 sb.AppendFormat("&sortBy={0}", query.SortBy);

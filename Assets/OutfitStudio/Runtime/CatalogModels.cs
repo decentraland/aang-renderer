@@ -32,6 +32,14 @@ namespace OutfitStudio
         /// items that are NOT on sale".</summary>
         public bool IsOnSale;
 
+        /// <summary>Only primary sales: items still mintable from their creator's collection store,
+        /// with every secondary (listing-only) sale dropped. Sent as <c>onlyMinting=true</c> and
+        /// omitted when not set. Verified against the live API: it implies on-sale-ness on its own
+        /// (same total with or without <c>isOnSale=true</c>), and every item it returns is mintable
+        /// with zero open listings - so it's strictly narrower than <see cref="IsOnSale"/>, which is
+        /// why the UI forces that toggle on alongside it.</summary>
+        public bool OnlyMinting;
+
         /// <summary>
         /// Sort order. Real marketplace values: newest, recently_listed, recently_sold, cheapest,
         /// most_expensive. "name" is a local-only convenience option, not sent to the API.
