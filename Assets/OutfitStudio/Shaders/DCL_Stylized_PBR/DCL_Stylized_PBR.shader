@@ -139,7 +139,9 @@ Shader "DCL/DCL_Stylized_PBR"
             Tags { "LightMode" = "UniversalForward" }
             ZWrite [_ZWriteMode]
             Cull [_CullMode]
-            Blend SrcAlpha OneMinusSrcAlpha
+            // Separate alpha factors so transparent surfaces accumulate coverage rather than eroding
+            // the alpha of the opaque geometry behind them — see the note in DCL_Toon_Studio.shader.
+            Blend SrcAlpha OneMinusSrcAlpha, One OneMinusSrcAlpha
 
             HLSLPROGRAM
             #pragma target 4.5

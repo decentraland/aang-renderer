@@ -158,7 +158,12 @@ float4 frag(VertexOutput i) : SV_Target
         float _Inverse_Clipping_var = lerp( _IsBaseMapAlphaAsClippingMask_var, (1.0 - _IsBaseMapAlphaAsClippingMask_var), _Inverse_Clipping );
         float Set_Clipping = saturate((_Inverse_Clipping_var+_Clipping_Level));
         clip(Set_MainTexAlpha - 0.5);
-        float4 Set_Outline_Color = float4(_Is_BlendBaseColor_var,Set_Clipping);//lerp( float4(_Is_BlendBaseColor_var,Set_Clipping), float4((_OutlineTex_var.rgb*_Outline_Color.rgb*lightColor),Set_Clipping), _Is_OutlineTex );
+        // Alpha 1, not Set_Clipping. This pass runs with Blend Off, so whatever alpha it returns is
+        // written to the buffer verbatim. The stroke is a solid flat color (and the clip above already
+        // discarded anything under 0.5 coverage), so returning the garment's texture alpha only made
+        // the visible stroke around a transparent wearable semi-transparent on export, since nothing
+        // draws over it there. DCL_Stylized_PBR's Outline pass already returns 1 here.
+        float4 Set_Outline_Color = float4(_Is_BlendBaseColor_var, 1.0);//lerp( float4(_Is_BlendBaseColor_var,Set_Clipping), float4((_OutlineTex_var.rgb*_Outline_Color.rgb*lightColor),Set_Clipping), _Is_OutlineTex );
         return Set_Outline_Color;
     //#endif
 }

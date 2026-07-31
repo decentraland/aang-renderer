@@ -320,7 +320,14 @@ Shader "DCL/DCL_Toon_Studio"
             Tags{"LightMode" = "UniversalForward"}
             ZWrite[_ZWriteMode]
             Cull[_CullMode]
-            Blend SrcAlpha OneMinusSrcAlpha
+            // RGB blends normally; ALPHA accumulates coverage (One OneMinusSrcAlpha) instead of using
+            // SrcAlpha as its source factor. With a single blend pair a transparent surface writes
+            // a*a + dst*(1-a) into alpha, so drawing e.g. 40%-opaque glasses over the (alpha 1) face
+            // knocks that alpha down to ~0.76 — invisible in the Game view over an opaque background,
+            // but on a transparent-background export the face turns semi-transparent and the page
+            // behind shows through. One OneMinusSrcAlpha gives a + dst*(1-a), so anything opaque
+            // behind a transparent surface stays at alpha 1. Same convention as StudioCardFrame.
+            Blend SrcAlpha OneMinusSrcAlpha, One OneMinusSrcAlpha
             Stencil {
 
                 Ref[_StencilNo]
