@@ -1528,17 +1528,11 @@ conflicting real outfit item in the same slot dropped (same one-item-per-slot ru
 `OnItemClicked` already applies to ordinary equips). This means **a share code or saved preset never
 carries face-feature picks** — intentional, since these are meant as local preview/beauty-shot
 overrides (e.g. "how would this outfit look on a different face") rather than part of the outfit
-being authored. `BuildPreviewOutfit()` returns `outfit` itself untouched (no allocation) when there
-are no overrides, so the common no-face-override case costs nothing. Loading a new outfit clears
-`_previewFaceUrns` — overrides belong to the session that picked them, not to whatever gets loaded
-next.
+being authored.
 
-`Apply()` — the single entry point both edit-mode preview and play-mode load already funnel through
-(`EditModeAvatarPreview.Apply` / `PreviewController` respectively) — now builds `previewOutfit =
-BuildPreviewOutfit()` once and passes that through instead of reading `outfit` directly, so stills
-and video (which capture whatever `Apply()` last loaded, without a separate reload) pick up the
-face-feature overrides too. `outfit` itself remains the single source of truth for anything that
-gets shared/saved.
+> **Superseded by §21 (2026-08-03).** `_previewFaceUrns` and `BuildPreviewOutfit()` are gone — face
+> features are now ordinary `outfit.urns` entries and *do* travel in presets and share codes. The
+> paragraph above is kept for the rationale it records, not as current behaviour.
 
 ## 20. Pixel-exact authoring (2026-07-30, step 1 of the px workflow)
 
@@ -1672,3 +1666,61 @@ While adding that, `CardHeightFraction` and the three `Effective*` clamps moved 
 properties — `1 - MarginTop - MarginBottom` and the clamp formulas each had two or three copies across
 `PushParams`, the window's `CardHPx` and now the readout, which is exactly the kind of duplication that
 drifts. `PushParams` reads the same properties, so there's one definition of each.
+
+## 21. Face features are part of the outfit (2026-08-03)
+
+Reverses the §19 decision: eyes/eyebrows/mouth/hair/facial_hair picked on the Avatar tab are now
+equipped into `outfit.urns` like any other wearable, so **presets and share codes carry them**.
+Mauricio's framing: what you select on the Avatar tab *is* the look, so saving an outfit that
+silently drops the face it was authored with is the surprising behaviour. `_previewFaceUrns`,
+`BuildPreviewOutfit()` and the "Preview only" notice are deleted; `Apply()` reads `outfit` directly
+again.
+
+**Nothing changed in the share-code format.** Face features are ordinary wearables and the code
+already carries arbitrary `&urn=`, so they ride along as plain URN entries — no new query param, no
+renderer-side change, and old codes/presets (which simply have no face URNs) load exactly as before.
+Skin/hair/eye colours and body shape needed no work at all: they have been `OutfitDefinition` fields
+emitted by `ToShareCode()` since §19 relocated them.
+
+**The part that actually needed building — `RegisterCatalystEntities()`.** `_previewFaceUrns` wasn't
+just a storage choice, it was standing in for `_knownItems` in two places that key off it:
+
+1. **One-per-slot dedup** (`OnItemClicked`/`OnFaceFeatureClicked`) resolves an equipped URN's slot via
+   `_knownItems[urn].Slot`. Base avatars are **off-chain**, which `HydrateKnownItems` used to skip
+   outright because marketplace-api can't resolve them (§19) — so a base hair wouldn't evict a
+   marketplace hair and you'd carry two, leaving it to the renderer's last-in-list-wins backstop.
+2. **`FilterForBodyShape`** also keys on `_knownItems`, and unknown URNs pass through unchecked — and
+   per §"Slot semantics" a URN with no representation for the active body shape makes
+   `GLTFLoader.LoadModel` **throw and break the whole load**. Previously unreachable (the grid only
+   ever shows URNs valid for the current shape); now reachable, because a preset authored on Male can
+   be loaded on Female.
+
+`RunFaceSearch` already receives `EntityDefinition[]` from the Catalyst carrying `URN`, `Category`
+(= the wearable category, from `metadata.data.category`), `Thumbnail` and `HasRepresentation()`, so
+those get registered as **synthetic `CatalogItem`s** — `bodyShapes` spelled `"BaseMale"`/`"BaseFemale"`
+because that's what `FilterForBodyShape` string-compares against. That one addition makes dedup, the
+body-shape guard *and* the Outfit pane's rows (name/thumbnail/slot/✕) work for face items with no
+special-casing anywhere else.
+
+**`HydrateKnownItems` now resolves off-chain URNs instead of skipping them**, split across both
+sources since neither covers the other: marketplace-api for collection items, Catalyst
+(`HydrateOffChainItems`, `async void` like `RunFaceSearch`) for base avatars. Without this a loaded
+preset would only resolve face items in whichever *one* category the Avatar tab happened to have
+browsed this session — the other four would show as `[?] eyes_00` rows and skip both guards above.
+
+Smaller consequences:
+
+- `RefreshFaceGrid`'s selected-tile highlight reads `EquippedUrnForSlot(slot)` out of `outfit.urns`
+  (`LastOrDefault`, matching last-in-list-wins) instead of the dict.
+- `OnFaceFeatureClicked` takes the slot **from the grid that built the tile**, not `_faceCategory`, so
+  a click can't land in the wrong slot if the category changed while thumbnails were still loading.
+- "Clear selection" removes the slot's URN from `outfit.urns`, and reports when there's nothing to
+  clear rather than silently doing nothing.
+- `LoadOutfit` no longer clears face picks — it refreshes the grid so a loaded preset shows its own
+  face selected, then `HydrateKnownItems` refreshes again once the async Catalyst lookup lands.
+- Body-shape mismatch is **not** auto-corrected: flipping to Female with male-only eyes equipped
+  keeps them in `outfit.urns` and lets `FilterForBodyShape` skip them with its existing status
+  warning. Same as every other wearable — the studio never silently mutates the outfit on a shape
+  change.
+
+**Not editor-verified** (no Unity run in the session that wrote it).

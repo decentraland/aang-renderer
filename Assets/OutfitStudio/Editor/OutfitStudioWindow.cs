@@ -56,8 +56,8 @@ namespace OutfitStudio.Editor
         };
 
         // Wearable categories that make up a face/body look rather than an outfit item. Browsed from
-        // the Avatar tab; picks there are editor-only preview overrides (see _previewFaceUrns) and are
-        // deliberately never added to outfit.urns, so they never end up in a share code or preset.
+        // the Avatar tab, but equipped into outfit.urns like any other wearable, so they travel in
+        // share codes and presets (see RegisterCatalystEntities for what makes that work).
         private static readonly List<string> FACE_SLOTS = new()
         {
             "eyes", "eyebrows", "mouth", "hair", "facial_hair"
@@ -288,10 +288,6 @@ namespace OutfitStudio.Editor
         // urn -> catalog item, used to resolve slot/name/thumbnail for outfit rows
         private readonly Dictionary<string, CatalogItem> _knownItems = new();
 
-        // Avatar tab: face-feature slot -> urn. Editor-only preview overrides — merged onto the
-        // preview outfit in BuildPreviewOutfit(), never into outfit.urns, so they never reach a
-        // share code or a saved preset.
-        private readonly Dictionary<string, string> _previewFaceUrns = new();
         private EntityDefinition[] _faceEntities = Array.Empty<EntityDefinition>();
         private string _faceCategory = FACE_SLOTS[0];
         private int _faceSearchSequence;
@@ -734,11 +730,9 @@ namespace OutfitStudio.Editor
 
         /// <summary>
         /// Body shape, colors and face features (eyes/eyebrows/mouth/hair/facial_hair) in one
-        /// place, mirroring the marketplace's own avatar editor. Body shape and colors write straight
-        /// to <c>outfit</c> (shareable, same as before — just relocated here from the Outfit pane).
-        /// Face features are deliberately NOT part of <c>outfit</c>: they're stored in
-        /// <see cref="_previewFaceUrns"/> and only ever merged in for local preview/capture (see
-        /// <see cref="BuildPreviewOutfit"/>), so a share code or saved preset never carries them.
+        /// place, mirroring the marketplace's own avatar editor. Everything here writes straight to
+        /// <c>outfit</c>, so all of it is carried by share codes and saved presets — face features
+        /// are equipped into <c>outfit.urns</c> exactly like a wearable picked from the browser.
         /// </summary>
         private VisualElement BuildAvatarPane()
         {
@@ -765,7 +759,8 @@ namespace OutfitStudio.Editor
             _eyeField = ColorRow(pane, "Eyes", outfit.eyeColor, c => outfit.eyeColor = c);
 
             pane.Add(Header("Face Features"));
-            pane.Add(new Label("Preview only — not included in the share code or outfit preset.")
+            pane.Add(new Label("Saved in presets and share codes, and listed in the Outfit pane, "
+                               + "same as any other wearable.")
             {
                 style =
                 {
@@ -793,9 +788,19 @@ namespace OutfitStudio.Editor
 
             pane.Add(new Button(() =>
             {
-                _previewFaceUrns.Remove(_faceCategory);
+                var equipped = EquippedUrnForSlot(_faceCategory);
+                if (equipped == null)
+                {
+                    SetStatus($"No {FACE_SLOT_LABELS[_faceCategory]} equipped");
+                    return;
+                }
+
+                outfit.urns.Remove(equipped);
                 RefreshFaceGrid();
+                RefreshSlots();
+                RefreshShareCode();
                 ScheduleApply();
+                SetStatus($"Cleared {FACE_SLOT_LABELS[_faceCategory]}");
             }) { text = "Clear selection", style = { marginTop = 2, marginBottom = 4 } });
 
             // No nested ScrollView here: the pane itself already scrolls, and a ScrollView inside a
@@ -852,10 +857,62 @@ namespace OutfitStudio.Editor
 
             if (sequence != _faceSearchSequence) return;
 
+            RegisterCatalystEntities(entities);
+
             _faceEntities = entities;
             RefreshFaceGrid();
+            RefreshSlots(); // rows for already-equipped face items can now resolve name/thumbnail/slot
             SetStatus($"{_faceEntities.Length} {FACE_SLOT_LABELS[_faceCategory]} options");
         }
+
+        /// <summary>
+        /// Registers Catalyst-resolved entities in <see cref="_knownItems"/> as synthetic
+        /// <see cref="CatalogItem"/>s. Base avatars are off-chain, so the marketplace API can never
+        /// resolve them (<see cref="HydrateKnownItems"/> routes them through the Catalyst instead) —
+        /// yet everything downstream reads slot, name, thumbnail and body-shape support off
+        /// <see cref="_knownItems"/>: the one-per-slot rule (<see cref="OnFaceFeatureClicked"/>,
+        /// <see cref="OnItemClicked"/>), the Outfit pane rows (<see cref="RefreshSlots"/>), and the
+        /// representation guard that keeps <c>GLTFLoader.LoadModel</c> from throwing on a body shape
+        /// the item has no representation for (<see cref="FilterForBodyShape"/>). Registering them
+        /// here is what lets face features be ordinary <c>outfit.urns</c> entries with no
+        /// special-casing anywhere else.
+        /// </summary>
+        private void RegisterCatalystEntities(IEnumerable<EntityDefinition> entities)
+        {
+            foreach (var entity in entities)
+            {
+                // Same "BaseMale"/"BaseFemale" spelling the marketplace payload uses, since
+                // FilterForBodyShape compares against these strings.
+                var bodyShapes = new List<string>(2);
+                if (entity.HasRepresentation(BodyShape.Male)) bodyShapes.Add("BaseMale");
+                if (entity.HasRepresentation(BodyShape.Female)) bodyShapes.Add("BaseFemale");
+
+                _knownItems[entity.URN] = new CatalogItem
+                {
+                    urn = entity.URN,
+                    name = FriendlyName(entity.URN), // entities carry no display name, only a thumbnail
+                    thumbnail = entity.Thumbnail,
+                    category = "wearable",
+                    data = new CatalogItem.ItemData
+                    {
+                        wearable = new CatalogItem.WearableData
+                        {
+                            category = entity.Category,
+                            bodyShapes = bodyShapes.ToArray()
+                        }
+                    }
+                };
+            }
+        }
+
+        /// <summary>
+        /// The equipped URN occupying a slot, or null. Resolved through <see cref="_knownItems"/>, so
+        /// it only sees items we have catalog/entity info for — the same limitation the one-per-slot
+        /// rule has. Takes the last match because the renderer's own dedup is last-in-list-wins.
+        /// </summary>
+        private string EquippedUrnForSlot(string slot) =>
+            outfit.urns.LastOrDefault(urn =>
+                _knownItems.TryGetValue(urn, out var known) && known.Slot == slot);
 
         private BodyShape CurrentBodyShape() =>
             outfit.bodyShape.Equals(WearablesConstants.BODY_SHAPE_FEMALE, StringComparison.OrdinalIgnoreCase)
@@ -869,18 +926,19 @@ namespace OutfitStudio.Editor
             _faceGrid.Clear();
 
             var bodyShape = CurrentBodyShape();
-            var selectedUrn = _previewFaceUrns.GetValueOrDefault(_faceCategory);
+            var slot = _faceCategory;
+            var selectedUrn = EquippedUrnForSlot(slot);
 
             // Only options with a representation for the currently-selected body shape are shown —
             // this list mixes male and female-specific variants (the "f_"-prefixed URNs), and picking
             // one without a matching representation would just get silently skipped at apply time.
             foreach (var entity in _faceEntities.Where(e => e.HasRepresentation(bodyShape)))
             {
-                _faceGrid.Add(BuildFaceTile(entity, entity.URN == selectedUrn));
+                _faceGrid.Add(BuildFaceTile(entity, slot, entity.URN == selectedUrn));
             }
         }
 
-        private VisualElement BuildFaceTile(EntityDefinition entity, bool selected)
+        private VisualElement BuildFaceTile(EntityDefinition entity, string slot, bool selected)
         {
             var label = FriendlyName(entity.URN);
 
@@ -935,7 +993,7 @@ namespace OutfitStudio.Editor
                 if (tex != null) image.image = tex;
             });
 
-            tile.RegisterCallback<ClickEvent>(_ => OnFaceFeatureClicked(entity));
+            tile.RegisterCallback<ClickEvent>(_ => OnFaceFeatureClicked(entity, slot));
 
             return tile;
         }
@@ -947,31 +1005,25 @@ namespace OutfitStudio.Editor
                 .Select(w => char.ToUpperInvariant(w[0]) + w[1..]));
         }
 
-        private void OnFaceFeatureClicked(EntityDefinition entity)
-        {
-            _previewFaceUrns[_faceCategory] = entity.URN;
-            RefreshFaceGrid();
-            ScheduleApply();
-            SetStatus($"Preview: {FriendlyName(entity.URN)} ({FACE_SLOT_LABELS[_faceCategory]}) — editor-only, not shared");
-        }
-
         /// <summary>
-        /// The outfit actually rendered for preview/capture: <c>outfit</c> plus any local face-feature
-        /// overrides, with a conflicting real outfit item in the same slot dropped (one item per slot,
-        /// same rule <see cref="OnItemClicked"/> already applies for ordinary equips). Returns
-        /// <c>outfit</c> itself untouched when there's nothing to merge, so the common case allocates
-        /// nothing.
+        /// Equips a face feature. Deliberately the same path an ordinary browser pick takes
+        /// (<see cref="OnItemClicked"/>): one item per slot, appended last so it wins the renderer's
+        /// last-in-list-wins dedup against any same-slot URN we couldn't resolve. <paramref name="slot"/>
+        /// comes from the grid that built the tile rather than <c>_faceCategory</c>, so a click can't
+        /// land in the wrong slot if the category changed while thumbnails were still loading.
         /// </summary>
-        private OutfitDefinition BuildPreviewOutfit()
+        private void OnFaceFeatureClicked(EntityDefinition entity, string slot)
         {
-            if (_previewFaceUrns.Count == 0) return outfit;
+            outfit.urns.RemoveAll(urn =>
+                _knownItems.TryGetValue(urn, out var known) && known.Slot == slot);
+            outfit.urns.Remove(entity.URN);
+            outfit.urns.Add(entity.URN);
 
-            var preview = outfit.Clone();
-            var overriddenSlots = _previewFaceUrns.Keys.ToHashSet();
-            preview.urns.RemoveAll(urn =>
-                _knownItems.TryGetValue(urn, out var known) && overriddenSlots.Contains(known.Slot));
-            preview.urns.AddRange(_previewFaceUrns.Values);
-            return preview;
+            RefreshFaceGrid();
+            RefreshSlots();
+            RefreshShareCode();
+            ScheduleApply();
+            SetStatus($"Equipped {FriendlyName(entity.URN)} ({slot})");
         }
 
         /// <summary>
@@ -2889,9 +2941,9 @@ namespace OutfitStudio.Editor
         {
             outfit = loaded;
 
-            // Face-feature previews belong to the session that picked them, not to whatever outfit
-            // happens to be loaded next — start clean rather than carrying stale overrides across.
-            _previewFaceUrns.Clear();
+            // Face features live in outfit.urns now, so the grid reflects whatever was just loaded.
+            // Off-chain URNs in slots not browsed this session resolve asynchronously via
+            // HydrateKnownItems below, which refreshes the grid again once they land.
             RefreshFaceGrid();
 
             _bodyShapePopup.SetValueWithoutNotify(
@@ -2908,7 +2960,7 @@ namespace OutfitStudio.Editor
 
             // Not via ScheduleApply: with auto-apply off nothing else would recompute, leaving the
             // badges describing the outfit that was loaded before this one.
-            OutfitHidingReport.Refresh(BuildPreviewOutfit());
+            OutfitHidingReport.Refresh(outfit);
 
             ScheduleApply();
         }
@@ -2926,21 +2978,28 @@ namespace OutfitStudio.Editor
 
         /// <summary>
         /// Resolves names/thumbnails for URNs we don't have catalog info for
-        /// (pasted share codes, presets, domain reloads).
+        /// (pasted share codes, presets, domain reloads). Two sources, because neither covers the
+        /// other: the marketplace API serves collection items only, while off-chain base avatars —
+        /// the face features the Avatar tab equips — exist solely on the Catalyst.
         /// </summary>
         private void HydrateKnownItems()
         {
             var unknown = outfit.urns.Append(outfit.emote)
                 .Where(urn => !string.IsNullOrEmpty(urn)
                               && urn.StartsWith("urn:", StringComparison.OrdinalIgnoreCase)
-                              && !urn.Contains(":off-chain:")
                               && !_knownItems.ContainsKey(urn))
                 .Distinct()
                 .ToArray();
 
             if (unknown.Length == 0) return;
 
-            CatalogService.Search(new CatalogQuery { Urns = unknown, First = unknown.Length },
+            var offChain = unknown.Where(urn => urn.Contains(":off-chain:")).ToArray();
+            if (offChain.Length > 0) HydrateOffChainItems(offChain);
+
+            var marketplace = unknown.Where(urn => !urn.Contains(":off-chain:")).ToArray();
+            if (marketplace.Length == 0) return;
+
+            CatalogService.Search(new CatalogQuery { Urns = marketplace, First = marketplace.Length },
                 page =>
                 {
                     foreach (var item in page.data)
@@ -2948,6 +3007,31 @@ namespace OutfitStudio.Editor
                     RefreshSlots();
                 },
                 error => Debug.LogWarning($"[OutfitStudio] Failed to resolve URNs: {error}"));
+        }
+
+        /// <summary>
+        /// Resolves off-chain (base-avatar) URNs via the Catalyst so face features carried by a preset
+        /// or share code get a slot, name and thumbnail even in categories the Avatar tab hasn't
+        /// browsed this session — without this they'd stay unknown, skipping the one-per-slot rule and
+        /// the body-shape representation guard. Async void, same editor-only pattern as
+        /// <see cref="RunFaceSearch"/>.
+        /// </summary>
+        private async void HydrateOffChainItems(string[] urns)
+        {
+            EntityDefinition[] entities;
+            try
+            {
+                entities = await EntityService.GetEntities((string[])urns.Clone());
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[OutfitStudio] Failed to resolve off-chain URNs: {e.Message}");
+                return;
+            }
+
+            RegisterCatalystEntities(entities);
+            RefreshSlots();
+            RefreshFaceGrid(); // the selected-tile highlight depends on the slot we just resolved
         }
 
         // ---------------------------------------------------------------- Apply
@@ -2963,17 +3047,15 @@ namespace OutfitStudio.Editor
 
         private void Apply()
         {
-            var previewOutfit = BuildPreviewOutfit(); // outfit + local face-feature overrides, never shared
-
             // Badges come from the outfit, not from the loaded avatar, so they're computed for both
             // preview paths (and stay correct if a Random Profile is loaded in play mode afterwards).
-            OutfitHidingReport.Refresh(previewOutfit);
+            OutfitHidingReport.Refresh(outfit);
 
             if (!Application.isPlaying)
             {
                 // Edit-mode 3D preview: assembles onto the scene skeleton without play mode.
                 // Pose/emote playback and capture still require play mode.
-                EditModeAvatarPreview.Apply(previewOutfit, SetStatus);
+                EditModeAvatarPreview.Apply(outfit, SetStatus);
                 return;
             }
 
@@ -2987,7 +3069,7 @@ namespace OutfitStudio.Editor
             var config = AangConfiguration.Instance;
             config.SetMode("builder");
             config.BodyShape = outfit.bodyShape;
-            config.Urns = FilterForBodyShape(previewOutfit.urns).Select(URNUtils.SanitizeURN).ToList();
+            config.Urns = FilterForBodyShape(outfit.urns).Select(URNUtils.SanitizeURN).ToList();
             config.SetSkinColor(ColorUtility.ToHtmlStringRGB(outfit.skinColor));
             config.SetHairColor(ColorUtility.ToHtmlStringRGB(outfit.hairColor));
             config.SetEyeColor(ColorUtility.ToHtmlStringRGB(outfit.eyeColor));
