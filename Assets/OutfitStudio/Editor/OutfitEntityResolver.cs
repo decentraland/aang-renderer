@@ -53,7 +53,10 @@ namespace OutfitStudio.Editor
 
             await EntityService.PreloadBodyEntities();
 
-            var requestedUrns = outfit.urns.Select(URNUtils.SanitizeURN).ToArray();
+            // EffectiveUrns/EffectiveBase64Items rather than the raw lists, so Single-Item mode resolves
+            // to just the isolated item here — which is what makes both callers (the edit-mode preview
+            // and the hiding report) agree with it without either knowing the mode exists.
+            var requestedUrns = outfit.EffectiveUrns().Select(URNUtils.SanitizeURN).ToArray();
             var urnEntities = await EntityService.GetEntities(requestedUrns);
 
             // Entities the catalyst couldn't resolve (e.g. third-party/linked wearables)
@@ -83,7 +86,7 @@ namespace OutfitStudio.Editor
 
             // Draft (builder) items — base64 wins per category, same as LoadForBuilder.
             // Draft emotes are play-mode-only (edit mode is a static pose) and skipped here.
-            foreach (var base64 in outfit.base64Items)
+            foreach (var base64 in outfit.EffectiveBase64Items())
             {
                 try
                 {

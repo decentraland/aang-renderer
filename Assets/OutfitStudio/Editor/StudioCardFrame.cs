@@ -58,6 +58,7 @@ namespace OutfitStudio.Editor
         private const string K_PATTERN_ENABLED = "OutfitStudio.Card.PatternEnabled";
         private const string K_SIDEMASK = "OutfitStudio.Card.SideMask";
         private const string K_BOTTOMMASK = "OutfitStudio.Card.BottomMask";
+        private const string K_CLOSED_BORDER = "OutfitStudio.Card.ClosedBorder";
         // Replaced K_MARGIN_X ("OutfitStudio.Card.MarginX") on 2026-07-30: side margins were a fraction of
         // the frame WIDTH, which made the card change shape whenever the capture aspect changed. New key
         // because the meaning is different, not just the unit — see §20.
@@ -85,6 +86,7 @@ namespace OutfitStudio.Editor
         private static readonly int FadeStartId = Shader.PropertyToID("_FadeStart");
         private static readonly int FadeEndId = Shader.PropertyToID("_FadeEnd");
         private static readonly int MaskRectId = Shader.PropertyToID("_MaskRect");
+        private static readonly int MaskTopOpenId = Shader.PropertyToID("_MaskTopOpen");
         private static readonly int BorderTopFadeId = Shader.PropertyToID("_BorderTopFade");
         private static readonly int DclOverlayTexId = Shader.PropertyToID("_DclOverlayTex");
         private static readonly int DclTileScaleId = Shader.PropertyToID("_DclTileScale");
@@ -226,6 +228,16 @@ namespace OutfitStudio.Editor
         {
             get => EditorPrefs.GetBool(K_BOTTOMMASK, true);
             set { EditorPrefs.SetBool(K_BOTTOMMASK, value); Refresh(); }
+        }
+
+        /// <summary>Close the card off at the top: the border ring runs the whole way round instead of
+        /// fading out over the top 12%, and the mask crops the top edge like any other. Off by default,
+        /// because the open top is deliberate for avatars — the head is meant to overflow. Turn it on
+        /// for Single-Item shots, where the subject belongs fully inside the rounded rect.</summary>
+        public static bool ClosedBorder
+        {
+            get => EditorPrefs.GetBool(K_CLOSED_BORDER, false);
+            set { EditorPrefs.SetBool(K_CLOSED_BORDER, value); Refresh(); }
         }
 
         /// <summary>Suppress the avatar's outline (a thin silhouette line, visible over the head
@@ -649,7 +661,10 @@ namespace OutfitStudio.Editor
             border.SetFloat(InnerBorderWidthId, ToSdf(innerFH, cardHFrac));
             border.SetFloat(OuterBorderWidthId, ToSdf(outerFH, cardHFrac));
             border.SetFloat(BorderOversizeId, _borderOversize);
-            border.SetFloat(BorderTopFadeId, 0.88f); // fade the border out over the top 12% (head overflow)
+            // Normally faded out over the top 12% so an avatar's head can overflow without the border
+            // crossing it. An item card has no head to make room for and wants a closed rounded rect,
+            // so 1 = no fade at all.
+            border.SetFloat(BorderTopFadeId, ClosedBorder ? 1f : 0.88f);
 
             // The fade shares the card's transform and gets the same paint inputs, so its colour is a
             // pixel-exact continuation of the card's — it only adds the vertical alpha ramp.
@@ -693,6 +708,7 @@ namespace OutfitStudio.Editor
 
                 float U(float f) => 0.5f + (f - 0.5f) / MASK_OVERSIZE; // viewport fraction → mask-quad UV
                 mask.SetVector(MaskRectId, new Vector4(U(l), U(r), U(b), U(t)));
+                mask.SetFloat(MaskTopOpenId, ClosedBorder ? 0f : 1f);
             }
 
             EditorApplication.QueuePlayerLoopUpdate();

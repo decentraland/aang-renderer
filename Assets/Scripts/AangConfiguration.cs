@@ -250,6 +250,17 @@ public class AangConfiguration
     /// </summary>
     public bool DisableFace { get; set; }
 
+    /// <summary>
+    /// If true, the body shape's geometry is hidden after loading, leaving only the equipped
+    /// wearables visible. The avatar skeleton is untouched, so wearables still skin, pose and
+    /// spring-bone normally — this hides meshes, it does not render a wearable standalone.
+    ///
+    /// Used by the Outfit Studio's Single-Item mode to shoot one isolated wearable. Deliberately
+    /// has no query-string parameter (unlike <see cref="DisableFace"/>): it is an editor-tool
+    /// concern, and leaving it out of <see cref="RecreateFrom"/> keeps deployed behaviour identical.
+    /// </summary>
+    public bool HideBodyShape { get; set; }
+
     public static void RecreateFrom(string url)
     {
         Instance = new AangConfiguration();

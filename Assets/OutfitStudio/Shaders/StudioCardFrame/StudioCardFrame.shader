@@ -15,6 +15,10 @@ Shader "Custom/StudioCardFrame"
 
         // Side-mask rect (mode 2), in the fullscreen mask quad's UV space: (left, right, bottom, top).
         _MaskRect ("Mask Rect (l,r,b,t)", Vector) = (0, 1, 0, 1)
+        // SideMask quad only: 1 leaves the column above the card top uncropped so an avatar's head can
+        // overflow (the default card look); 0 crops the top like every other edge, for item cards where
+        // the subject belongs fully inside the rounded rect.
+        _MaskTopOpen ("Mask Top Open", Range(0,1)) = 1
 
         // The card's paint — the animated purple vignette + scrolling icon pattern from Explorer's
         // loading screens, ported from Custom/AnimatedBackgroundMovingTexture (unity-explorer's
@@ -110,6 +114,7 @@ Shader "Custom/StudioCardFrame"
             float4 _BorderColor;
             float _FadeStart, _FadeEnd;
             float4 _MaskRect;
+            float _MaskTopOpen;
 
             TEXTURE2D(_DclOverlayTex);
             SAMPLER(sampler_DclOverlayTex);
@@ -230,7 +235,9 @@ Shader "Custom/StudioCardFrame"
                     float axu = max(fwidth(uv.x), 1e-5), ayu = max(fwidth(uv.y), 1e-5);
                     float withinX = smoothstep(lo.x - axu, lo.x + axu, uv.x)
                                   * (1.0 - smoothstep(hi.x - axu, hi.x + axu, uv.x));
-                    float aboveTop = smoothstep(hi.y - ayu, hi.y + ayu, uv.y);   // open above the card top
+                    // Open above the card top, unless _MaskTopOpen closes it (item cards) — zeroing the
+                    // term leaves `inside` as the card mask alone, so the top crops like any other edge.
+                    float aboveTop = smoothstep(hi.y - ayu, hi.y + ayu, uv.y) * _MaskTopOpen;
                     // ADD (not max) the two keep-regions: at the card-top transition both the card
                     // mask and the overflow column are mid-fade (~0.5), and max(0.5,0.5)=0.5 dipped
                     // "inside" below 1, eroding a faint line across the head. Their sum is ~1 there

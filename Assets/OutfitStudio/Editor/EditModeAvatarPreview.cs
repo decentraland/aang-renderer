@@ -203,6 +203,12 @@ namespace OutfitStudio.Editor
                     AvatarUtils.HideBodyShape(bodyGO, hiddenCategories, loadedCategories);
                     AvatarUtils.SetupFacialFeatures(bodyGO, colors, LOADED_FACIAL_FEATURES,
                         DEFAULT_BODY_FACIAL_FEATURES);
+
+                    // Single-Item mode: drop the whole body root, matching what
+                    // PreviewController.LoadForBuilder does with AangConfiguration.HideBodyShape in play
+                    // mode. The skeleton is a sibling of these roots, not a child, so the item below
+                    // still skins against it.
+                    if (outfit.soloItem) bodyGO.SetActive(false);
                 }
 
                 var outlineDump = new List<Renderer>(); // outline feature doesn't run in edit mode
@@ -222,9 +228,14 @@ namespace OutfitStudio.Editor
 
                 var wearableCount = definitions.Count - 1; // definitions[0] is the body entity
 
+                // Edit mode samples Idle at t=0 and has no emote playback, so say so in Single-Item
+                // mode — an upper_body previewed here is in the idle pose, not the pose the artist
+                // picked, and that only resolves in play mode.
                 status(unresolved.Count > 0
                         ? $"Preview updated — {wearableCount} wearables, {unresolved.Count} unresolved (see console)"
-                        : $"Preview updated (edit mode) — {wearableCount} wearables",
+                        : outfit.soloItem
+                            ? "Item preview updated (edit mode) — idle pose; enter play mode to pose it"
+                            : $"Preview updated (edit mode) — {wearableCount} wearables",
                     unresolved.Count > 0);
             }
             catch (Exception e)

@@ -1724,3 +1724,366 @@ Smaller consequences:
   change.
 
 **Not editor-verified** (no Unity run in the session that wrote it).
+
+## 22. Single-Item mode — one isolated wearable (2026-08-03)
+
+A **Subject** switch at the top of the outfit pane: **Avatar** or **Single Item**. Single Item shoots one
+wearable with no body around it, for item-shop card sheets composed later in Photoshop (Mauricio's
+reference: a Fortnite shop row, four items each centred in its own rounded card).
+
+Everything else in the pane is **shared, not duplicated** — shader, card frame, pose, presets, capture,
+px workflow, share code. Only the Outfit section swaps for an Item section. That's the whole reason the
+switch lives in the right pane instead of being a fifth browser tab or a second window.
+
+### Why it loads onto the skeleton instead of standing alone
+
+There are two ways to render one wearable, and Mauricio's "we will need the possibility to pose them,
+so for example upperbody meshes are not in T pose" picks the winner.
+
+`WearableLoader` already renders a wearable standalone — that's the marketplace wearable card
+(`PreviewController.LoadForMarketplace` → `WearableRoot` at `(5,0,0)` + `MarketplaceWearableCamera` +
+`GameObjectUtils.CenterAndFit`). It works because **every DCL wearable GLB ships its own copy of the
+62-joint avatar armature**: glTFast instantiates those joints and binds the `SkinnedMeshRenderer` to
+them, so `AvatarUtils.SetupWearable`'s optional `avatarRootBone`/`avatarBones` args can be omitted and
+the remap at `AvatarUtils.cs:189-197` is simply skipped. But that armature is in its **authored rest
+pose**, and nothing can move it: `GLTFLoader.LoadModel` imports every body and wearable with
+`AnimationMethod.None` (`GLTFLoader.cs:25-31`), so wearable-embedded clips are discarded outright, and
+`WearableLoader` never touches `SpringBonesDriver` or `EmoteAnimationController`. **That path *is* the
+A-pose problem.**
+
+So Single-Item mode loads the item through the **normal `AvatarLoader` path and hides the body**. The
+fact that makes this safe: in the scene hierarchy the skeleton (`Avatar_Model_Idle` → `Armature`) is a
+**sibling** of the loaded GLB roots under `AvatarRoot`, not a parent —
+
+```
+AvatarRoot            [AvatarLoader, Animation, EmoteAnimationController, SpringBonesDriver]
+├─ Avatar_Model_Idle  → Armature → Avatar_Hips … 62 joints   ← avatarBones, the live skeleton
+├─ "body_shape"       ← runtime GLB root, named by category
+└─ "upper_body"       ← runtime GLB root
+```
+
+— so deactivating any GLB root cannot break skinning for the others. `SetupWearable` remaps the item's
+bones onto the live skeleton (`AvatarUtils.cs:307-322`, name-keyed, bind poses untouched), which means
+poses, emotes, spring bones, drag-rotate, snap-rotate and the turntable all apply to the item **with no
+new code**. Single-Item mode is therefore not a subsystem: it's *an outfit with one item, the body
+suppressed, and the camera moved in close*.
+
+### Renderer touch point #8 — `AangConfiguration.HideBodyShape`
+
+Additive and default-off, copying the `DisableFace` pattern line for line. `PreviewController`'s
+`LoadForBuilder`, immediately after `LoadAvatar` and next to the existing `DisableFace` block:
+
+```csharp
+if (AangConfiguration.Instance.HideBodyShape)
+    avatarLoader.TryHideCategory(WearableCategories.Categories.BODY_SHAPE, true);
+```
+
+`TryHideCategory` deactivates the whole body GLB root, and the skeleton is outside it. Two details:
+it **must** be re-applied on every load because `LoadAvatar` reactivates every model root it owns
+(`AvatarLoader.cs:169`); and `AvatarLoader._hiddenCategories` turns out to be **write-only dead state**
+(added to and removed from, never read), so toggling back needs no cleanup. Deliberately **no
+query-string parameter** in `RecreateFrom` — it's an editor-tool concern, so deployed behaviour is
+byte-identical.
+
+Edit mode mirrors it in `EditModeAvatarPreview` (`bodyGO.SetActive(false)` when `soloItem`). Edit mode
+still samples Idle at t=0 with no emote playback, so the status line says so: posing and capture are
+play-mode only, same constraint avatar mode already has.
+
+### Data model, and the one substitution point
+
+`OutfitDefinition` gains `soloItem` / `soloUrn` / `soloBase64` / `soloPadding`. `soloUrn` is kept
+**separate from `urns`** so flipping subject is lossless — the outfit being authored survives a detour
+into item shots. `soloPadding` lives on the outfit rather than in EditorPrefs because it's genuinely
+per-item (a long staff and an earring want different margins), so a preset carries it. *(The framing field
+is `soloZoomPct` now, and no preset carries any of it — see "Single-Item mode persists nothing" below. It
+still lives on the outfit rather than in EditorPrefs, which is now just where the window keeps it.)*
+
+The substitution happens in **two accessors**, not at every call site: `EffectiveUrns()` and
+`EffectiveBase64Items()` return the isolated item in Single-Item mode and the whole outfit otherwise.
+Routing `OutfitEntityResolver` through them is what makes the edit-mode preview **and** the hiding
+report follow the mode without either knowing it exists. `EffectiveForceRender()` also returns every
+category in Single-Item mode: with one wearable equipped there's nothing legitimate for a hide to
+suppress, and an item whose own category is implicitly hidden (a skin, a helmet that hides hair) would
+otherwise render as nothing at all.
+
+`ToShareCode()` emits `EffectiveUrns()`, so a shared code shows the same wearable — but there is no
+hide-body parameter, so it loads on a full avatar. *(2026-08-04: this is no longer reachable — the Share
+code section is hidden in Single-Item mode, see below.)*
+
+### Switching subject hands the camera back (2026-08-04)
+
+Mauricio: *"when i go from single item to avatar, the camera is all off."* Cause: `FrameItem` disables
+`CinemachineBrain` and writes `camera.transform` directly, and nothing re-enabled it on a subject switch —
+so the avatar was being shot from the item's framing, at the item's distance.
+
+`SetSubject` now calls `StudioItemCamera.Release()` when leaving Single-Item mode. **Only that one direction
+needed anything**: `->Single-Item` already re-frames, because `SetSubject` ends in `ScheduleApply` which ends
+in `ScheduleFrameItem`.
+
+Chosen over saving a camera per mode, or running two cameras, because **neither mode's camera is authored —
+both regenerate from an authoritative source**. Avatar framing is `builderCamera`'s authored shot (the studio
+always runs builder mode), which re-enabling the brain restores exactly; item framing is derived from the
+item's bounds on demand. A saved transform would only preserve a hand-flown position, and would itself go
+stale the moment the item or outfit changed — a second source of "the camera is off" — besides fighting
+auto-frame. Note the item's chosen *angle* survives regardless: drag/snap/turntable rotate the **rig**, not
+the camera (see `StudioItemCamera`'s class comment).
+
+**Two cameras would be the actively bad option**, and §22 already has the evidence — see "A camera worry
+that turned out not to exist": `OutfitCapture` resolves via `Camera.main`, Recorder via
+`ImageSource.MainCamera`, and the card frame prefers `PreviewCamera` filtered on `isActiveAndEnabled`. Those
+agree today *only* because the scene's second `MainCamera`-tagged camera sits under an inactive root. A
+second live camera makes "which camera produced this still" a real question again, and the card frame could
+size itself off one camera's `fieldOfView` while another renders the shot.
+
+If a hand-flown avatar angle ever needs to survive a round trip, the upgrade is to remember
+`(position, rotation, brainEnabled)` per mode and restore it *only* when the brain was disabled by
+`StudioFlyCamera` — i.e. when the artist actually flew somewhere deliberately. Deferred as unneeded.
+
+### Single-Item mode persists nothing (2026-08-04)
+
+**`RefreshSubject` hides the Presets and Share code sections outright while Single-Item is the subject**,
+alongside the Outfit/Item swap it already did. Mauricio: *"thats all for the avatar outfits which [are] the
+main and most important part of the tool, when an artist go to the Single Item tab, its just for a specific
+temporary work there and thats it."* So the mode is scratch space on the way to a PNG, and the two sections
+that persist or publish an avatar *look* don't belong in it.
+
+This replaced a half-working round-trip rather than a working one, which is the argument for it:
+
+- A share code **cannot** express the mode (no hide-body parameter), so the button published something
+  other than what was on screen. There was a warning label saying so; a section you must be warned not to
+  use is better hidden.
+- A preset **could** carry the solo fields, and `LoadOutfit` deliberately followed the loaded subject — but
+  the Item section is built once and `RefreshSubject` only toggles `display`, so **the Framing sliders and
+  toggles kept showing the previous values after a load** while `outfit` held the preset's. Touching any one
+  of them then wrote the displayed value back, silently discarding what the preset said. This was §22's
+  never-exercised "preset round-trip of the solo fields", and it was broken.
+- Saving goes through the new **`OutfitDefinition.CloneForPreset()`** — `Clone()` with every solo field
+  reset to its default (taken from a fresh instance, not repeated literals). Without it a preset saved from
+  the *avatar* tab still carried whichever item sat in the solo slot plus its framing, invisibly, and
+  loading it would stomp another artist's scratch work. `Clone()` itself stays faithful; presets are its
+  only caller, but a lossy `Clone` would be a trap.
+- Consequence worth knowing: **loading a preset resets the solo item and its framing to defaults.** That
+  follows from "Single Item is temporary" and is the intended behaviour, not an oversight.
+- `RefreshSubject()` is now called at the **end** of the pane build. Presets and Share code are built far
+  below the Outfit/Item sections, so the old call site left them visible on a window that opened straight
+  into Single-Item mode.
+
+### `StudioItemCamera` — move the camera, never the rig
+
+New `Editor/StudioItemCamera.cs`. Measures the item's bounds, then places the camera along its own current
+forward so the item fills the target rect, aimed at the centre.
+
+**Settled behaviour and defaults (read this; the bullets below are the reasoning and, in two cases,
+superseded history).**
+
+| knob | default | meaning |
+|---|---|---|
+| fit target | **frame** | `soloFitToCard` switches to the card rect |
+| `soloZoomPct` | **100** | UI "Zoom Frame (%)", slider 25–250. 100 = item exactly touches the rect on the bound axis; **over 100 overspills and crops** |
+| `soloOffsetYPx` | **70** | UI "Vertical Offset (px)", **positive = DOWN** (image-editor convention) |
+| `soloOffsetXPx` | 0 | UI "Horizontal Offset (px)", **positive = RIGHT** |
+| `soloFitGarmentOnly` | off | on = ignore bare skin, for size consistency across a sheet |
+| auto-frame | on | fires on **item** change only, never on pose change; twice (700/1800 ms) |
+
+Distance solves each axis for the fit and takes the larger; `fieldOfView` is never touched. The status line
+reports the result — `frame-fit: item 0.52x0.41 m at 2.34 m — 95% w, 88% h [height-bound]`. The bound-axis
+tag is the axis that sets the size, so it's the edge that crops first past 100%; zoom scales both targets
+equally, so it depends only on the item's aspect against the rect's and can't flip as the slider moves.
+
+- **`CenterAndFit` was deliberately not reused**, even though it's right there and does the marketplace
+  card. It scales and re-centres the *subject*: `root.localScale *= scaleFactor` compounds across calls,
+  and re-centring moves the rig origin off the item's centre, which turns the turntable into an orbit
+  instead of a spin. Leaving the rig untouched is what keeps drag/snap/turntable identical to avatar
+  mode — and it works because wearables sit on the avatar's vertical axis, so a Y-spin about the rig
+  root is already the right motion.
+- **Bounds are whitelisted, and this is the one real trap.** The first version encapsulated every
+  active renderer under the rig, and every item came out ~3x too small and sitting high in the card
+  (Mauricio's screenshot). Cause: **`Avatar_Model_Idle.glb` ships a skinned mesh, `M_uBody_BaseMesh`,
+  with vertex extents X -0.916..0.916, Y 0..1.911** — a T-posed reference body. It is active, its
+  renderer is enabled, and nothing in the codebase disables it; it goes unnoticed only because its
+  material is `baseColorFactor [0,0,0,1]`, pure black. So the fitted size became 1.91 instead of the
+  shirt's 0.63, and `bounds.center` sat at mid-torso instead of chest height — which is why the item was
+  both small *and* high. Fixed by **whitelisting**: only renderers with a category-named ancestor count,
+  since `GLTFLoader.LoadModel` names every root after `entityDefinition.Category`. That also excludes
+  emote props (root `"emote"`), and it holds in edit mode where roots sit inside
+  `__OutfitStudio_EditPreview`. Blacklisting the reference mesh by name would have been the fragile
+  version of this.
+- Hidden geometry needs no special case: `GetComponentsInChildren<Renderer>()` without `includeInactive`
+  skips inactive GameObjects, and body parts are suppressed with `SetActive(false)`. glTFast defaults to
+  `skinUpdateWhenOffscreen = true`, so `renderer.bounds` is real posed-vertex bounds, not the bind-pose
+  box — which is why framing is deferred ~600 ms after an apply (same reason `PreviewController` awaits
+  a frame before `CenterAndFit`).
+- **Fit to the card, not the frame** *(SUPERSEDED — frame-fit is the default now, see below; the
+  per-axis and cube-ify reasoning still stands)*, and per-axis rather than cube-ified. The card is what reads as the
+  picture, so `cardH = 1 - MarginTop - MarginBottom` and `cardW = CardWidth` (a fraction of frame
+  **height** — that asymmetry is `Layout`'s, restated here) each give a candidate distance and the larger
+  wins; on a portrait card, width binds. Cube-ifying to `max(x,y,z)` threw away most of the card, and
+  `max(x,z)` horizontally is still stable under the only rotation this tool applies (drag, snap and
+  turntable all spin about Y), so re-framing after a drag doesn't breathe. The camera is then shifted by
+  the card's own vertical offset, since top and bottom margins differ and centring on the frame would sit
+  the item high in the card. Verified numerically against both screenshots: recovering the shirt's true
+  size from the broken shot (0.453 x 0.632 m) and re-running the new math gives 95% of the card's width
+  and 88% of its height at the default padding, against ~93%/~90% measured off the target.
+  `soloPadding` may go **negative** (slider -0.3..1) so an item can deliberately overspill the card.
+- **Bare skin is excluded from the bounds, and pose changes never re-frame.** *(The skin exclusion is now
+  the opt-in `soloFitGarmentOnly`, default OFF — see the frame-fit entry below for why. The no-reframe-on-pose
+  half is still unconditional.)* Mauricio: *"why changing
+  poses change the camera so much?"* Two effects, one cause — fitting the whole posed AABB. The arms and
+  hands belong to the `upper_body` mesh and swing far more than the garment, so measuring across his three
+  screenshots the shirt torso ran ~200 px (arm out left), ~250 px (arm up), ~315 px (arms down): a 1.6x
+  swing on an identical garment. And `bounds.center` follows the extended limb, so the shirt drifted
+  opposite it (arm out left -> shirt right of centre; arm up-right -> shirt down-left). Fixes:
+  `ApplyPoseOnly` no longer calls `ScheduleFrameItem` (framing belongs to the item, not the pose — the
+  camera must not lurch while poses are being auditioned), and the bounds now skip skin-named materials,
+  matching the test `AvatarUtils.SetupWearable` already uses to decide what to tint with the skin colour.
+  Accepted trade-off, chosen explicitly: an extended limb can overspill the card and crop under the masks,
+  because a consistent garment size across a card sheet matters more.
+- **Why skin exclusion needed per-submesh work.** Excluding whole *renderers* would have been a no-op on
+  the meshes this is meant to fix: glTFast turns a glTF mesh's primitives into submeshes of ONE
+  `SkinnedMeshRenderer`, so fabric and skin normally share a renderer. `TryGetGarmentBounds` therefore has
+  three cases — no skin material (use `renderer.bounds`, the cheap common path), all skin (drop the
+  renderer), and mixed (`BakeMesh` the posed snapshot and encapsulate only the non-skin submeshes'
+  vertices, transformed by the renderer's `localToWorldMatrix`). The mixed path is **guarded**: if the
+  result doesn't sit inside the renderer's own box, or exceeds its size, the assumption about BakeMesh's
+  output space is wrong for this Unity version, so it keeps the whole box rather than framing on garbage.
+  And the whole skin-excluding pass falls back to measuring everything if it finds *nothing* — otherwise a
+  `skin`-category full-body costume whose materials are all skin-named would report "nothing to frame" at
+  an item plainly on screen.
+- **Fit to the frame by default, with the margin in capture pixels.** Mauricio, on an item filling ~51%
+  of an 800x800 render: *"theres a lot of unused space... item should be centered and almost filling the
+  frame (maybe 20 px of margin is enough)"*. The framing was doing exactly what it was built to do —
+  fitting the **card**, which is `CardWidth 0.55` of frame height wide, so `0.55 / 1.05 = 52%` of frame
+  width, against 51% measured; and sitting low by the card's own vertical offset, 60 px measured. Both
+  numbers confirmed the card path rather than a bug. But the job this feature exists for is rendering an
+  item tight and large to composite a card around it *in Photoshop*, where the frame is what bounds the
+  shot, so **frame-fit is now the default** and card-fit is a toggle (`soloFitToCard`).
+  `soloPadding` (a unitless fraction) is replaced by **`soloMarginPx`, default 20** — px is the unit the
+  rest of the tool authors in (§20), converted against `captureHeight` so both axes lose the same physical
+  amount: 20 px at 800x800 gives 95% fill and exactly 20 px on every edge, verified numerically. Existing
+  presets lose their old padding value in the rename and pick up the 20 px default.
+- `soloOffsetYPx` nudges vertically (positive = up) for items that don't read as centred on their
+  geometric middle. And `FrameItem` now returns a **report** for the status line — `frame-fit: item
+  0.52x0.41 m at 2.34 m — 95% w, 88% h` — because the two rounds of framing bugs above were both diagnosed
+  by measuring pixels off a screenshot, and printing the numbers makes that immediate.
+- Auto-frame runs **twice** after an item change (700 ms and 1800 ms). A slow load measured
+  half-assembled would otherwise stay wrong until someone noticed, and the second pass costs nothing.
+- **One "Zoom Frame (%)" slider, not two margins** *(2026-08-04, supersedes the per-axis margin bullet
+  below — its measurements are what argued for this)*. Mauricio: *"those two framing sliders were basically
+  zooming, and having 2 is confusing."* Exactly right, and the bullet below had already measured why: only
+  the **bound** axis's margin does anything, the other one just falls out of the aspect ratio, so the pair
+  presented two controls where there was one real knob plus a no-op that changes per item. `soloMarginXPx`
+  and `soloMarginYPx` are replaced by **`soloZoomPct`, default 100**, which scales both axes of the target
+  rect equally: 100% touches the rect on the bound axis, above that the item overspills and crops (what
+  negative margins were for), below it leaves margin. The old default of 20 px at `captureHeight 2048` was
+  ~98% fill, so 100 is barely a change in framing — the change is that the slider now means something
+  monotonic. The bound-axis tag stays in the report: it's still the edge that crops first.
+- **`soloOffsetXPx`, "Horizontal Offset (px)", default 0**, added alongside the vertical nudge for
+  asymmetric items (a single earring, a staff held to one side). Positive is **right**, which image-editor
+  coordinates and Unity agree on — only the vertical axis needs a sign flip. Both nudges convert px→world
+  by dividing by frame **height** and scaling by `frustumHeight`, the horizontal one included: pixels are
+  square, so one px is the same world distance on either axis. Default 0 rather than a tuned bias like
+  `soloOffsetYPx = 70`, because an item's bounds are already centred on the avatar's vertical axis.
+- **Separate X/Y margins, both allowed negative, and the readout names the bound axis** *(SUPERSEDED by the
+  single zoom above; the measurements stand and are what motivated it)*. Mauricio, on a
+  jacket capture: *"i need less than 0 for the Margin X, there's still a LOT of space for zooming in"*.
+  Measuring that capture: 409x429 px in an 800x800 render (51% w, 54% h) and 128 px of space above against
+  243 px below. Two findings. First the 51% was still the card-fit path, so it predates frame-fit. Second,
+  and the useful one: **that item is height-bound**, so reducing the X margin — even below zero — changes
+  nothing at all. Verified numerically: `margin X=+20,Y=+20` and `X=-40,Y=+20` both give 90.5% w / 95% h,
+  identical, because the vertical axis sets the distance and the horizontal margin then just falls out of
+  the aspect ratio. Reaching for Margin X to zoom in is therefore the natural move and the ineffective one,
+  which is why `FrameItem`'s report now ends in **`[height-bound]`** or **`[width-bound]`** — it names the
+  slider that will actually do something. Margins are split per axis (`soloMarginXPx`/`soloMarginYPx`,
+  default 20 each) and both accept negatives, since an upper body with arms out legitimately wants to
+  bleed sideways while still fitting top to bottom.
+- **`soloOffsetYPx` follows image-editor coordinates: positive is DOWN**, not Unity's Y-up. The audience
+  (§20: Figma/Photoshop artists) thinks in the former, and the sign was originally the other way — caught
+  because Mauricio asked for "Y offset by default at 70" on an item measured 58 px *high*, so the value he
+  wanted could only mean downward. Default **70**, correcting a systematic upward bias: an item's bounds
+  centre sits below where the eye reads its centre. The exact figure is tuned against that one measurement,
+  not derived, and the underlying cause is not confirmed in-editor — a candidate is geometry extending
+  below the visible garment (hands, or bind-pose skinned bounds) dragging `bounds.center` down.
+- **fov is never touched**, distance is. `StudioCardFrame.Layout` sizes the card from `fieldOfView`, so
+  holding it constant keeps the card identical between items, and the item's perspective consistent.
+- The camera is Cinemachine-driven, so the brain is disabled first — the same takeover
+  `StudioFlyCamera` performs. `Release()` hands framing back, routed through
+  `StudioFlyCamera.ReleaseToCinemachine()` when the fly camera owns the brain.
+- Framing keeps the camera's current **rotation**, so an angle chosen by dragging or flying survives a
+  re-frame.
+
+### Per-category pose memory
+
+EditorPrefs `OutfitStudio.ItemPose.{category}`, written from every pose-mutation site but **only while
+Single-Item is the active subject** — a pose picked for a whole avatar says nothing about how a lone
+jacket should hang. Picking an item applies its category's remembered pose, so every `upper_body` lands
+in the chosen jacket pose instead of A-pose while a hat stays neutral. The Pose section, emote popup and
+transport are reused completely unchanged; this is just a remembered default.
+
+### Closed border for item cards
+
+The card deliberately opens at the top so an avatar's head can overflow — `_BorderTopFade = 0.88` and
+the mask's `withinX * aboveTop` keep-column. An item card wants a closed rounded rect, so
+**Closed border (item card)** (`OutfitStudio.Card.ClosedBorder`, default off) pushes `_BorderTopFade = 1`
+and a new `_MaskTopOpen` float that zeroes the overflow column, leaving `inside` as the card mask alone.
+The top crop needs at least one mask toggle on to have a mask to crop with.
+
+### What needed no changes at all
+
+`StudioAvatarShaderSwitcher` (its `Apply` filters on shader name + non-persistent material, with **no
+avatar check** — the item is re-shaded automatically), the card frame's geometry and shader (pure camera
+math, zero avatar references), `OutfitCapture` still/video, `TurntableDriver`/`DragRotator`/`SnapRotate`,
+the pose GLBs and emote transport, the px workflow and `StudioGameViewSize`, and `OutfitPreset` (which
+picks up the new fields through `OutfitDefinition` — though as of 2026-08-04 it deliberately stores none of
+them, via `CloneForPreset()`).
+
+### A camera worry that turned out not to exist
+
+The plan for this feature called for untagging `ConfiguratorCamera` first, on the theory that the studio
+scene has two `MainCamera`-tagged cameras at equal depth and `OutfitCapture` resolves via `Camera.main`
+(plus Recorder's `ImageSource.MainCamera`) while the card frame prefers `PreviewCamera` — so moving the
+camera could make a still come from the wrong one. **Checked: not a real problem, no scene edit made.**
+`ConfiguratorCamera` sits under the `Configurator` root, which is `m_IsActive: 0`, and `Bootstrap.cs:31-39`
+activates exactly one branch by mode — the studio always runs builder mode, so only `Preview` is ever
+live. `Camera.main` skips inactive cameras and `FindCamera()` filters on `isActiveAndEnabled`, so both
+agree on `PreviewCamera`. Worth recording because §14's "the Configurator branch is the only safe
+deletion" makes it look live, and reading `m_IsActive: 1` on the camera itself without walking the parent
+chain is exactly how to reach the wrong conclusion.
+
+### Status at end of session (2026-08-03)
+
+Mauricio's words: *"its pretty good for now."* It compiles and runs — he shot several items through it
+(US-flag tee, Year of the Fire Horse tee, cyberpunk jacket), so the whole path is exercised in-editor.
+
+**Confirmed working in the editor:** body suppression (item renders alone, skeleton intact), posing via the
+existing pose buttons, the shader switcher picking the item up, the card frame composing around it, stills
+captured to PNG with a transparent surround, and camera framing.
+
+**Not yet exercised, as far as I know:** video/turntable in Single-Item mode; edit-mode (non-play) preview
+of a solo item; ~~preset round-trip of the solo fields~~ (inspected on 2026-08-04, found broken, and
+**removed rather than fixed** — there is no round-trip any more); a `skin`-category item (would take the
+all-materials-are-skin fallback path); the `BakeMesh` submesh path, which only runs with
+`soloFitGarmentOnly` **on** — that default flipped off before it was ever tried, so its output-space guard
+has never actually been observed to pass or fail.
+
+**Open threads for next session:**
+
+1. **The `soloOffsetYPx = 70` default is tuned, not derived.** It corrects a real, systematic upward bias
+   (measured 128 px above vs 243 px below on the jacket) but the root cause is unconfirmed. Prime suspect:
+   geometry extending below the visible garment — hands, or bind-pose skinned bounds — dragging
+   `bounds.center` down. Worth confirming, because if it's bind-pose bounds then `skinUpdateWhenOffscreen`
+   isn't doing what §22 assumes and the fix belongs there rather than in a magic 70.
+2. **Renames dropped values.** `soloPadding` → `soloMarginXPx`/`soloMarginYPx` happened within the same day,
+   and on 2026-08-04 those two became `soloZoomPct`. No `FormerlySerializedAs` on any of it, so a preset
+   saved before a rename loads with the new default (zoom 100 / offsets 70 and 0) rather than its authored
+   framing. Harmless so far — the `Assets/*OutfitPreset*.asset` files never had solo fields written into
+   them — but the next rename of a field an artist has actually tuned should carry the attribute.
+3. **Batch export** is the deliberate v2: queue N items, loop `set item -> await load -> frame -> capture
+   still` for a whole card sheet in one click. All the pieces exist; it reuses `ScheduleFrameItem`'s
+   wait-then-measure shape.
+4. **Uncommitted.** Everything in §22 is working-tree only, including the new untracked
+   `Editor/StudioItemCamera.cs`. The `Assets/*OutfitPreset*.asset` files are also still untracked and so
+   are one `git clean` away from being lost. Usual rule: never stage the churn files
+   (`URP_Asset`/`URP_GlobalSettings`/`PanelSettings`/`QualitySettings`/`EditorSettings`).
+5. **Nothing was compiled by me** — the sessions that wrote this had no C# toolchain, so every claim about
+   the code is inspection plus arithmetic. The arithmetic was checked against measured screenshot pixels at
+   each step (that's how three separate framing bugs were found), but treat unexercised paths with suspicion.

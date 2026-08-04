@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Data;
 using Loading;
+using Runtime.Wearables;
 using Services;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -327,6 +328,13 @@ namespace Preview
             if (AangConfiguration.Instance.DisableFace)
             {
                 avatarLoader.HideFacialFeatures();
+            }
+
+            // Re-applied on every load by design: LoadAvatar reactivates every model root it owns,
+            // so a hide asserted once would be undone by the next reload.
+            if (AangConfiguration.Instance.HideBodyShape)
+            {
+                avatarLoader.TryHideCategory(WearableCategories.Categories.BODY_SHAPE, true);
             }
         }
 

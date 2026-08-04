@@ -276,6 +276,7 @@ namespace OutfitStudio.Editor
         [SerializeField] private float turntableDuration = 6f;
         [SerializeField] private float rotationSnapAngle;
         [SerializeField] private bool cleanGameView = true;
+        [SerializeField] private bool autoFrameItem = true;
 
         // Browser state (session only)
         private readonly CatalogQuery _query = new();
@@ -308,6 +309,17 @@ namespace OutfitStudio.Editor
         private Button _invertSortButton;
         private bool _invertSort;
         private VisualElement _slotsContainer;
+
+        // Subject switch: exactly one of these is displayed (see RefreshSubject)
+        private VisualElement _outfitSection;
+        private VisualElement _itemSection;
+        private VisualElement _itemRow;
+
+        // Avatar-only sections, hidden in Single-Item mode by RefreshSubject
+        private VisualElement _presetsSection;
+        private VisualElement _shareCodeSection;
+        private Button _subjectAvatarButton, _subjectItemButton;
+
         private Label _poseLabel;
         private Label _rotationLabel;
         private PopupField<string> _emotePopup;
@@ -1014,6 +1026,13 @@ namespace OutfitStudio.Editor
         /// </summary>
         private void OnFaceFeatureClicked(EntityDefinition entity, string slot)
         {
+            // Single-Item mode: shoot the face feature on its own, same as any other pick
+            if (outfit.soloItem)
+            {
+                SetSoloItem(entity.URN, null, slot, FriendlyName(entity.URN));
+                return;
+            }
+
             outfit.urns.RemoveAll(urn =>
                 _knownItems.TryGetValue(urn, out var known) && known.Slot == slot);
             outfit.urns.Remove(entity.URN);
@@ -1410,6 +1429,12 @@ namespace OutfitStudio.Editor
                 SyncEmotePopup();
                 SetStatus($"Pose set: {item.Name} (draft, play mode only)");
             }
+            else if (outfit.soloItem)
+            {
+                // Single-Item mode: the draft becomes the isolated subject
+                SetSoloItem(null, item.Base64Entity, item.Category, $"{item.Name} (draft)");
+                return;
+            }
             else
             {
                 // One item per slot: displace both draft and catalog occupants of this category
@@ -1775,6 +1800,7 @@ namespace OutfitStudio.Editor
                 RemoveDraftEmote();
                 _poseLabel.text = $"Pose: {item.name}";
                 SyncEmotePopup();
+                RememberItemPose();
                 RefreshShareCode();
                 SetStatus($"Pose set: {item.name}");
 
@@ -1790,6 +1816,13 @@ namespace OutfitStudio.Editor
             }
 
             var slot = item.Slot;
+
+            // Single-Item mode: the pick replaces the isolated subject instead of joining an outfit.
+            if (outfit.soloItem)
+            {
+                SetSoloItem(item.urn, null, slot, item.name);
+                return;
+            }
 
             // One wearable per slot: drop anything we know occupies the same category
             outfit.urns.RemoveAll(urn =>
@@ -1809,6 +1842,11 @@ namespace OutfitStudio.Editor
         private VisualElement BuildOutfitPane()
         {
             var pane = new ScrollView { style = { paddingLeft = 6, paddingRight = 6, paddingTop = 4 } };
+
+            // --- Subject: whole avatar, or one isolated wearable for item-card shots. Everything else
+            // in this pane (shader, card frame, pose, presets, capture) is shared by both — only the
+            // Outfit section swaps for the Item section, so there's one of each control, not two.
+            BuildSubjectSwitch(pane);
 
             // --- Shader (selection persists via StudioAvatarShaderSwitcher and re-applies after
             // every avatar reload, edit and play mode, until another shader is picked). The 3 selector
@@ -1853,11 +1891,16 @@ namespace OutfitStudio.Editor
             // --- Card Frame (Fortnite-style item-card composite; studio-scene only, captured for free)
             BuildCardFrame(pane);
 
-            // --- Outfit (body shape and colors live on the Avatar tab now)
-            pane.Add(Header("Outfit"));
-
+            // --- Outfit (body shape and colors live on the Avatar tab now) / Item, one or the other
+            _outfitSection = new VisualElement();
+            _outfitSection.Add(Header("Outfit"));
             _slotsContainer = new VisualElement();
-            pane.Add(_slotsContainer);
+            _outfitSection.Add(_slotsContainer);
+            pane.Add(_outfitSection);
+
+            _itemSection = new VisualElement();
+            BuildItemSection(_itemSection);
+            pane.Add(_itemSection);
 
             // --- Pose
             pane.Add(Header("Pose"));
@@ -1882,6 +1925,7 @@ namespace OutfitStudio.Editor
                 outfit.emote = _emotePopup.value == EMBEDDED_EMOTE_NONE ? "idle" : _emotePopup.value;
                 RemoveDraftEmote(); // an equipped draft emote would override the pose
                 _poseLabel.text = $"Pose: {outfit.emote}";
+                RememberItemPose(); // becomes the default for this item's category
                 RefreshShareCode();
 
                 // Play mode: animate ONLY the currently-loaded avatar (which may be a Random
@@ -1920,10 +1964,15 @@ namespace OutfitStudio.Editor
             }).Every(500);
 
             // --- Presets
-            pane.Add(Header("Presets"));
+            //
+            // Avatar-only, and hidden in Single-Item mode (see RefreshSubject). An OutfitPreset is a
+            // saved *look*; a solo item shot is temporary working state, so offering to persist it only
+            // invites the mismatch of a preset that silently flips the subject out from under you.
+            _presetsSection = new VisualElement();
+            _presetsSection.Add(Header("Presets"));
 
             var presetField = new ObjectField("Preset") { objectType = typeof(OutfitPreset) };
-            pane.Add(presetField);
+            _presetsSection.Add(presetField);
 
             var presetButtons = new VisualElement { style = { flexDirection = FlexDirection.Row } };
             presetButtons.Add(new Button(() =>
@@ -1946,7 +1995,7 @@ namespace OutfitStudio.Editor
                     return;
                 }
 
-                preset.outfit = outfit.Clone();
+                preset.outfit = outfit.CloneForPreset();
                 EditorUtility.SetDirty(preset);
                 AssetDatabase.SaveAssets();
                 SetStatus($"Preset saved: {preset.name}");
@@ -1959,13 +2008,14 @@ namespace OutfitStudio.Editor
                 if (string.IsNullOrEmpty(path)) return;
 
                 var preset = CreateInstance<OutfitPreset>();
-                preset.outfit = outfit.Clone();
+                preset.outfit = outfit.CloneForPreset();
                 AssetDatabase.CreateAsset(preset, path);
                 AssetDatabase.SaveAssets();
                 presetField.value = preset;
                 SetStatus($"Preset created: {path}");
             }) { text = "Save As..." });
-            pane.Add(presetButtons);
+            _presetsSection.Add(presetButtons);
+            pane.Add(_presetsSection);
 
             // --- Capture
             pane.Add(Header("Capture"));
@@ -2076,11 +2126,17 @@ namespace OutfitStudio.Editor
             pane.Add(turntableRow);
 
             // --- Share code
-            pane.Add(Header("Share code"));
+            //
+            // Avatar-only for the same reason as Presets, plus a harder one: the web renderer's query
+            // string has no hide-body parameter, so a code emitted in Single-Item mode would load the
+            // item on a full avatar — a share link that doesn't show what you were looking at. Hidden
+            // rather than disabled-with-a-warning, which is what it used to be.
+            _shareCodeSection = new VisualElement();
+            _shareCodeSection.Add(Header("Share code"));
 
             _shareCodeField = new TextField { multiline = true };
             _shareCodeField.style.whiteSpace = WhiteSpace.Normal;
-            pane.Add(_shareCodeField);
+            _shareCodeSection.Add(_shareCodeField);
 
             var shareButtons = new VisualElement { style = { flexDirection = FlexDirection.Row } };
             shareButtons.Add(new Button(() =>
@@ -2093,9 +2149,408 @@ namespace OutfitStudio.Editor
                 LoadOutfit(OutfitDefinition.FromShareCode(_shareCodeField.value));
                 SetStatus("Outfit loaded from share code");
             }) { text = "Load from code" });
-            pane.Add(shareButtons);
+            _shareCodeSection.Add(shareButtons);
+            pane.Add(_shareCodeSection);
+
+            // Last, not next to the Outfit/Item sections it also governs: RefreshSubject shows and hides
+            // four sections and two of them are built down here, so calling it any earlier would leave
+            // Presets and Share code visible on a window that opens straight into Single-Item mode.
+            RefreshSubject();
 
             return pane;
+        }
+
+        // ---------------------------------------------------------------- Item pose memory
+
+        private const string K_ITEM_POSE_PREFIX = "OutfitStudio.ItemPose.";
+
+        /// <summary>
+        /// The display pose last used for a wearable category in Single-Item mode, or null. Per
+        /// category because that's the unit the answer varies by: every upper body wants the same
+        /// jacket pose, a hat wants a neutral one. EditorPrefs rather than the outfit, since it's a
+        /// working preference rather than part of any one item's look.
+        /// </summary>
+        private static string RememberedItemPose(string category) =>
+            string.IsNullOrEmpty(category) ? null : EditorPrefs.GetString(K_ITEM_POSE_PREFIX + category, null);
+
+        /// <summary>
+        /// Records the current pose as the default for the current item's category. Called from every
+        /// pose-mutation site, but only while Single-Item mode is the active subject — poses picked for
+        /// a whole avatar say nothing about how a lone jacket should hang.
+        /// </summary>
+        private void RememberItemPose()
+        {
+            if (!outfit.soloItem) return;
+
+            var category = SoloItemCategory();
+            if (string.IsNullOrEmpty(category)) return;
+
+            EditorPrefs.SetString(K_ITEM_POSE_PREFIX + category, outfit.emote ?? "idle");
+        }
+
+        /// <summary>The isolated item's wearable category, or null when it can't be resolved.</summary>
+        private string SoloItemCategory()
+        {
+            if (!string.IsNullOrEmpty(outfit.soloBase64))
+                return DescribeDraft(outfit.soloBase64).category;
+
+            return string.IsNullOrEmpty(outfit.soloUrn)
+                ? null
+                : _knownItems.GetValueOrDefault(outfit.soloUrn)?.Slot;
+        }
+
+        // ---------------------------------------------------------------- Subject (avatar / one item)
+
+        /// <summary>
+        /// The Avatar / Single Item switch. Same disabled-means-selected idiom as the shader selector
+        /// and the browser tabs.
+        /// </summary>
+        private void BuildSubjectSwitch(VisualElement pane)
+        {
+            pane.Add(Header("Subject"));
+
+            var row = new VisualElement { style = { flexDirection = FlexDirection.Row } };
+
+            _subjectAvatarButton = new Button(() => SetSubject(false))
+                { text = "Avatar", style = { flexGrow = 1 } };
+            _subjectItemButton = new Button(() => SetSubject(true))
+                { text = "Single Item", style = { flexGrow = 1 } };
+
+            row.Add(_subjectAvatarButton);
+            row.Add(_subjectItemButton);
+            pane.Add(row);
+        }
+
+        /// <summary>
+        /// Switches subject. The outfit and the isolated item are stored separately
+        /// (<c>urns</c> vs <c>soloUrn</c>), so flipping back and forth is lossless.
+        /// </summary>
+        private void SetSubject(bool solo)
+        {
+            if (outfit.soloItem == solo) return;
+
+            outfit.soloItem = solo;
+
+            // Only the ->Avatar direction needs anything: FrameItem parked the camera on the item and left
+            // the Cinemachine brain disabled, so the avatar would otherwise be shot from the item's
+            // framing. Handing the brain back restores builderCamera's authored shot — exactly what the
+            // Framing section's "Reset" button does. ->Single-Item is already covered, because
+            // ScheduleApply below ends in ScheduleFrameItem, which re-derives the framing from the item's
+            // bounds. Neither mode needs a *saved* camera: both can regenerate theirs from an
+            // authoritative source, and a stale saved transform would be its own source of wrong framing.
+            if (!solo) StudioItemCamera.Release();
+
+            RefreshSubject();
+            RefreshShareCode();
+            ScheduleApply();
+
+            SetStatus(solo
+                ? "Single Item — pick a wearable from the browser to shoot it on its own"
+                : "Avatar — your outfit is unchanged; camera handed back to the scene's shot");
+        }
+
+        /// <summary>
+        /// Shows the sections that belong to the current subject. Outfit and Item swap, and **Presets and
+        /// Share code disappear entirely in Single-Item mode**: both persist or publish an *avatar look*,
+        /// which is the tool's main job, whereas a solo item shot is temporary working state on the way to
+        /// a PNG. A share code can't even express it (no hide-body parameter in the renderer's query
+        /// string), and a preset that carried it would flip the subject out from under whoever loaded it.
+        /// </summary>
+        private void RefreshSubject()
+        {
+            var solo = outfit.soloItem;
+
+            _subjectAvatarButton?.SetEnabled(solo);
+            _subjectItemButton?.SetEnabled(!solo);
+
+            if (_outfitSection != null)
+                _outfitSection.style.display = solo ? DisplayStyle.None : DisplayStyle.Flex;
+            if (_itemSection != null)
+                _itemSection.style.display = solo ? DisplayStyle.Flex : DisplayStyle.None;
+
+            var avatarOnly = solo ? DisplayStyle.None : DisplayStyle.Flex;
+            if (_presetsSection != null) _presetsSection.style.display = avatarOnly;
+            if (_shareCodeSection != null) _shareCodeSection.style.display = avatarOnly;
+
+            RefreshItemRow();
+        }
+
+        /// <summary>
+        /// The Item section: which wearable is being shot, plus its framing. Built once; only
+        /// <see cref="_itemRow"/> is rebuilt as the pick changes.
+        /// </summary>
+        private void BuildItemSection(VisualElement section)
+        {
+            section.Add(Header("Item"));
+
+            section.Add(new Label("One wearable, no body. It still loads onto the avatar skeleton, so "
+                                  + "it skins and poses normally — use the Pose section below so an "
+                                  + "upper body isn't shot in A-pose. Posing and capture need play mode.")
+            {
+                style =
+                {
+                    fontSize = 10,
+                    unityFontStyleAndWeight = FontStyle.Italic,
+                    whiteSpace = WhiteSpace.Normal,
+                    marginBottom = 4
+                }
+            });
+
+            _itemRow = new VisualElement();
+            section.Add(_itemRow);
+
+            section.Add(Header("Framing"));
+
+            var framingRow = new VisualElement { style = { flexDirection = FlexDirection.Row } };
+            framingRow.Add(new Button(FrameItem) { text = "Frame item", style = { flexGrow = 1 } });
+            framingRow.Add(new Button(() =>
+            {
+                StudioItemCamera.Release();
+                SetStatus("Framing handed back to Cinemachine");
+            }) { text = "Reset", style = { flexGrow = 1 } });
+            section.Add(framingRow);
+
+            var autoFrame = new Toggle("Auto-frame on item change")
+            {
+                value = autoFrameItem,
+                tooltip = "Re-frame when the item or body shape changes. Deliberately NOT on pose "
+                          + "changes — an outstretched arm inflates the item's bounds enormously, so "
+                          + "re-fitting per pose makes the camera lurch and the garment change size."
+            };
+            autoFrame.RegisterValueChangedCallback(evt => autoFrameItem = evt.newValue);
+            section.Add(autoFrame);
+
+            // One zoom rather than the Margin X / Margin Y pair this replaced: only whichever axis bound
+            // the fit ever did anything, so the second slider read as a control while behaving as a no-op
+            // (see §22). Past 100% the item overspills and crops, which is what negative margins were for.
+            var zoom = new Slider("Zoom Frame (%)", 25f, 250f)
+            {
+                value = outfit.soloZoomPct,
+                showInputField = true,
+                tooltip = "How much of the frame the item fills. 100% = exactly touching the edge on "
+                          + "whichever axis binds (the status line names it), above that it grows and "
+                          + "crops, below it leaves margin. Fits the card rect instead when 'Fit to card' "
+                          + "is on."
+            };
+            zoom.RegisterValueChangedCallback(evt =>
+            {
+                outfit.soloZoomPct = evt.newValue;
+                if (Application.isPlaying) FrameItem(); // cheap and instant — no reload involved
+            });
+            section.Add(zoom);
+
+            var offsetY = new Slider("Vertical Offset (px)", -300f, 300f)
+            {
+                value = outfit.soloOffsetYPx,
+                showInputField = true,
+                tooltip = "Nudge the item down (positive) or up — image-editor convention, Y grows "
+                          + "downward. Defaults to 70 because items otherwise land systematically high: "
+                          + "their bounds' geometric centre sits below where the eye reads the centre."
+            };
+            offsetY.RegisterValueChangedCallback(evt =>
+            {
+                outfit.soloOffsetYPx = evt.newValue;
+                if (Application.isPlaying) FrameItem();
+            });
+            section.Add(offsetY);
+
+            var offsetX = new Slider("Horizontal Offset (px)", -300f, 300f)
+            {
+                value = outfit.soloOffsetXPx,
+                showInputField = true,
+                tooltip = "Nudge the item right (positive) or left. Defaults to 0 — unlike the vertical "
+                          + "axis there's no bias to correct, since an item sits on the avatar's centre "
+                          + "line; this is for asymmetric items like a single earring or a held staff."
+            };
+            offsetX.RegisterValueChangedCallback(evt =>
+            {
+                outfit.soloOffsetXPx = evt.newValue;
+                if (Application.isPlaying) FrameItem();
+            });
+            section.Add(offsetX);
+
+            var fitToCard = new Toggle("Fit to card instead of frame")
+            {
+                value = outfit.soloFitToCard,
+                tooltip = "Off (default): fill the whole render, for compositing a card around the item "
+                          + "in an image editor. On: fit inside the studio's own card rect — which is "
+                          + "0.55 of the frame's height wide, so the item comes out around half the "
+                          + "frame's width by design."
+            };
+            fitToCard.RegisterValueChangedCallback(evt =>
+            {
+                outfit.soloFitToCard = evt.newValue;
+                if (Application.isPlaying) FrameItem();
+            });
+            section.Add(fitToCard);
+
+            var garmentOnly = new Toggle("Measure garment only (ignore arms)")
+            {
+                value = outfit.soloFitGarmentOnly,
+                tooltip = "Off (default): fit the whole silhouette, so nothing is cut off. On: measure "
+                          + "only the garment and ignore bare skin, so it reads at the same size in every "
+                          + "pose — useful across a sheet of items, but extended limbs will overspill the "
+                          + "margin and crop."
+            };
+            garmentOnly.RegisterValueChangedCallback(evt =>
+            {
+                outfit.soloFitGarmentOnly = evt.newValue;
+                if (Application.isPlaying) FrameItem();
+            });
+            section.Add(garmentOnly);
+
+            section.Add(new Label("Rotate with the mouse as usual; framing keeps whatever angle the "
+                                  + "camera is at, so re-framing after a drag won't undo it.")
+            {
+                style = { fontSize = 10, unityFontStyleAndWeight = FontStyle.Italic, whiteSpace = WhiteSpace.Normal }
+            });
+
+            // Replaces a warning that a share code emitted here loads on a full avatar (no hide-body
+            // parameter in the renderer's query string). Presets and Share code are now hidden outright in
+            // this mode, so the caveat has nowhere to bite — but saying nothing would leave an artist
+            // hunting for the sections, so it says why they're gone instead.
+            section.Add(new Label("Nothing here is saved: Presets and Share code are for avatar outfits, so "
+                                  + "they're hidden in this mode. Your outfit is untouched — switch back to "
+                                  + "Avatar and it's exactly as you left it.")
+            {
+                style =
+                {
+                    fontSize = 10,
+                    unityFontStyleAndWeight = FontStyle.Italic,
+                    color = new Color(0.85f, 0.6f, 0.2f),
+                    whiteSpace = WhiteSpace.Normal,
+                    marginTop = 4
+                }
+            });
+        }
+
+        /// <summary>Rebuilds the row describing the isolated item (thumbnail, name, clear button).</summary>
+        private void RefreshItemRow()
+        {
+            if (_itemRow == null) return;
+
+            _itemRow.Clear();
+
+            if (!outfit.HasSoloItem)
+            {
+                _itemRow.Add(new Label("No item picked — choose one from the Wearables tab.")
+                {
+                    style = { unityFontStyleAndWeight = FontStyle.Italic, marginBottom = 4 }
+                });
+                return;
+            }
+
+            var row = new VisualElement
+            {
+                style = { flexDirection = FlexDirection.Row, alignItems = Align.Center, marginBottom = 4 }
+            };
+
+            string label;
+            if (!string.IsNullOrEmpty(outfit.soloBase64))
+            {
+                var (name, category, _) = DescribeDraft(outfit.soloBase64);
+                label = $"[{category}] {name} (draft)";
+            }
+            else
+            {
+                var known = _knownItems.GetValueOrDefault(outfit.soloUrn);
+                var thumb = new Image { scaleMode = ScaleMode.ScaleToFit, style = { width = 24, height = 24 } };
+                row.Add(thumb);
+                if (known != null)
+                {
+                    LoadThumbnail(known.thumbnail, tex =>
+                    {
+                        if (tex != null) thumb.image = tex;
+                    });
+                }
+
+                var slot = known?.Slot ?? "?";
+                var name = known?.name ?? outfit.soloUrn[(outfit.soloUrn.LastIndexOf(':') + 1)..];
+                label = $"[{slot}] {name}";
+            }
+
+            row.Add(new Label(label)
+            {
+                tooltip = outfit.soloUrn,
+                style =
+                {
+                    flexGrow = 1, overflow = Overflow.Hidden, textOverflow = TextOverflow.Ellipsis, marginLeft = 4
+                }
+            });
+
+            row.Add(new Button(() =>
+            {
+                outfit.soloUrn = null;
+                outfit.soloBase64 = null;
+                RefreshItemRow();
+                RefreshShareCode();
+                ScheduleApply();
+            }) { text = "✕" });
+
+            _itemRow.Add(row);
+        }
+
+        /// <summary>
+        /// Makes an item the isolated subject, switching subject if the pick came in while the window
+        /// was still on Avatar. Applies the remembered display pose for the item's category so an
+        /// upper body doesn't land in A-pose (see <see cref="RememberedItemPose"/>).
+        /// </summary>
+        private void SetSoloItem(string urn, string base64, string category, string displayName)
+        {
+            outfit.soloUrn = urn;
+            outfit.soloBase64 = base64;
+
+            var pose = RememberedItemPose(category);
+            if (!string.IsNullOrEmpty(pose) && pose != outfit.emote)
+            {
+                outfit.emote = pose;
+                RemoveDraftEmote();
+                if (_poseLabel != null) _poseLabel.text = $"Pose: {outfit.emote}";
+                SyncEmotePopup();
+            }
+
+            RefreshItemRow();
+            RefreshShareCode();
+            ScheduleApply();
+
+            SetStatus($"Item: {displayName} ({category})");
+        }
+
+        /// <summary>
+        /// Frames the camera on the isolated item. Deferred by a couple of frames when called straight
+        /// after an apply: skinned bounds only become real once the pose has been applied and a frame
+        /// has rendered (same reason PreviewController awaits a frame before CenterAndFit).
+        /// </summary>
+        private void FrameItem()
+        {
+            if (!EnsurePlaying()) return;
+
+            // captureHeight, not the live Game view: the offsets are authored in capture pixels, and
+            // "Match Game view to capture size" is what keeps the two the same.
+            if (StudioItemCamera.FrameItem(outfit, captureHeight, out var error, out var report))
+                SetStatus($"Framed — {report}");
+            else
+                SetStatus(error, true);
+        }
+
+        /// <summary>
+        /// Re-frames after an item change, once the reload it triggered has had time to land — skinned
+        /// bounds are only meaningful after the new mesh is posed and a frame has rendered. Framed twice
+        /// deliberately: a slow load would otherwise be measured half-assembled and stay wrong until the
+        /// artist noticed, and the second pass costs nothing.
+        /// </summary>
+        private void ScheduleFrameItem()
+        {
+            if (!autoFrameItem || !outfit.soloItem || !Application.isPlaying) return;
+
+            foreach (var delayMs in new[] { 700, 1800 })
+            {
+                rootVisualElement.schedule.Execute(() =>
+                {
+                    if (autoFrameItem && outfit.soloItem && Application.isPlaying)
+                        StudioItemCamera.FrameItem(outfit, captureHeight, out _, out _);
+                }).StartingIn(delayMs);
+            }
         }
 
         // Rebuilds the live tuning sliders for the currently selected shader. Values are stored
@@ -2280,6 +2735,18 @@ namespace OutfitStudio.Editor
             };
             bottomMask.RegisterValueChangedCallback(evt => StudioCardFrame.BottomMask = evt.newValue);
             fold.Add(bottomMask);
+
+            var closedBorder = new Toggle("Closed border (item card)")
+            {
+                value = StudioCardFrame.ClosedBorder,
+                tooltip = "Run the border ring the whole way round and crop the top edge like any " +
+                          "other, instead of leaving the top open. Off by default: the open top is " +
+                          "deliberate for avatars, whose heads are meant to overflow. Turn it on for " +
+                          "Single Item shots, where the subject belongs fully inside the card.\n\n" +
+                          "The top crop needs at least one mask toggle on to have a mask to crop with."
+            };
+            closedBorder.RegisterValueChangedCallback(evt => StudioCardFrame.ClosedBorder = evt.newValue);
+            fold.Add(closedBorder);
 
             // Registered after the two mask toggles exist, since hiding the card also clears them (see
             // StudioCardFrame.DisableMiddleCard) and the checkboxes have to follow — otherwise they'd
@@ -2585,6 +3052,7 @@ namespace OutfitStudio.Editor
                     RemoveDraftEmote(); // an equipped draft emote would override the pose
                     _poseLabel.text = $"Pose: {name}";
                     SyncEmotePopup();
+                    RememberItemPose(); // becomes the default for this item's category
                     RefreshShareCode();
                     // Play mode: pose ONLY the currently-loaded avatar (which may be a Random Profile
                     // from the Debug tab) without reloading the custom outfit. Edit mode: assemble the
@@ -2946,6 +3414,12 @@ namespace OutfitStudio.Editor
             // HydrateKnownItems below, which refreshes the grid again once they land.
             RefreshFaceGrid();
 
+            // Still called even though nothing loadable carries a subject any more — presets are saved
+            // through CloneForPreset (solo fields defaulted) and a share code can't express Single-Item at
+            // all — because `loaded` replaces `outfit` wholesale, so the sections have to be re-shown
+            // against the new instance's soloItem regardless of where it came from.
+            RefreshSubject();
+
             _bodyShapePopup.SetValueWithoutNotify(
                 outfit.bodyShape == WearablesConstants.BODY_SHAPE_FEMALE ? "Female" : "Male");
             _skinField.SetValueWithoutNotify(outfit.skinColor);
@@ -2984,7 +3458,8 @@ namespace OutfitStudio.Editor
         /// </summary>
         private void HydrateKnownItems()
         {
-            var unknown = outfit.urns.Append(outfit.emote)
+            // soloUrn too, so the Item row can show a name/thumbnail/slot for a preset-loaded item
+            var unknown = outfit.urns.Append(outfit.emote).Append(outfit.soloUrn)
                 .Where(urn => !string.IsNullOrEmpty(urn)
                               && urn.StartsWith("urn:", StringComparison.OrdinalIgnoreCase)
                               && !_knownItems.ContainsKey(urn))
@@ -3005,6 +3480,7 @@ namespace OutfitStudio.Editor
                     foreach (var item in page.data)
                         _knownItems[item.urn] = item;
                     RefreshSlots();
+                    RefreshItemRow(); // the Item row's name/thumbnail/slot came from this lookup
                 },
                 error => Debug.LogWarning($"[OutfitStudio] Failed to resolve URNs: {error}"));
         }
@@ -3031,6 +3507,7 @@ namespace OutfitStudio.Editor
 
             RegisterCatalystEntities(entities);
             RefreshSlots();
+            RefreshItemRow();
             RefreshFaceGrid(); // the selected-tile highlight depends on the slot we just resolved
         }
 
@@ -3069,17 +3546,21 @@ namespace OutfitStudio.Editor
             var config = AangConfiguration.Instance;
             config.SetMode("builder");
             config.BodyShape = outfit.bodyShape;
-            config.Urns = FilterForBodyShape(outfit.urns).Select(URNUtils.SanitizeURN).ToList();
+            config.Urns = FilterForBodyShape(outfit.EffectiveUrns()).Select(URNUtils.SanitizeURN).ToList();
             config.SetSkinColor(ColorUtility.ToHtmlStringRGB(outfit.skinColor));
             config.SetHairColor(ColorUtility.ToHtmlStringRGB(outfit.hairColor));
             config.SetEyeColor(ColorUtility.ToHtmlStringRGB(outfit.eyeColor));
             config.Emote = string.IsNullOrEmpty(outfit.emote) ? "idle" : outfit.emote;
             config.ForceRender = outfit.EffectiveForceRender();
 
+            // Single-Item mode: body geometry is dropped after the load (PreviewController honours this
+            // right after LoadAvatar). The skeleton stays, so the item still skins and poses.
+            config.HideBodyShape = outfit.soloItem;
+
             // Draft (builder) items — LoadForBuilder gives base64 per-category priority
             // and a base64 emote overrides the pose
             config.Base64.Clear();
-            foreach (var base64 in outfit.base64Items)
+            foreach (var base64 in outfit.EffectiveBase64Items())
             {
                 try
                 {
@@ -3094,7 +3575,9 @@ namespace OutfitStudio.Editor
             previewController.gameObject.SetActive(true);
             previewController.InvokeReload();
 
-            SetStatus("Outfit applied");
+            ScheduleFrameItem();
+
+            SetStatus(outfit.soloItem ? "Item applied" : "Outfit applied");
         }
 
         /// <summary>
@@ -3135,6 +3618,13 @@ namespace OutfitStudio.Editor
 
             pc.gameObject.SetActive(true);
             pc.InvokeReload();
+
+            // Deliberately NO re-framing here. A pose does change the item's bounds — an outstretched
+            // arm inflates them enormously — but re-fitting to that means the camera lurches every time
+            // the artist tries a pose, and the garment itself changes apparent size by ~1.6x between
+            // arms-down and arm-out. Framing belongs to the item, not the pose; use "Frame item" once
+            // the pose is chosen.
+
             SetStatus("Applied to the loaded avatar");
         }
 
