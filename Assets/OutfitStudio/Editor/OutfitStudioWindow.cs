@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -1245,31 +1245,10 @@ namespace OutfitStudio.Editor
 
             pane.Add(actionsRow);
 
-            // --- Fly camera (Scene-view-style RMB + WASD navigation, studio scene + play mode only)
-            pane.Add(Header("Fly Camera"));
-            pane.Add(new Label("Hold the right mouse button and use WASD/QE to fly (Shift to go " +
-                               "faster) — like Unity's Scene view. Play mode only.")
-            {
-                style = { fontSize = 10, unityFontStyleAndWeight = FontStyle.Italic, whiteSpace = WhiteSpace.Normal, marginBottom = 4 }
-            });
-
-            var flyEnabled = new Toggle("Enable")
-            {
-                value = StudioFlyCameraController.Enabled,
-                tooltip = "Takes over the camera's transform from Cinemachine while the right mouse " +
-                          "button is held. The view stays wherever you fly it on release — use " +
-                          "\"Reset View\" below to hand framing back to Cinemachine."
-            };
-            flyEnabled.RegisterValueChangedCallback(evt => StudioFlyCameraController.Enabled = evt.newValue);
-            pane.Add(flyEnabled);
-
-            CardSlider(pane, "Move Speed", 1f, 20f,
-                () => StudioFlyCameraController.MoveSpeed, v => StudioFlyCameraController.MoveSpeed = v);
-            CardSlider(pane, "Look Speed", 0.02f, 0.5f,
-                () => StudioFlyCameraController.LookSpeed, v => StudioFlyCameraController.LookSpeed = v);
-
-            pane.Add(new Button(StudioFlyCameraController.ResetView) { text = "Reset View" });
-
+            // Fly Camera used to sit here; it moved to the outfit pane's "Scene and Camera settings"
+            // foldout (BuildSceneAndCamera), where it's next to the lights it's composed against.
+            //
+            // _configField stays: it's the Print Config button's output, not part of that move.
             _configField = new TextField { multiline = true, isReadOnly = true };
             _configField.style.whiteSpace = WhiteSpace.Normal;
             _configField.style.marginTop = 4;
@@ -1982,6 +1961,9 @@ namespace OutfitStudio.Editor
 
             // --- Card Frame (Fortnite-style item-card composite; studio-scene only, captured for free)
             BuildCardFrame(pane);
+
+            // --- Scene lighting (studio-scene only, like the card frame)
+            BuildSceneAndCamera(pane);
 
             // --- Outfit (body shape and colors live on the Avatar tab now) / Item, one or the other
             _outfitSection = new VisualElement();
@@ -2789,6 +2771,154 @@ namespace OutfitStudio.Editor
         // border), composed by StudioCardFrame as camera-parented quads so it renders through the
         // capture camera. There's no background layer — outside the card is empty (black live,
         // transparent on export) and the card itself carries the Decentraland vignette/pattern paint.
+        /// <summary>
+        /// "Scene and Camera settings" — live tuning for the studio scene's three lights, shaped like the
+        /// Card frame foldout above it. Named for more than it currently holds: camera knobs are the
+        /// intended next tenant, so the section exists under the general name rather than "Lights".
+        ///
+        /// Values live in <see cref="StudioSceneLights"/> (EditorPrefs), which also owns the scene-authored
+        /// defaults that Reset restores.
+        /// </summary>
+        private void BuildSceneAndCamera(VisualElement pane)
+        {
+            var fold = new Foldout
+            {
+                text = "Scene and Camera settings",
+                value = false,
+                style = { marginTop = 4 }
+            };
+
+            fold.Add(new Label("The lights tune live, in edit mode and play mode. Their values are kept in "
+                               + "EditorPrefs rather than the scene, so nothing is written until you "
+                               + "actually change something — and Reset puts the scene's own values back.")
+            {
+                style =
+                {
+                    fontSize = 10,
+                    unityFontStyleAndWeight = FontStyle.Italic,
+                    whiteSpace = WhiteSpace.Normal,
+                    marginBottom = 4
+                }
+            });
+
+            // Sub-headers rather than nested foldouts: three lights with two or three knobs each is a
+            // short list, and a foldout per light would hide the thing being compared.
+            static Label SubHeader(string text) => new Label(text)
+            {
+                style = { unityFontStyleAndWeight = FontStyle.Bold, marginTop = 6, marginBottom = 2 }
+            };
+
+            // --- Directional (the key light: colour, brightness and which way it comes from)
+            fold.Add(SubHeader("Directional Light"));
+
+            var dirColor = new ColorField("Color") { value = StudioSceneLights.DirColor };
+            dirColor.RegisterValueChangedCallback(evt => StudioSceneLights.DirColor = evt.newValue);
+            fold.Add(dirColor);
+
+            var dirIntensity = new Slider("Intensity", 0f, 10f)
+            {
+                value = StudioSceneLights.DirIntensity,
+                showInputField = true
+            };
+            dirIntensity.RegisterValueChangedCallback(evt => StudioSceneLights.DirIntensity = evt.newValue);
+            fold.Add(dirIntensity);
+
+            var dirYaw = new Slider("Y Rotation", 0f, 360f)
+            {
+                value = StudioSceneLights.DirYaw,
+                showInputField = true,
+                tooltip = "Spins the key light around the avatar. Only Y is exposed — the light's tilt is "
+                          + "held at the scene's authored angle, so this stays a pure orbit and can't "
+                          + "accidentally point the light at the floor."
+            };
+            dirYaw.RegisterValueChangedCallback(evt => StudioSceneLights.DirYaw = evt.newValue);
+            fold.Add(dirYaw);
+
+            // --- Spotlights (colour and brightness only, as asked — their placement is the scene's)
+            fold.Add(SubHeader("Spot Light Front"));
+
+            var frontColor = new ColorField("Color") { value = StudioSceneLights.FrontColor };
+            frontColor.RegisterValueChangedCallback(evt => StudioSceneLights.FrontColor = evt.newValue);
+            fold.Add(frontColor);
+
+            var frontIntensity = new Slider("Intensity", 0f, 100f)
+            {
+                value = StudioSceneLights.FrontIntensity,
+                showInputField = true
+            };
+            frontIntensity.RegisterValueChangedCallback(evt =>
+                StudioSceneLights.FrontIntensity = evt.newValue);
+            fold.Add(frontIntensity);
+
+            fold.Add(SubHeader("Spot Light Back"));
+
+            var backColor = new ColorField("Color") { value = StudioSceneLights.BackColor };
+            backColor.RegisterValueChangedCallback(evt => StudioSceneLights.BackColor = evt.newValue);
+            fold.Add(backColor);
+
+            // 0..100 on both spots even though the front's default is 6 and the back's is 31.7: one shared
+            // range makes the two readable against each other, and the input field covers precise values.
+            var backIntensity = new Slider("Intensity", 0f, 100f)
+            {
+                value = StudioSceneLights.BackIntensity,
+                showInputField = true
+            };
+            backIntensity.RegisterValueChangedCallback(evt =>
+                StudioSceneLights.BackIntensity = evt.newValue);
+            fold.Add(backIntensity);
+
+            fold.Add(new Button(() =>
+            {
+                StudioSceneLights.ResetToSceneDefaults();
+
+                // SetValueWithoutNotify, or each write would call back into the setter and re-create the
+                // override this just deleted.
+                dirColor.SetValueWithoutNotify(StudioSceneLights.DirColor);
+                dirIntensity.SetValueWithoutNotify(StudioSceneLights.DirIntensity);
+                dirYaw.SetValueWithoutNotify(StudioSceneLights.DirYaw);
+                frontColor.SetValueWithoutNotify(StudioSceneLights.FrontColor);
+                frontIntensity.SetValueWithoutNotify(StudioSceneLights.FrontIntensity);
+                backColor.SetValueWithoutNotify(StudioSceneLights.BackColor);
+                backIntensity.SetValueWithoutNotify(StudioSceneLights.BackIntensity);
+
+                SetStatus("Scene lights reset to the values the scene ships with");
+            })
+            {
+                text = "Reset lights to scene defaults",
+                style = { marginTop = 8 }
+            });
+
+            // --- Fly camera. Moved here from the Debug tab: it's a camera control, and it's tuned
+            // against the lights above it rather than against anything else in Debug. Its own settings
+            // live in StudioFlyCameraController (EditorPrefs), so nothing about the move changes state —
+            // and "Reset lights to scene defaults" above deliberately stays scoped to the lights.
+            fold.Add(SubHeader("Fly Camera"));
+            fold.Add(new Label("Hold the right mouse button and use WASD/QE to fly (Shift to go " +
+                               "faster) — like Unity's Scene view. Play mode only.")
+            {
+                style = { fontSize = 10, unityFontStyleAndWeight = FontStyle.Italic, whiteSpace = WhiteSpace.Normal, marginBottom = 4 }
+            });
+
+            var flyEnabled = new Toggle("Enable")
+            {
+                value = StudioFlyCameraController.Enabled,
+                tooltip = "Takes over the camera's transform from Cinemachine while the right mouse " +
+                          "button is held. The view stays wherever you fly it on release — use " +
+                          "\"Reset View\" below to hand framing back to Cinemachine."
+            };
+            flyEnabled.RegisterValueChangedCallback(evt => StudioFlyCameraController.Enabled = evt.newValue);
+            fold.Add(flyEnabled);
+
+            CardSlider(fold, "Move Speed", 1f, 20f,
+                () => StudioFlyCameraController.MoveSpeed, v => StudioFlyCameraController.MoveSpeed = v);
+            CardSlider(fold, "Look Speed", 0.02f, 0.5f,
+                () => StudioFlyCameraController.LookSpeed, v => StudioFlyCameraController.LookSpeed = v);
+
+            fold.Add(new Button(StudioFlyCameraController.ResetView) { text = "Reset View" });
+
+            pane.Add(fold);
+        }
+
         // Studio scene only; a collapsible section since it's beauty-shot dressing, not part of the
         // outfit. See IMPLEMENTATION.md §18.
         private void BuildCardFrame(VisualElement pane)

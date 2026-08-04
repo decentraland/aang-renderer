@@ -588,9 +588,10 @@ third **Debug** tab and hides the overlay for a clean, avatar-only Game view:
 
 ### 12a. Fly camera (2026-07-28, studio scene + play mode only)
 
-Debug tab, "Fly Camera" section: hold the right mouse button and use WASD/QE (Shift = faster) to
-free-fly the camera, Scene-view style — on top of the existing LMB-drag avatar rotation and
-Zoom In/Out (those are unaffected; RMB was otherwise unclaimed). Off by default (`Enable` toggle),
+"Fly Camera" section — in the Debug tab originally, **moved to the outfit pane's "Scene and Camera
+settings" foldout on 2026-08-04** (§24), below the lights: hold the right mouse button and use WASD/QE
+(Shift = faster) to free-fly the camera, Scene-view style — on top of the existing LMB-drag avatar rotation
+and Zoom In/Out (those are unaffected; RMB was otherwise unclaimed). Off by default (`Enable` toggle),
 plus Move/Look speed sliders and a "Reset View" button.
 
 **Why it needs to fight Cinemachine:** the studio camera is normally driven every frame by whichever
@@ -2115,3 +2116,70 @@ aggregator and no other file changes.
   A zero or unparseable rate is treated as an error, since `$0.0000` in the toolbar reads as a crash.
 - The completion callback checks `_manaRateLabel?.panel` — the window can be closed between request and
   response, and a write to a detached element would throw inside a callback with nothing above it to catch.
+
+## 24. Scene and Camera settings — live light tuning (2026-08-04)
+
+A **"Scene and Camera settings"** foldout in the outfit pane, next to Card frame, tuning the studio scene's
+three lights: the directional key light (colour, intensity, **Y rotation**) and the two spotlights (colour
+and intensity only). Plus **Reset lights to scene defaults**. New `Editor/StudioSceneLights.cs`; the section
+is `OutfitStudioWindow.BuildSceneAndCamera`.
+
+Named for more than the lights because the **Fly Camera** block moved in here too, from the Debug tab
+(§12a) — it's a camera control, and it's tuned against the lights above it rather than against anything else
+in Debug. Its settings already lived in `StudioFlyCameraController`'s EditorPrefs, so the move is pure
+re-parenting: no state, no behaviour, and `CardSlider` already took its parent as an argument. The
+`_configField` text box stayed behind in Debug — it's the Print Config button's output, which reads as part
+of the same block only because it sat directly under it.
+
+Section order inside the foldout: the three lights, then **Reset lights to scene defaults**, then Fly Camera.
+Reset stays scoped to the lights and is worded that way; it does not touch the fly camera's speeds.
+
+### The lights, and their authored values
+
+Read out of `OutfitStudio.unity` on 2026-08-04. **These constants are what "Reset" means**, so if the
+scene's lighting is ever re-authored they have to be re-read — once an override is applied there is nothing
+to recover them from, because the override is what the light now holds.
+
+| GameObject | colour | intensity | rotation |
+|---|---|---|---|
+| `Directional Light` | `(1, 0.8588, 0.4039)` warm gold | 2 | euler `(-205, 95, -37)` → **yaw 95** |
+| `Spot Light Front` | `(1, 0.8078, 0.5804)` warm fill | 6 | scene's |
+| `Spot Light Back` | `(0, 0.7306, 1)` cyan rim | 31.7 | scene's |
+
+Only **Y** is exposed on the directional light, so `DIR_EULER_X = -205` / `DIR_EULER_Z = -37` are held
+constant and the slider stays a pure orbit. Those come from the scene's `m_LocalEulerAnglesHint`, not from
+`eulerAngles` — the latter reports the normalised `(155, 95, 323)`, which is the *same rotation* (adding 360°
+to a euler component is the identity) but not the numbers in the inspector, and matching the inspector is
+what makes the value checkable by eye.
+
+### EditorPrefs, not the scene — and why nothing is written until you tune
+
+Values live in EditorPrefs with live push from `EditorApplication.update`, the same shape
+`StudioCardFrame` uses. Two consequences worth stating, because they're the whole design:
+
+- **In edit mode, any write to a light dirties the scene.** So `Apply` returns immediately while no
+  override key exists, and every write is guarded by a compare. Both steady states — untouched and tuned —
+  therefore perform *zero* writes. Without that, having the window open would dirty `OutfitStudio.unity`
+  every editor frame, and the scene would join the churn-file list.
+- **The compare has to be tolerance-based, not equality.** Colours round-trip through an 8-bit hex string
+  (`ColorUtility`, matching the card frame's storage), so `0.7306` comes back as `186/255 = 0.7294`; and for
+  rotation, two different eulers can be one rotation and quaternion sign isn't unique either. Comparing raw
+  numbers would write every frame — `Quaternion.Angle > 0.01°` and `Mathf.Approximately` per channel
+  instead.
+
+`HasOverrides` is cached in a `bool?` invalidated by the setters, so the per-frame path costs one bool test
+rather than seven `EditorPrefs.HasKey` calls.
+
+### Reset, and the studio-scene gate
+
+`ResetToSceneDefaults()` deletes the keys **and then explicitly pushes the authored constants**. The second
+half is the part that's easy to miss: with the keys gone `Apply` is a no-op, so without an explicit push the
+lights would just keep whatever the last tuning left them at and Reset would appear to do nothing.
+
+Everything is gated on the active scene being `STUDIO_SCENE_PATH`, the same gate
+`StudioCardFrame`/`StudioAvatarShaderSwitcher`/`StudioFlyCameraController` use. Here it's load-bearing
+rather than tidy: **`Main.unity` has a `Directional Light` too** (and no spotlights), so an ungated Reset
+would push studio values onto the production scene's lighting, in the one place that would actually ship.
+
+Lights are matched **by name** because they're plain scene objects with no marker component, and adding one
+would be a scene edit made in order to avoid scene edits.
