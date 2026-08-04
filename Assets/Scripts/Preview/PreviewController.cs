@@ -32,6 +32,11 @@ namespace Preview
 
         [SerializeField] private float wearablePadding = 0.15f;
 
+        // Remembers the view the user last switched to. In WebGL PlayerPrefs is a per-origin
+        // IndexedDB store, so this is shared by every app served from the preview origin and
+        // survives across sessions: only ever a fallback, never an override of what was requested.
+        private const string PREF_AVATAR_SHOWN = "PreviewAvatarShown";
+
         private bool _loading;
         private bool _shouldReload;
         private bool _shouldCleanup;
@@ -70,7 +75,7 @@ namespace Preview
 
         private void OnShowWearableClicked()
         {
-            PlayerPrefs.SetInt("PreviewAvatarShown", 0);
+            PlayerPrefs.SetInt(PREF_AVATAR_SHOWN, 0);
 
             previewCameraController.ShowMarketplaceWearable(true);
             wearableRotator.ResetRotation();
@@ -78,7 +83,7 @@ namespace Preview
 
         private void OnShowAvatarClicked()
         {
-            PlayerPrefs.SetInt("PreviewAvatarShown", 1);
+            PlayerPrefs.SetInt(PREF_AVATAR_SHOWN, 1);
 
             previewCameraController.ShowMarketplaceWearable(false);
             avatarRotator.ResetRotation();
@@ -165,16 +170,21 @@ namespace Preview
                     {
                         case PreviewMode.Marketplace:
                             var urns = await LoadUrns(config);
-                            Assert.IsTrue(urns.Count == 1,
-                                $"Marketplace mode only allows one urn, found: {urns.Count}");
-                            var result = await LoadForMarketplace(config.Profile, urns[0], config.Emote);
+                            // A real check and not an Assert: asserts are stripped from release WebGL
+                            // builds, so anything guarded by one fails silently where it matters.
+                            if (urns is not { Count: > 0 })
+                                throw new InvalidOperationException(
+                                    "Marketplace mode requires at least one urn, or a contract with an item or token id");
+
+                            var result = await LoadForMarketplace(config.Profile, urns, config.Emote);
 
                             previewUIPresenter.EnableEmoteControls(result.emoteOverride);
 
                             if (result.validRepresentation)
                             {
-                                showingAvatar = PlayerPrefs.GetInt("PreviewAvatarShown", 0) == 1 ||
-                                                result.emoteOverride;
+                                // When there is no single item to show on its own (an emote, or several
+                                // urns at once) the avatar is the only view that exists.
+                                showingAvatar = !result.showsItemAlone || ShouldShowAvatar(config);
                                 previewUIPresenter.SetSwitcherState(
                                     showingAvatar
                                         ? PreviewUIPresenter.SwitcherState.Avatar
@@ -187,7 +197,7 @@ namespace Preview
                             }
 
                             hasEmoteOverride = result.emoteOverride;
-                            hasWearableOverride = !hasEmoteOverride;
+                            hasWearableOverride = result.showsItemAlone;
                             hasEmoteAudio = result.emoteOverrideAudio;
                             break;
                         case PreviewMode.Authentication:
@@ -247,7 +257,7 @@ namespace Preview
 
                 previewUIPresenter.EnableEmoteControls(hasEmoteOverride);
                 previewUIPresenter.EnableZoom(config.Mode is PreviewMode.Marketplace or PreviewMode.Builder);
-                previewUIPresenter.EnableSwitcher(hasWearableOverride);
+                previewUIPresenter.EnableSwitcher(hasWearableOverride && !config.DisableSwitcher);
                 previewUIPresenter.EnableAudioControls(hasEmoteAudio);
             } while (_shouldReload);
 
@@ -311,51 +321,101 @@ namespace Preview
             }
         }
 
-        private async Awaitable<(bool emoteOverride, bool emoteOverrideAudio, bool validRepresentation, BodyShape avatarBodyShape)> LoadForMarketplace(string profileID, string urn,
-            string defaultEmote)
+        private async Awaitable<(bool emoteOverride, bool emoteOverrideAudio, bool validRepresentation,
+                bool showsItemAlone, BodyShape avatarBodyShape)>
+            LoadForMarketplace(string profileID, List<string> urns, string defaultEmote)
         {
             Assert.IsNotNull(profileID);
-            Assert.IsNotNull(urn);
             Assert.IsNotNull(defaultEmote);
 
             var avatar = await APIService.GetAvatar(profileID);
             var avatarBodyShape = avatar.GetBodyShape();
             var avatarColors = avatar.GetAvatarColors();
-            var allEntities = await EntityService.GetEntities(avatar.wearables.Append(urn).ToArray());
-            var overrideDefinition = allEntities.First(ed => ed.URN == urn);
+            var allEntities = await EntityService.GetEntities(avatar.wearables.Concat(urns).ToArray());
+
+            // Resolve in request order so that, when two urns compete for the same slot below, the last
+            // one wins. We match on the sanitized urn because EntityService normalizes token scoped
+            // urns down to the item urn, so what comes back is not always what we asked for.
+            var overrides = new List<EntityDefinition>();
+            foreach (var urn in urns.Select(URNUtils.SanitizeURN))
+            {
+                var definition = allEntities.FirstOrDefault(ed => URNUtils.SanitizeURN(ed.URN) == urn);
+
+                if (definition == null)
+                    throw new NotSupportedException($"Could not resolve urn: {urn}");
+
+                if (definition.Type is not (EntityType.Emote or EntityType.Wearable or EntityType.FacialFeature))
+                    throw new NotSupportedException($"Trying to override type: {definition.Type}");
+
+                if (!overrides.Contains(definition)) overrides.Add(definition);
+            }
+
+            // Only one emote can play at a time, so the first one wins and the rest is worn.
+            var emoteOverride = overrides.FirstOrDefault(ed => ed.Type == EntityType.Emote);
+            var wearableOverrides = overrides.Where(ed => ed.Type != EntityType.Emote).ToList();
+            var renderableOverrides = wearableOverrides.Where(ed => ed.HasRepresentation(avatarBodyShape)).ToList();
+
+            // The item-alone view renders exactly one model, so it only exists for a single wearable.
+            // An emote or a multi item preview (a cart, an outfit) can only be shown on the avatar.
+            var showsItemAlone = emoteOverride == null && wearableOverrides.Count == 1;
 
             bool hasValidRepresentation;
-            IEnumerable<EntityDefinition> wearables;
-            EntityDefinition emoteDefinition;
 
-            switch (overrideDefinition.Type)
+            if (showsItemAlone)
             {
-                case EntityType.Emote:
-                    emoteDefinition = overrideDefinition;
-                    wearables = allEntities.Where(wd => wd.URN != emoteDefinition.URN);
-                    hasValidRepresentation = true;
-                    break;
-                case EntityType.Wearable or EntityType.FacialFeature:
-                    emoteDefinition = defaultEmote == "idle" ? null : EntityDefinition.FromEmbeddedEmote(defaultEmote, false);
-                    wearables = allEntities.Where(ed =>
-                        ed.Category != overrideDefinition.Category || ed.URN == overrideDefinition.URN);
-                    hasValidRepresentation = overrideDefinition.HasRepresentation(avatarBodyShape);
-                    break;
-                default:
-                    throw new NotSupportedException($"Trying to override type: {overrideDefinition.Type}");
+                // Unchanged single item behaviour: skip the avatar and let the UI lock to the item view
+                // with a tooltip explaining that this body shape has no representation.
+                hasValidRepresentation = renderableOverrides.Count == 1;
+            }
+            else
+            {
+                if (renderableOverrides.Count < wearableOverrides.Count)
+                    Debug.LogWarning(
+                        $"Ignoring urns without a {avatarBodyShape} representation: " +
+                        string.Join(", ", wearableOverrides.Except(renderableOverrides).Select(ed => ed.URN)));
+
+                // There is no locked item view to fall back to here, and rendering the profile avatar
+                // wearing none of the requested items would be a silent lie, so report it instead.
+                if (renderableOverrides.Count == 0 && emoteOverride == null)
+                    throw new NotSupportedException(
+                        $"None of the requested urns have a {avatarBodyShape} representation: {string.Join(", ", urns)}");
+
+                hasValidRepresentation = true;
+            }
+
+            var emoteDefinition = emoteOverride ??
+                                  (defaultEmote == "idle"
+                                      ? null
+                                      : EntityDefinition.FromEmbeddedEmote(defaultEmote, false));
+
+            // Slot based composition, same as LoadForBuilder: unlike builder mode, the profile (a real
+            // one or a default) fills every remaining category, so previewing a single hat still shows a
+            // dressed avatar. The requested items win their own slot.
+            var overriddenUrns = overrides.Select(ed => ed.URN).ToHashSet();
+            var slots = new Dictionary<string, EntityDefinition>();
+            foreach (var entity in allEntities.Where(ed =>
+                         ed.Type != EntityType.Emote && !overriddenUrns.Contains(ed.URN)))
+            {
+                slots[entity.Category] = entity;
+            }
+            foreach (var entity in renderableOverrides)
+            {
+                slots[entity.Category] = entity;
             }
 
             // Load the avatar
             if (hasValidRepresentation)
             {
-                await avatarLoader.LoadAvatar(avatarBodyShape, wearables, emoteDefinition,
-                    avatar.forceRender.Append(overrideDefinition.Category).ToArray(),
+                await avatarLoader.LoadAvatar(avatarBodyShape, slots.Values, emoteDefinition,
+                    // Force render every previewed category, so an item the user came to look at is
+                    // never hidden by another wearable.
+                    avatar.forceRender.Union(renderableOverrides.Select(ed => ed.Category)).ToArray(),
                     avatarColors);
             }
 
-            if (overrideDefinition.Type is EntityType.Wearable or EntityType.FacialFeature)
+            if (showsItemAlone)
             {
-                await wearableLoader.LoadWearable(overrideDefinition, avatarBodyShape, avatarColors);
+                await wearableLoader.LoadWearable(wearableOverrides[0], avatarBodyShape, avatarColors);
             }
             else
             {
@@ -363,8 +423,21 @@ namespace Preview
             }
 
             // TODO: This check for audio clip is ugly
-            return (overrideDefinition.Type == EntityType.Emote, emoteAnimationController.HasAudio, hasValidRepresentation, avatarBodyShape);
+            return (emoteOverride != null, emoteAnimationController.HasAudio, hasValidRepresentation, showsItemAlone,
+                avatarBodyShape);
         }
+
+        /// <summary>
+        /// Which view the marketplace preview opens in. An explicit request from the caller always wins;
+        /// only when there is none do we fall back to the view the user last picked.
+        /// </summary>
+        private static bool ShouldShowAvatar(AangConfiguration config) =>
+            config.Type switch
+            {
+                PreviewViewType.Avatar => true,
+                PreviewViewType.Wearable => false,
+                _ => PlayerPrefs.GetInt(PREF_AVATAR_SHOWN, 0) == 1
+            };
 
         private async Awaitable LoadForProfile(string profileID, string defaultEmote, bool loop = false)
         {

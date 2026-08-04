@@ -33,7 +33,11 @@ The renderer can run in five different modes, depending on its usage: Marketplac
   * `money`
   * `fist-pump`
   * `head-explode`
-* `urn`: An URN address of a wearable or emote to load. It will override any existing wearable in the same category already present on the profile that has been loaded. Can be included multiple times in `builder` mode to load multiple wearables.
+* `urn`: An URN address of a wearable or emote to load. It will override any existing wearable in the same category already present on the profile that has been loaded. Can be included multiple times in `marketplace` and `builder` mode to load multiple wearables.
+* `type`: Which view to open in. Only used in `marketplace` mode, and only when a single wearable is being previewed (an emote or several urns at once can only be shown on the avatar). If omitted, the view the user last switched to is used. Possible values:
+  * `wearable` - the item on its own
+  * `avatar` - the item worn by the avatar
+* `disableSwitcher`: Hides the avatar / item switcher, so the view stays as it was requested. Only used in `marketplace` mode. Default is `false`.
 * `background`: The background color to use for the renderer. It must be in hex and not include the leading # (e.g. `ff00ff`). It may include alpha for a transparent background. Default is transparent.
 * `skinColor`: The color to use for the skin of the character. It must be in hex and not include the leading # (e.g. `ff00ff`).
 * `hairColor`: The color to use for the hair of the character. It must be in hex and not include the leading # (e.g. `ff00ff`).
@@ -61,7 +65,10 @@ Depending on the mode, not all parameters are used. These are the valid paramete
 * `background`
 * `profile`
 * `urn` or `contract` & `item` or `contract` & `token`
+  * Multiple urn parameters may be used to preview several items at once (a cart, an outfit). The remaining categories are still filled from the profile, and the passed urns override by category, so the last urn wins its category. Several items can only be shown worn by the avatar, since the item-alone view renders a single item.
 * `emote`
+* `type` (optional)
+* `disableSwitcher` (optional)
 
 ### Profile
 * `background`
