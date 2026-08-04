@@ -37,6 +37,28 @@ public class AangConfiguration
     }
 
     /// <summary>
+    /// Which view the preview opens in, for the modes that offer more than one (currently only
+    /// Marketplace). Null means the caller expressed no preference, in which case the view the user
+    /// last picked is used instead.
+    /// </summary>
+    public PreviewViewType? Type { get; private set; }
+
+    /// <summary>
+    /// Converts the string value to the appropriate view type. Anything else (including the texture
+    /// type the JS wrapper uses to skip the canvas entirely) leaves it unset, meaning no preference.
+    /// </summary>
+    /// <param name="value"></param>
+    public void SetType(string value)
+    {
+        Type = value switch
+        {
+            "avatar" => PreviewViewType.Avatar,
+            "wearable" => PreviewViewType.Wearable,
+            _ => null
+        };
+    }
+
+    /// <summary>
     /// An ethereum address of a profile to load as the base avatar.
     /// It can be set to default or a numbered default profile like default15 to use a default profile.
     /// </summary>
@@ -202,6 +224,12 @@ public class AangConfiguration
     public bool DisableLoader { get; set; }
 
     /// <summary>
+    /// Hides the avatar / item switcher. Opt-in, so it stays visible for every existing caller. Meant
+    /// for callers that pin the view with <see cref="Type"/> and don't want the user to change it.
+    /// </summary>
+    public bool DisableSwitcher { get; set; }
+
+    /// <summary>
     /// If we should instruct the browser to pre-fetch certain files. On by default.
     /// </summary>
     public bool UseBrowserPreload { get; set; } = true;
@@ -254,6 +282,9 @@ public class AangConfiguration
                 case "mode":
                     Instance.SetMode(value);
                     break;
+                case "type":
+                    Instance.SetType(value);
+                    break;
                 case "profile":
                     Instance.Profile = value;
                     break;
@@ -303,6 +334,9 @@ public class AangConfiguration
                 case "disableLoader":
                     Instance.DisableLoader = bool.Parse(value);
                     break;
+                case "disableSwitcher":
+                    Instance.DisableSwitcher = bool.Parse(value);
+                    break;
                 case "useBrowserPreload":
                     Instance.UseBrowserPreload = bool.Parse(value);
                     break;
@@ -333,6 +367,8 @@ public class AangConfiguration
         var sb = new StringBuilder("?");
 
         sb.AppendFormat("mode={0}", Mode.ToString().ToLowerInvariant());
+        if (Type.HasValue)
+            sb.AppendFormat("&type={0}", Type.Value.ToString().ToLowerInvariant());
         sb.AppendFormat("&profile={0}", Profile);
         sb.AppendFormat("&emote={0}", Emote);
         foreach (var urn in Urns)
@@ -358,6 +394,7 @@ public class AangConfiguration
             sb.AppendFormat("&token={0}", TokenID);
         sb.AppendFormat("&env={0}", APIService.Environment == "zone" ? "dev" : "prod");
         sb.AppendFormat("&disableLoader={0}", DisableLoader);
+        sb.AppendFormat("&disableSwitcher={0}", DisableSwitcher);
         sb.AppendFormat("&useBrowserPreload={0}", UseBrowserPreload);
         sb.AppendFormat("&username={0}", Username);
         sb.AppendFormat("&showFPS={0}", ShowFPS);
@@ -376,4 +413,14 @@ public enum PreviewMode
     Builder,
     Configurator,
     Jesus,
+}
+
+/// <summary>
+/// The views a preview can be opened in. Mirrors the wearable / avatar values of PreviewType in
+/// @dcl/schemas, minus texture, which never reaches the renderer.
+/// </summary>
+public enum PreviewViewType
+{
+    Wearable,
+    Avatar,
 }

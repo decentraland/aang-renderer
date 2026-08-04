@@ -30,6 +30,9 @@ public class JSBridge : MonoBehaviour
     public void SetMode(string value) => AangConfiguration.Instance.SetMode(value);
 
     [UsedImplicitly]
+    public void SetType(string value) => AangConfiguration.Instance.SetType(value);
+
+    [UsedImplicitly]
     public void SetProfile(string value) => AangConfiguration.Instance.Profile = value;
 
     [UsedImplicitly]
@@ -77,7 +80,10 @@ public class JSBridge : MonoBehaviour
 
     [UsedImplicitly]
     public void SetDisableLoader(string value) => AangConfiguration.Instance.DisableLoader = bool.Parse(value);
-    
+
+    [UsedImplicitly]
+    public void SetDisableSwitcher(string value) => AangConfiguration.Instance.DisableSwitcher = bool.Parse(value);
+
     [UsedImplicitly]
     public void SetUsername(string value) => AangConfiguration.Instance.Username = value;
 
