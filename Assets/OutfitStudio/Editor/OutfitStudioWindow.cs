@@ -278,6 +278,11 @@ namespace OutfitStudio.Editor
         [SerializeField] private bool cleanGameView = true;
         [SerializeField] private bool autoFrameItem = true;
 
+        // Off by default, and stays off across domain reloads only because it's serialized like the rest.
+        // Gates the toolbar's MANA/USD readout, and with it the only outbound request this tool makes on
+        // a timer — so leaving it on shouldn't be the accident of having opened the window once.
+        [SerializeField] private bool stressMode;
+
         // Browser state (session only)
         private readonly CatalogQuery _query = new();
         private CatalogItem[] _fetchedItems = Array.Empty<CatalogItem>(); // raw, unsorted, current filters
@@ -322,6 +327,7 @@ namespace OutfitStudio.Editor
 
         private Label _poseLabel;
         private Label _rotationLabel;
+        private Label _manaRateLabel;
         private PopupField<string> _emotePopup;
         private TextField _shareCodeField;
         private Label _statusLabel;
@@ -437,6 +443,60 @@ namespace OutfitStudio.Editor
             // PreviewController re-enables the overlay controls after every reload,
             // so Clean View re-enforces suppression on a cadence instead of one-shot
             root.schedule.Execute(EnforceCleanGameView).Every(500);
+
+            // Stress Mode's minute cadence. One permanent scheduled item that no-ops while the toggle is
+            // off, rather than starting and stopping a schedule: the tick is cheap, and a paused-item
+            // lifetime to get wrong is not. Also seeds the label if the toggle came back on serialized.
+            RefreshStressMode();
+            root.schedule.Execute(RefreshManaRate).Every(60_000);
+        }
+
+        // ---------------------------------------------------------------- Stress Mode (MANA/USD readout)
+
+        /// <summary>
+        /// Shows or hides the toolbar rate readout to match the toggle, and fetches immediately on the way
+        /// on so it doesn't sit blank for up to a minute waiting for the cadence.
+        /// </summary>
+        private void RefreshStressMode()
+        {
+            if (_manaRateLabel == null) return;
+
+            _manaRateLabel.style.display = stressMode ? DisplayStyle.Flex : DisplayStyle.None;
+
+            if (!stressMode) return;
+
+            _manaRateLabel.text = "MANA/USD …";
+            RefreshManaRate();
+        }
+
+        /// <summary>
+        /// One rate fetch, if Stress Mode is on. Failures are written into the label rather than logged:
+        /// this is a morale readout, and a console warning every minute because CoinGecko rate-limited a
+        /// joke feature would be worse than the feature is good.
+        /// </summary>
+        private void RefreshManaRate()
+        {
+            if (!stressMode || _manaRateLabel == null) return;
+
+            ManaRateService.Fetch(
+                usd =>
+                {
+                    // The window can be closed between request and response — a disposed label would
+                    // throw inside the completion callback, where nothing would catch it.
+                    if (_manaRateLabel?.panel == null) return;
+
+                    _manaRateLabel.text = $"MANA/USD ${usd:0.0000}";
+                    _manaRateLabel.tooltip = $"1 MANA = ${usd:0.0000}\n"
+                                             + $"1 USD = {1f / usd:0.00} MANA\n"
+                                             + "Refreshes every minute while Stress Mode is on.";
+                },
+                error =>
+                {
+                    if (_manaRateLabel?.panel == null) return;
+
+                    _manaRateLabel.text = "MANA/USD —";
+                    _manaRateLabel.tooltip = $"Rate unavailable: {error}";
+                });
         }
 
         // ---------------------------------------------------------------- Game overlay suppression
@@ -502,6 +562,21 @@ namespace OutfitStudio.Editor
             bar.Add(envPopup);
 
             bar.Add(new ToolbarSpacer { style = { flexGrow = 1 } });
+
+            // Stress Mode's readout. After the spacer, so it rides with the right-hand group immediately
+            // left of Clean View rather than drifting as the window resizes. Hidden until the toggle in
+            // the Debug tab turns it on (RefreshStressMode).
+            _manaRateLabel = new Label
+            {
+                style =
+                {
+                    display = DisplayStyle.None,
+                    unityTextAlign = TextAnchor.MiddleRight,
+                    marginRight = 6,
+                    unityFontStyleAndWeight = FontStyle.Bold
+                }
+            };
+            bar.Add(_manaRateLabel);
 
             var cleanViewToggle = new ToolbarToggle { text = "Clean View", value = cleanGameView };
             cleanViewToggle.tooltip = "Hide the renderer's built-in overlay (debug panel, zoom, switcher) in play mode";
@@ -1150,6 +1225,23 @@ namespace OutfitStudio.Editor
 
             actionsRow.Add(new Button(() => WithCamera(c => c.ZoomIn())) { text = "Zoom In" });
             actionsRow.Add(new Button(() => WithCamera(c => c.ZoomOut())) { text = "Zoom Out" });
+
+            var stressToggle = new Toggle("Stress Mode")
+            {
+                value = stressMode,
+                // Centred so the checkbox lines up with the button row it sits in rather than hugging the
+                // top; the label is left short so it doesn't push the row into a second line on a narrow
+                // window (the row wraps).
+                style = { marginLeft = 6, alignSelf = Align.Center },
+                tooltip = "Show the live MANA/USD rate in the toolbar, refreshed every minute. "
+                          + "Purely for morale."
+            };
+            stressToggle.RegisterValueChangedCallback(evt =>
+            {
+                stressMode = evt.newValue;
+                RefreshStressMode();
+            });
+            actionsRow.Add(stressToggle);
 
             pane.Add(actionsRow);
 

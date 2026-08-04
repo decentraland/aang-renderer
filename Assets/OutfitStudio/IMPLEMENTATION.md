@@ -2087,3 +2087,31 @@ has never actually been observed to pass or fail.
 5. **Nothing was compiled by me** — the sessions that wrote this had no C# toolchain, so every claim about
    the code is inspection plus arithmetic. The arithmetic was checked against measured screenshot pixels at
    each step (that's how three separate framing bugs were found), but treat unexercised paths with suspicion.
+
+## 23. Stress Mode — MANA/USD in the toolbar (2026-08-04)
+
+A **Stress Mode** toggle beside Zoom Out in the Debug tab shows a live MANA/USD rate in the toolbar,
+immediately left of Clean View, refreshed every minute. An in-joke, built as asked; the notes below are only
+about the two bits that aren't obvious.
+
+**The rate source is a stand-in, and this is the open thread.** The rate was specified as *"the mana>usd
+oracle (`readManaUsdRate` in `mana-rate.ts`)"* — but that file is not in this repo, which contains **no
+TypeScript at all** (`find . -name "*.ts"` is empty; aang ships vendored inside `@dcl/wearable-preview`, so
+it's presumably there or in the marketplace repo). Without it, the oracle's chain, contract address and
+decoding were unavailable, and **guessing a contract address is the one thing not worth doing** — a wrong
+feed either fails silently or, worse, returns a plausible number that nobody questions. So
+`Editor/ManaRateService.cs` reads CoinGecko's keyless public price endpoint (`ids=decentraland`, which is
+MANA's id there) instead. `Fetch` is the whole seam: swap its request and parse for an `eth_call` against the
+aggregator and no other file changes.
+
+- **Off by default and serialized** like the window's other toggles, because it's the only outbound request
+  this tool makes *on a timer* — that shouldn't be the residue of having opened the window once.
+- **One permanent 60 s scheduled item that no-ops while the toggle is off**, rather than starting and
+  stopping a schedule. Same shape as `EnforceCleanGameView`'s 500 ms tick: the tick is cheap, a
+  paused-item lifetime to get wrong is not. Toggling on fetches immediately so the label isn't blank for up
+  to a minute.
+- **Errors go in the label, never the console** (`MANA/USD —`, reason in the tooltip). A console warning
+  every minute because a public endpoint rate-limited a joke feature would cost more than the joke earns.
+  A zero or unparseable rate is treated as an error, since `$0.0000` in the toolbar reads as a crash.
+- The completion callback checks `_manaRateLabel?.panel` — the window can be closed between request and
+  response, and a write to a detached element would throw inside a callback with nothing above it to catch.
