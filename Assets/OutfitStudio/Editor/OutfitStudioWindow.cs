@@ -284,7 +284,11 @@ namespace OutfitStudio.Editor
         [SerializeField] private bool stressMode;
 
         // Browser state (session only)
-        private readonly CatalogQuery _query = new();
+        // On Sale / Primary Sales start on: the tool shoots marketing art for items that are actually
+        // buyable, so the unfiltered catalog (every item ever published) is the rarer case. Defaulted
+        // here rather than on CatalogQuery itself - the URN-hydration and published-collection queries
+        // share that type and must stay unfiltered. The toggles read these at build time.
+        private readonly CatalogQuery _query = new() { IsOnSale = true, OnlyMinting = true };
         private CatalogItem[] _fetchedItems = Array.Empty<CatalogItem>(); // raw, unsorted, current filters
         private CatalogItem[] _sortedResults = Array.Empty<CatalogItem>(); // _fetchedItems, sorted for display
         private int _fetchedTotal; // server-reported total for the current filters (may exceed FETCH_CAP)
