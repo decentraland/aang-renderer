@@ -95,11 +95,18 @@ namespace OutfitStudio.Editor
 
         // --- Tuning knobs (single source of truth: the window builds sliders from these) --------
 
-        // Shared default rim tint: warm gold #CCB777 (RGB 204,183,119) — used by both studio shaders.
+        // DCL_Toon_Studio default rim tint: warm gold #CCB777 (RGB 204,183,119). PBR used to share it,
+        // but its rim is now a near-white (see PbrRimNeutral) — the two shaders tint their rims from
+        // different lighting, so they no longer track each other.
         private static readonly Color RimGold = new(204f / 255f, 183f / 255f, 119f / 255f);
 
-        // Shared default outline tint: burnt orange #B85C2A (RGB 184,92,42) — used by both studio shaders.
+        // DCL_Toon_Studio default outline tint: burnt orange #B85C2A (RGB 184,92,42). PBR outlines are
+        // plain black, so this is toon-only now.
         private static readonly Color OutlineOrange = new(184f / 255f, 92f / 255f, 42f / 255f);
+
+        // DCL_Stylized_PBR default rim tint: near-white #F1F1F1 (RGB 241,241,241). Almost but not quite
+        // white — it takes its warmth from the scene's key light rather than from the tint.
+        private static readonly Color PbrRimNeutral = new(241f / 255f, 241f / 255f, 241f / 255f);
 
         /// <summary>DCL_Toon_Studio — the knobs unlocked over the stock toon shader.</summary>
         public static readonly StudioShaderKnob[] StudioKnobs =
@@ -120,28 +127,28 @@ namespace OutfitStudio.Editor
         /// <summary>DCL_Stylized_PBR — the full principled + stylization control set.</summary>
         public static readonly StudioShaderKnob[] PbrKnobs =
         {
-            new("Rim Intensity", "_RimLightIntensity", 0f, 4f, 1f, "Overall strength of the fresnel rim."),
-            new("Rim Power", "_RimLight_Power", 0f, 1f, 0.3f, "Rim falloff/width."),
-            new("Rim Inside Mask", "_RimLight_InsideMask", 0f, 0.95f, 0.15f, "Pushes the rim toward the silhouette edge."),
-            new("Rim Sharpness", "_RimSharpness", 0f, 1f, 0f, "0 = soft gradient rim, 1 = hard band."),
-            new("Rim Color", "_RimLightColor", RimGold, "Rim tint."),
-            new("Diffuse Wrap", "_DiffuseWrap", 0f, 1f, 0.5f, "Wraps light past the terminator for softer shading."),
-            new("Shadow Sharpness", "_ShadowSharpness", 0f, 1f, 0.55f, "0 = smooth lambert, 1 = hard two-tone break."),
-            new("Specular Softness", "_SpecularSoftness", 0f, 4f, 2.2f, "Compresses the highlight into a broad stylized gleam."),
-            new("Specular (F0)", "_Specular", 0f, 1f, 0.4f, "Dielectric reflectance (non-metal surfaces)."),
-            new("Sheen", "_Sheen", 0f, 1f, 0f, "Cloth-like grazing-edge gleam."),
-            new("Sheen Tint", "_SheenTint", 0f, 1f, 0f, "White vs albedo-tinted sheen."),
+            new("Rim Intensity", "_RimLightIntensity", 0f, 4f, 0.36f, "Overall strength of the fresnel rim."),
+            new("Rim Power", "_RimLight_Power", 0f, 1f, 0.694f, "Rim falloff/width."),
+            new("Rim Inside Mask", "_RimLight_InsideMask", 0f, 0.95f, 0.774f, "Pushes the rim toward the silhouette edge."),
+            new("Rim Sharpness", "_RimSharpness", 0f, 1f, 1f, "0 = soft gradient rim, 1 = hard band."),
+            new("Rim Color", "_RimLightColor", PbrRimNeutral, "Rim tint."),
+            new("Diffuse Wrap", "_DiffuseWrap", 0f, 1f, 0.815f, "Wraps light past the terminator for softer shading."),
+            new("Shadow Sharpness", "_ShadowSharpness", 0f, 1f, 0.943f, "0 = smooth lambert, 1 = hard two-tone break."),
+            new("Specular Softness", "_SpecularSoftness", 0f, 4f, 3.95f, "Compresses the highlight into a broad stylized gleam."),
+            new("Specular (F0)", "_Specular", 0f, 1f, 0.506f, "Dielectric reflectance (non-metal surfaces)."),
+            new("Sheen", "_Sheen", 0f, 1f, 0.72f, "Cloth-like grazing-edge gleam."),
+            new("Sheen Tint", "_SheenTint", 0f, 1f, 0.143f, "White vs albedo-tinted sheen."),
             new("Clearcoat", "_Clearcoat", 0f, 1f, 0f, "Glossy secondary coat (the action-figure finish)."),
-            new("Clearcoat Gloss", "_ClearcoatGloss", 0f, 1f, 0.8f, "Sharpness of the clearcoat lobe."),
-            new("Ambient (GI)", "_GI_Intensity", 0f, 5f, 2.5f, "Flat ambient fill from the environment SH."),
-            new("Emission Strength", "_EmissionStrength", 0f, 2f, 0.19f, "Scales emissive output. PBR emissives bloom hotter than toon; default 0.19 matches the DCL_Toon look."),
-            new("Matcap Metal Blend", "_MatcapMetalBlend", 0f, 1f, 1f, "0 = physical edge-only reflection (dark front), 1 = flat matcap that matches DCL_Toon_Studio chrome."),
-            new("Metal Strength", "_StylizedMetalStrength", 0f, 4f, 1f, "How strongly the matcap replaces the metal surface (1 = full, matches toon; >1 over-drives)."),
+            new("Clearcoat Gloss", "_ClearcoatGloss", 0f, 1f, 0.539f, "Sharpness of the clearcoat lobe."),
+            new("Ambient (GI)", "_GI_Intensity", 0f, 5f, 5f, "Flat ambient fill from the environment SH."),
+            new("Emission Strength", "_EmissionStrength", 0f, 2f, 0.03f, "Scales emissive output. PBR emissives bloom hotter than toon, so this sits far below the toon shader's own emissive level."),
+            new("Matcap Metal Blend", "_MatcapMetalBlend", 0f, 1f, 0.48f, "0 = physical edge-only reflection (dark front), 1 = flat matcap that matches DCL_Toon_Studio chrome."),
+            new("Metal Strength", "_StylizedMetalStrength", 0f, 4f, 0.02f, "How strongly the matcap replaces the metal surface (1 = full, matches toon; >1 over-drives)."),
             new("Matcap Tint", "_MatCapColor", Color.white, "Colors the matcap metal reflection (white = untinted)."),
-            new("Matcap Blur", "_BlurLevelMatcap", 0f, 4f, 0f, "Softens the matcap reflection (mip LOD)."),
-            new("Normal Strength", "_BumpScale", 0f, 2f, 1f, "Global normal-map intensity (overrides per-wearable scale)."),
-            new("Outline Width", "_Outline_Width", 0f, 10f, 3f, "Thickness of the avatar outline. Stock is 2; wider survives the camera's antialiasing instead of being eroded into the background."),
-            new("Outline Color", "_Outline_Color", OutlineOrange, "Flat color of the avatar outline.")
+            new("Matcap Blur", "_BlurLevelMatcap", 0f, 4f, 4f, "Softens the matcap reflection (mip LOD)."),
+            new("Normal Strength", "_BumpScale", 0f, 2f, 1.11f, "Global normal-map intensity (overrides per-wearable scale)."),
+            new("Outline Width", "_Outline_Width", 0f, 10f, 1.89f, "Thickness of the avatar outline. Thinner than the toon shader's 3 — the PBR look leans on shading rather than on a heavy contour."),
+            new("Outline Color", "_Outline_Color", Color.black, "Flat color of the avatar outline.")
         };
 
         public static StudioShaderKnob[] KnobsFor(StudioShaderMode mode) => mode switch
