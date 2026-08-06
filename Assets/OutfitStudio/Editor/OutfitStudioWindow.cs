@@ -328,15 +328,18 @@ namespace OutfitStudio.Editor
         private bool _invertSort;
         private VisualElement _slotsContainer;
 
-        // Subject switch: exactly one of these is displayed (see RefreshSubject)
-        private VisualElement _outfitSection;
-        private VisualElement _itemSection;
-        private VisualElement _itemRow;
+        // Shown only while a wearable is isolated (see RefreshIsolation). The outfit list above it stays
+        // put either way — isolation is a view of that list, not a second subject with its own sections.
+        private VisualElement _framingSection;
+        private Label _framingHeader;
 
-        // Avatar-only sections, hidden in Single-Item mode by RefreshSubject
+        // Pushes outfit.solo* back onto the framing controls, which are built once and only shown/hidden.
+        // Required, not polish: without it a preset load leaves them displaying the previous item's values
+        // and the next drag writes that stale number back (§22).
+        private Action _syncFramingFields;
+
         private VisualElement _presetsSection;
         private VisualElement _shareCodeSection;
-        private Button _subjectAvatarButton, _subjectItemButton;
 
         private Label _poseLabel;
         private Label _rotationLabel;
@@ -1114,21 +1117,22 @@ namespace OutfitStudio.Editor
         /// </summary>
         private void OnFaceFeatureClicked(EntityDefinition entity, string slot)
         {
-            // Single-Item mode: shoot the face feature on its own, same as any other pick
-            if (outfit.soloItem)
-            {
-                SetSoloItem(entity.URN, null, slot, FriendlyName(entity.URN));
-                return;
-            }
-
             outfit.urns.RemoveAll(urn =>
                 _knownItems.TryGetValue(urn, out var known) && known.Slot == slot);
             outfit.urns.Remove(entity.URN);
             outfit.urns.Add(entity.URN);
 
             RefreshFaceGrid();
-            RefreshSlots();
             RefreshShareCode();
+
+            // Same rule as an ordinary browser pick: equips, and takes over the isolation if one is active
+            if (outfit.soloItem)
+            {
+                IsolateItem(entity.URN, null, slot, FriendlyName(entity.URN));
+                return;
+            }
+
+            RefreshSlots();
             ScheduleApply();
             SetStatus($"Equipped {FriendlyName(entity.URN)} ({slot})");
         }
@@ -1513,12 +1517,6 @@ namespace OutfitStudio.Editor
                 SyncEmotePopup();
                 SetStatus($"Pose set: {item.Name} (draft, play mode only)");
             }
-            else if (outfit.soloItem)
-            {
-                // Single-Item mode: the draft becomes the isolated subject
-                SetSoloItem(null, item.Base64Entity, item.Category, $"{item.Name} (draft)");
-                return;
-            }
             else
             {
                 // One item per slot: displace both draft and catalog occupants of this category
@@ -1531,6 +1529,17 @@ namespace OutfitStudio.Editor
                     _knownItems.TryGetValue(urn, out var known) && known.Slot == item.Category);
 
                 outfit.base64Items.Add(item.Base64Entity);
+
+                // Same rule as a catalog pick: equips, and takes over the isolation if one is active.
+                // Returns early, so it repeats the shared tail's RefreshShareCode — the equip above changed
+                // the outfit either way — and skips its ScheduleApply, which IsolateItem does itself.
+                if (outfit.soloItem)
+                {
+                    RefreshShareCode();
+                    IsolateItem(null, item.Base64Entity, item.Category, $"{item.Name} (draft)");
+                    return;
+                }
+
                 SetStatus($"Equipped {item.Name} ({item.Category}, draft)");
                 RefreshSlots();
             }
@@ -1901,23 +1910,25 @@ namespace OutfitStudio.Editor
 
             var slot = item.Slot;
 
-            // Single-Item mode: the pick replaces the isolated subject instead of joining an outfit.
-            if (outfit.soloItem)
-            {
-                SetSoloItem(item.urn, null, slot, item.name);
-                return;
-            }
-
             // One wearable per slot: drop anything we know occupies the same category
             outfit.urns.RemoveAll(urn =>
                 _knownItems.TryGetValue(urn, out var known) && known.Slot == slot);
             outfit.urns.Remove(item.urn);
             outfit.urns.Add(item.urn);
 
+            RefreshShareCode();
+
+            // A pick always equips — but while a row is isolated it also becomes the isolated one, so the
+            // thing just clicked is the thing on screen. Without that, browsing during a shot equips
+            // items that don't render and the browser looks broken. IsolateItem refreshes and applies.
+            if (outfit.soloItem)
+            {
+                IsolateItem(item.urn, null, slot, item.name);
+                return;
+            }
+
             SetStatus($"Equipped {item.name} ({slot})");
             RefreshSlots();
-
-            RefreshShareCode();
             ScheduleApply();
         }
 
@@ -1926,11 +1937,6 @@ namespace OutfitStudio.Editor
         private VisualElement BuildOutfitPane()
         {
             var pane = new ScrollView { style = { paddingLeft = 6, paddingRight = 6, paddingTop = 4 } };
-
-            // --- Subject: whole avatar, or one isolated wearable for item-card shots. Everything else
-            // in this pane (shader, card frame, pose, presets, capture) is shared by both — only the
-            // Outfit section swaps for the Item section, so there's one of each control, not two.
-            BuildSubjectSwitch(pane);
 
             // --- Shader (selection persists via StudioAvatarShaderSwitcher and re-applies after
             // every avatar reload, edit and play mode, until another shader is picked). The 3 selector
@@ -1978,16 +1984,18 @@ namespace OutfitStudio.Editor
             // --- Scene lighting (studio-scene only, like the card frame)
             BuildSceneAndCamera(pane);
 
-            // --- Outfit (body shape and colors live on the Avatar tab now) / Item, one or the other
-            _outfitSection = new VisualElement();
-            _outfitSection.Add(Header("Outfit"));
+            // --- Outfit (body shape and colors live on the Avatar tab now). Always visible: isolating a
+            // wearable for a shot is a per-row action on this list (the ◉ button), not a mode that
+            // replaces it.
+            pane.Add(Header("Outfit"));
             _slotsContainer = new VisualElement();
-            _outfitSection.Add(_slotsContainer);
-            pane.Add(_outfitSection);
+            pane.Add(_slotsContainer);
 
-            _itemSection = new VisualElement();
-            BuildItemSection(_itemSection);
-            pane.Add(_itemSection);
+            // --- Framing, directly under the list it belongs to: shown only while a row is isolated,
+            // because every control in it is about fitting *one item* in the frame.
+            _framingSection = new VisualElement();
+            BuildFramingSection(_framingSection);
+            pane.Add(_framingSection);
 
             // --- Pose
             pane.Add(Header("Pose"));
@@ -2052,9 +2060,9 @@ namespace OutfitStudio.Editor
 
             // --- Presets
             //
-            // Avatar-only, and hidden in Single-Item mode (see RefreshSubject). An OutfitPreset is a
-            // saved *look*; a solo item shot is temporary working state, so offering to persist it only
-            // invites the mismatch of a preset that silently flips the subject out from under you.
+            // Always visible, including while a wearable is isolated — they act on the whole outfit,
+            // which is on screen right above. CloneForPreset still defaults every solo field, so a preset
+            // saves the list you can see and loads as a full avatar; isolation is a view, not outfit state.
             _presetsSection = new VisualElement();
             _presetsSection.Add(Header("Presets"));
 
@@ -2214,10 +2222,10 @@ namespace OutfitStudio.Editor
 
             // --- Share code
             //
-            // Avatar-only for the same reason as Presets, plus a harder one: the web renderer's query
-            // string has no hide-body parameter, so a code emitted in Single-Item mode would load the
-            // item on a full avatar — a share link that doesn't show what you were looking at. Hidden
-            // rather than disabled-with-a-warning, which is what it used to be.
+            // Also always visible, and always the whole outfit: ToShareCode reads urns/base64Items
+            // directly rather than the isolated substitution, so Copy can't quietly publish a one-item
+            // outfit while a six-row list sits two sections above it. Nothing is lost — FromShareCode has
+            // no way to express isolation (no hide-body parameter), so there was never a round trip.
             _shareCodeSection = new VisualElement();
             _shareCodeSection.Add(Header("Share code"));
 
@@ -2239,10 +2247,10 @@ namespace OutfitStudio.Editor
             _shareCodeSection.Add(shareButtons);
             pane.Add(_shareCodeSection);
 
-            // Last, not next to the Outfit/Item sections it also governs: RefreshSubject shows and hides
-            // four sections and two of them are built down here, so calling it any earlier would leave
-            // Presets and Share code visible on a window that opens straight into Single-Item mode.
-            RefreshSubject();
+            // Builds the initial slot list (with its isolation banner and ◉ states) and shows or hides the
+            // framing section to match whatever isolation survived the domain reload. Also where a stale
+            // soloUrn from a previous session gets reconciled away — see ReconcileSoloSelection.
+            RefreshIsolation();
 
             return pane;
         }
@@ -2252,7 +2260,7 @@ namespace OutfitStudio.Editor
         private const string K_ITEM_POSE_PREFIX = "OutfitStudio.ItemPose.";
 
         /// <summary>
-        /// The display pose last used for a wearable category in Single-Item mode, or null. Per
+        /// The display pose last used for a wearable category while isolated, or null. Per
         /// category because that's the unit the answer varies by: every upper body wants the same
         /// jacket pose, a hat wants a neutral one. EditorPrefs rather than the outfit, since it's a
         /// working preference rather than part of any one item's look.
@@ -2262,8 +2270,8 @@ namespace OutfitStudio.Editor
 
         /// <summary>
         /// Records the current pose as the default for the current item's category. Called from every
-        /// pose-mutation site, but only while Single-Item mode is the active subject — poses picked for
-        /// a whole avatar say nothing about how a lone jacket should hang.
+        /// pose-mutation site, but only while a wearable is isolated — poses picked for a whole avatar say
+        /// nothing about how a lone jacket should hang.
         /// </summary>
         private void RememberItemPose()
         {
@@ -2286,93 +2294,120 @@ namespace OutfitStudio.Editor
                 : _knownItems.GetValueOrDefault(outfit.soloUrn)?.Slot;
         }
 
-        // ---------------------------------------------------------------- Subject (avatar / one item)
+        // ---------------------------------------------------------------- Isolating one wearable
 
         /// <summary>
-        /// The Avatar / Single Item switch. Same disabled-means-selected idiom as the shader selector
-        /// and the browser tabs.
+        /// Drops isolation, camera included, without touching the outfit — the isolated item stays
+        /// equipped, since it was always a row in the list rather than a separate pick.
+        ///
+        /// The camera is the part that isn't optional. FrameItem parked it on the item and left the
+        /// Cinemachine brain disabled, so the full avatar would otherwise be shot from the item's framing.
+        /// Handing the brain back restores builderCamera's authored shot — exactly what the Framing
+        /// section's "Reset" button does. The other direction is already covered: entering isolation ends
+        /// in ScheduleFrameItem, which re-derives framing from the item's bounds. Neither view needs a
+        /// *saved* camera — both regenerate theirs from an authoritative source, and a stale saved
+        /// transform would be its own source of wrong framing.
         /// </summary>
-        private void BuildSubjectSwitch(VisualElement pane)
+        private void ClearIsolation()
         {
-            pane.Add(Header("Subject"));
+            outfit.soloItem = false;
+            outfit.soloUrn = null;
+            outfit.soloBase64 = null;
 
-            var row = new VisualElement { style = { flexDirection = FlexDirection.Row } };
-
-            _subjectAvatarButton = new Button(() => SetSubject(false))
-                { text = "Avatar", style = { flexGrow = 1 } };
-            _subjectItemButton = new Button(() => SetSubject(true))
-                { text = "Single Item", style = { flexGrow = 1 } };
-
-            row.Add(_subjectAvatarButton);
-            row.Add(_subjectItemButton);
-            pane.Add(row);
+            StudioItemCamera.Release();
         }
 
-        /// <summary>
-        /// Switches subject. The outfit and the isolated item are stored separately
-        /// (<c>urns</c> vs <c>soloUrn</c>), so flipping back and forth is lossless.
-        /// </summary>
-        private void SetSubject(bool solo)
+        /// <summary>Back to the full avatar. Wired to the ◉ button on the isolated row and to the banner.</summary>
+        private void ExitIsolation()
         {
-            if (outfit.soloItem == solo) return;
+            if (!outfit.soloItem) return;
 
-            outfit.soloItem = solo;
-
-            // Only the ->Avatar direction needs anything: FrameItem parked the camera on the item and left
-            // the Cinemachine brain disabled, so the avatar would otherwise be shot from the item's
-            // framing. Handing the brain back restores builderCamera's authored shot — exactly what the
-            // Framing section's "Reset" button does. ->Single-Item is already covered, because
-            // ScheduleApply below ends in ScheduleFrameItem, which re-derives the framing from the item's
-            // bounds. Neither mode needs a *saved* camera: both can regenerate theirs from an
-            // authoritative source, and a stale saved transform would be its own source of wrong framing.
-            if (!solo) StudioItemCamera.Release();
-
-            RefreshSubject();
-            RefreshShareCode();
+            ClearIsolation();
+            RefreshIsolation();
             ScheduleApply();
 
-            SetStatus(solo
-                ? "Single Item — pick a wearable from the browser to shoot it on its own"
-                : "Avatar — your outfit is unchanged; camera handed back to the scene's shot");
+            SetStatus("Showing the full avatar again — camera handed back to the scene's shot");
         }
 
         /// <summary>
-        /// Shows the sections that belong to the current subject. Outfit and Item swap, and **Presets and
-        /// Share code disappear entirely in Single-Item mode**: both persist or publish an *avatar look*,
-        /// which is the tool's main job, whereas a solo item shot is temporary working state on the way to
-        /// a PNG. A share code can't even express it (no hide-body parameter in the renderer's query
-        /// string), and a preset that carried it would flip the subject out from under whoever loaded it.
+        /// Makes an equipped wearable the isolated subject: only it renders, with the body hidden. Applies
+        /// the remembered display pose for its category so an upper body doesn't land in A-pose (see
+        /// <see cref="RememberedItemPose"/>).
+        ///
+        /// Callers must have the item in <c>outfit.urns</c>/<c>base64Items</c> already — that invariant is
+        /// what lets the list carry the ◉ button, and <see cref="ReconcileSoloSelection"/> enforces it.
         /// </summary>
-        private void RefreshSubject()
+        private void IsolateItem(string urn, string base64, string category, string displayName)
         {
-            var solo = outfit.soloItem;
+            outfit.soloItem = true;
+            outfit.soloUrn = urn;
+            outfit.soloBase64 = base64;
 
-            _subjectAvatarButton?.SetEnabled(solo);
-            _subjectItemButton?.SetEnabled(!solo);
+            var pose = RememberedItemPose(category);
+            if (!string.IsNullOrEmpty(pose) && pose != outfit.emote)
+            {
+                outfit.emote = pose;
+                RemoveDraftEmote();
+                if (_poseLabel != null) _poseLabel.text = $"Pose: {outfit.emote}";
+                SyncEmotePopup();
+            }
 
-            if (_outfitSection != null)
-                _outfitSection.style.display = solo ? DisplayStyle.None : DisplayStyle.Flex;
-            if (_itemSection != null)
-                _itemSection.style.display = solo ? DisplayStyle.Flex : DisplayStyle.None;
+            RefreshIsolation();
+            ScheduleApply(); // ends in ScheduleFrameItem, so the item frames itself once the load lands
 
-            var avatarOnly = solo ? DisplayStyle.None : DisplayStyle.Flex;
-            if (_presetsSection != null) _presetsSection.style.display = avatarOnly;
-            if (_shareCodeSection != null) _shareCodeSection.style.display = avatarOnly;
-
-            RefreshItemRow();
+            SetStatus($"Isolated {displayName} ({category}) — the rest of the outfit is kept but hidden");
         }
 
         /// <summary>
-        /// The Item section: which wearable is being shot, plus its framing. Built once; only
-        /// <see cref="_itemRow"/> is rebuilt as the pick changes.
+        /// Shows the framing controls when a wearable is isolated and hides them when it isn't, then
+        /// rebuilds the slot list so the banner, the row accent and the ◉ states follow.
         /// </summary>
-        private void BuildItemSection(VisualElement section)
+        private void RefreshIsolation()
         {
-            section.Add(Header("Item"));
+            if (_framingSection != null)
+                _framingSection.style.display = outfit.soloItem ? DisplayStyle.Flex : DisplayStyle.None;
 
-            section.Add(new Label("One wearable, no body. It still loads onto the avatar skeleton, so "
-                                  + "it skins and poses normally — use the Pose section below so an "
-                                  + "upper body isn't shot in A-pose. Posing and capture need play mode.")
+            _syncFramingFields?.Invoke();
+            RefreshSlots();
+        }
+
+        /// <summary>
+        /// Enforces the invariant that the isolated item is one of the equipped ones, dropping isolation
+        /// when it no longer is — unequipped with ✕, displaced by a same-slot pick, replaced wholesale by a
+        /// preset, or left over in serialized window state from before isolation moved into the list.
+        /// Returns whether it changed anything.
+        ///
+        /// Called from exactly one place, the top of <see cref="RefreshSlots"/>: every mutation of
+        /// <c>urns</c>/<c>base64Items</c> already funnels through there, and each of those callers already
+        /// schedules an apply afterwards. Deliberately does NOT call <see cref="RefreshIsolation"/> —
+        /// that calls RefreshSlots, and a nested rebuild mid-loop would garble the list.
+        /// </summary>
+        private bool ReconcileSoloSelection()
+        {
+            if (!outfit.soloItem) return false;
+
+            var stillEquipped =
+                (!string.IsNullOrEmpty(outfit.soloUrn) && outfit.urns.Contains(outfit.soloUrn))
+                || (!string.IsNullOrEmpty(outfit.soloBase64) && outfit.base64Items.Contains(outfit.soloBase64));
+
+            if (stillEquipped) return false;
+
+            ClearIsolation();
+            return true;
+        }
+
+        /// <summary>
+        /// The Framing section: how the isolated item sits in the frame. Built once and only shown or
+        /// hidden, so <see cref="_syncFramingFields"/> is what keeps its controls truthful.
+        /// </summary>
+        private void BuildFramingSection(VisualElement section)
+        {
+            _framingHeader = Header("Framing");
+            section.Add(_framingHeader);
+
+            section.Add(new Label("Only this wearable renders — the body is hidden but the skeleton stays, "
+                                  + "so it still skins and poses. Use the Pose section below so an upper "
+                                  + "body isn't shot in A-pose. Posing and capture need play mode.")
             {
                 style =
                 {
@@ -2382,11 +2417,6 @@ namespace OutfitStudio.Editor
                     marginBottom = 4
                 }
             });
-
-            _itemRow = new VisualElement();
-            section.Add(_itemRow);
-
-            section.Add(Header("Framing"));
 
             var framingRow = new VisualElement { style = { flexDirection = FlexDirection.Row } };
             framingRow.Add(new Button(FrameItem) { text = "Frame item", style = { flexGrow = 1 } });
@@ -2492,115 +2522,37 @@ namespace OutfitStudio.Editor
                 style = { fontSize = 10, unityFontStyleAndWeight = FontStyle.Italic, whiteSpace = WhiteSpace.Normal }
             });
 
-            // Replaces a warning that a share code emitted here loads on a full avatar (no hide-body
-            // parameter in the renderer's query string). Presets and Share code are now hidden outright in
-            // this mode, so the caveat has nowhere to bite — but saying nothing would leave an artist
-            // hunting for the sections, so it says why they're gone instead.
-            section.Add(new Label("Nothing here is saved: Presets and Share code are for avatar outfits, so "
-                                  + "they're hidden in this mode. Your outfit is untouched — switch back to "
-                                  + "Avatar and it's exactly as you left it.")
+            // These controls are built once and only shown/hidden, so nothing above re-reads the outfit
+            // when it's replaced wholesale by a preset or a share code — they'd keep displaying the
+            // previous values and the next drag would write one of them back (§22). SetValueWithoutNotify
+            // throughout: firing the callbacks here would re-frame mid-load with half-applied state.
+            _syncFramingFields = () =>
             {
-                style =
-                {
-                    fontSize = 10,
-                    unityFontStyleAndWeight = FontStyle.Italic,
-                    color = new Color(0.85f, 0.6f, 0.2f),
-                    whiteSpace = WhiteSpace.Normal,
-                    marginTop = 4
-                }
-            });
+                zoom.SetValueWithoutNotify(outfit.soloZoomPct);
+                offsetY.SetValueWithoutNotify(outfit.soloOffsetYPx);
+                offsetX.SetValueWithoutNotify(outfit.soloOffsetXPx);
+                fitToCard.SetValueWithoutNotify(outfit.soloFitToCard);
+                garmentOnly.SetValueWithoutNotify(outfit.soloFitGarmentOnly);
+
+                // Names its subject, so the section still identifies itself once the list has scrolled off
+                _framingHeader.text = outfit.soloItem ? $"Framing — {DescribeSoloItem()}" : "Framing";
+            };
         }
 
-        /// <summary>Rebuilds the row describing the isolated item (thumbnail, name, clear button).</summary>
-        private void RefreshItemRow()
+        /// <summary>"[slot] Name" for the isolated item, matching how its row in the outfit list reads.</summary>
+        private string DescribeSoloItem()
         {
-            if (_itemRow == null) return;
-
-            _itemRow.Clear();
-
-            if (!outfit.HasSoloItem)
-            {
-                _itemRow.Add(new Label("No item picked — choose one from the Wearables tab.")
-                {
-                    style = { unityFontStyleAndWeight = FontStyle.Italic, marginBottom = 4 }
-                });
-                return;
-            }
-
-            var row = new VisualElement
-            {
-                style = { flexDirection = FlexDirection.Row, alignItems = Align.Center, marginBottom = 4 }
-            };
-
-            string label;
             if (!string.IsNullOrEmpty(outfit.soloBase64))
             {
                 var (name, category, _) = DescribeDraft(outfit.soloBase64);
-                label = $"[{category}] {name} (draft)";
-            }
-            else
-            {
-                var known = _knownItems.GetValueOrDefault(outfit.soloUrn);
-                var thumb = new Image { scaleMode = ScaleMode.ScaleToFit, style = { width = 24, height = 24 } };
-                row.Add(thumb);
-                if (known != null)
-                {
-                    LoadThumbnail(known.thumbnail, tex =>
-                    {
-                        if (tex != null) thumb.image = tex;
-                    });
-                }
-
-                var slot = known?.Slot ?? "?";
-                var name = known?.name ?? outfit.soloUrn[(outfit.soloUrn.LastIndexOf(':') + 1)..];
-                label = $"[{slot}] {name}";
+                return $"[{category}] {name} (draft)";
             }
 
-            row.Add(new Label(label)
-            {
-                tooltip = outfit.soloUrn,
-                style =
-                {
-                    flexGrow = 1, overflow = Overflow.Hidden, textOverflow = TextOverflow.Ellipsis, marginLeft = 4
-                }
-            });
+            if (string.IsNullOrEmpty(outfit.soloUrn)) return "no item";
 
-            row.Add(new Button(() =>
-            {
-                outfit.soloUrn = null;
-                outfit.soloBase64 = null;
-                RefreshItemRow();
-                RefreshShareCode();
-                ScheduleApply();
-            }) { text = "✕" });
-
-            _itemRow.Add(row);
-        }
-
-        /// <summary>
-        /// Makes an item the isolated subject, switching subject if the pick came in while the window
-        /// was still on Avatar. Applies the remembered display pose for the item's category so an
-        /// upper body doesn't land in A-pose (see <see cref="RememberedItemPose"/>).
-        /// </summary>
-        private void SetSoloItem(string urn, string base64, string category, string displayName)
-        {
-            outfit.soloUrn = urn;
-            outfit.soloBase64 = base64;
-
-            var pose = RememberedItemPose(category);
-            if (!string.IsNullOrEmpty(pose) && pose != outfit.emote)
-            {
-                outfit.emote = pose;
-                RemoveDraftEmote();
-                if (_poseLabel != null) _poseLabel.text = $"Pose: {outfit.emote}";
-                SyncEmotePopup();
-            }
-
-            RefreshItemRow();
-            RefreshShareCode();
-            ScheduleApply();
-
-            SetStatus($"Item: {displayName} ({category})");
+            var known = _knownItems.GetValueOrDefault(outfit.soloUrn);
+            var slot = known?.Slot ?? "?";
+            return $"[{slot}] {known?.name ?? outfit.soloUrn[(outfit.soloUrn.LastIndexOf(':') + 1)..]}";
         }
 
         /// <summary>
@@ -2977,7 +2929,7 @@ namespace OutfitStudio.Editor
                 tooltip = "Run the border ring the whole way round and crop the top edge like any " +
                           "other, instead of leaving the top open. Off by default: the open top is " +
                           "deliberate for avatars, whose heads are meant to overflow. Turn it on for " +
-                          "Single Item shots, where the subject belongs fully inside the card.\n\n" +
+                          "isolated-item shots, where the subject belongs fully inside the card.\n\n" +
                           "The top crop needs at least one mask toggle on to have a mask to crop with."
             };
             closedBorder.RegisterValueChangedCallback(evt => StudioCardFrame.ClosedBorder = evt.newValue);
@@ -3359,8 +3311,19 @@ namespace OutfitStudio.Editor
         {
             if (_slotsContainer == null) return;
 
+            // Before the rebuild, so the banner and the ◉ states below describe reconciled state. Hides the
+            // framing section directly rather than through RefreshIsolation, which would call back into
+            // here and clear the container mid-rebuild (see ReconcileSoloSelection).
+            if (ReconcileSoloSelection())
+            {
+                if (_framingSection != null) _framingSection.style.display = DisplayStyle.None;
+                _syncFramingFields?.Invoke();
+                SetStatus("Isolation cleared — that wearable is no longer equipped");
+            }
+
             _slotsContainer.Clear();
 
+            BuildIsolationBanner();
             BuildHidingControls();
 
             // Categories that got their own row, so BuildHiddenBodyRows can cover the rest
@@ -3379,12 +3342,15 @@ namespace OutfitStudio.Editor
                     style = { flexDirection = FlexDirection.Row, alignItems = Align.Center, marginTop = 2 }
                 };
 
+                MarkIsolationState(row, outfit.soloItem && outfit.soloBase64 == base64);
+
                 row.Add(new Label($"[{category}] {name} (draft)")
                 {
                     style = { flexGrow = 1, overflow = Overflow.Hidden, textOverflow = TextOverflow.Ellipsis, marginLeft = 4 }
                 });
 
                 AddHidingBadge(row, category);
+                AddSoloButton(row, null, base64, category, $"{name} (draft)");
 
                 row.Add(new Button(() =>
                 {
@@ -3413,6 +3379,8 @@ namespace OutfitStudio.Editor
                     style = { flexDirection = FlexDirection.Row, alignItems = Align.Center, marginTop = 2 }
                 };
 
+                MarkIsolationState(row, outfit.soloItem && outfit.soloUrn == urn);
+
                 var known = _knownItems.GetValueOrDefault(urn);
 
                 var thumb = new Image { scaleMode = ScaleMode.ScaleToFit, style = { width = 24, height = 24 } };
@@ -3436,11 +3404,12 @@ namespace OutfitStudio.Editor
                 });
 
                 AddHidingBadge(row, slot);
+                AddSoloButton(row, urn, null, slot, name);
 
                 row.Add(new Button(() =>
                 {
                     outfit.urns.Remove(urn);
-                    RefreshSlots();
+                    RefreshSlots(); // reconciles isolation away if this was the isolated row
                     RefreshShareCode();
                     ScheduleApply();
                 }) { text = "✕" });
@@ -3449,6 +3418,91 @@ namespace OutfitStudio.Editor
             }
 
             BuildHiddenBodyRows(rowCategories);
+        }
+
+        // ---------------------------------------------------------------- Isolation, on the rows
+
+        /// <summary>
+        /// Says which wearable is being shot alone and offers the way back, at the top of the list it's
+        /// describing. Styled like the hide-override warning below it, for the same reason: the list is
+        /// showing something other than what will render, and that has to be impossible to miss.
+        /// </summary>
+        private void BuildIsolationBanner()
+        {
+            if (!outfit.soloItem) return;
+
+            var banner = new VisualElement
+            {
+                style = { flexDirection = FlexDirection.Row, alignItems = Align.Center, marginTop = 2 }
+            };
+
+            banner.Add(new Label($"Isolating {DescribeSoloItem()} — only this item renders; "
+                                 + "the rest of the outfit is kept but hidden.")
+            {
+                style =
+                {
+                    flexGrow = 1,
+                    unityFontStyleAndWeight = FontStyle.Italic,
+                    color = new Color(0.85f, 0.6f, 0.2f),
+                    whiteSpace = WhiteSpace.Normal
+                }
+            });
+
+            banner.Add(new Button(ExitIsolation) { text = "Show full avatar" });
+
+            _slotsContainer.Add(banner);
+        }
+
+        /// <summary>
+        /// Marks a row as the isolated one (green left accent) or, while something else is isolated, dims
+        /// it — those rows genuinely aren't rendering, and saying so on the row is what keeps "where did my
+        /// outfit go" from being a support question.
+        /// </summary>
+        private void MarkIsolationState(VisualElement row, bool isolated)
+        {
+            if (isolated)
+            {
+                row.style.borderLeftWidth = 2;
+                row.style.borderLeftColor = new Color(0.45f, 0.85f, 0.45f);
+                row.style.paddingLeft = 4;
+            }
+            else if (outfit.soloItem)
+            {
+                row.style.opacity = 0.45f;
+            }
+        }
+
+        /// <summary>
+        /// The per-row isolate toggle: shoot this one wearable with the body hidden, or go back to the full
+        /// avatar. Same 20px active/inactive vocabulary as the force-render button next to it
+        /// (<see cref="AddHidingBadge"/>) — green and bold means it's on.
+        /// </summary>
+        private void AddSoloButton(VisualElement row, string urn, string base64, string category, string name)
+        {
+            var isolated = outfit.soloItem
+                           && (urn != null ? outfit.soloUrn == urn : outfit.soloBase64 == base64);
+
+            var button = new Button
+            {
+                text = "◉",
+                tooltip = isolated
+                    ? "Isolating this wearable. Click to go back to the full avatar."
+                    : "Isolate for a shot: render only this wearable with the body hidden. It stays on "
+                      + "the skeleton, so it still poses. The rest of your outfit is kept, just not "
+                      + "rendered.",
+                style =
+                {
+                    width = 20,
+                    color = isolated ? new Color(0.45f, 0.85f, 0.45f) : Color.gray,
+                    unityFontStyleAndWeight = isolated ? FontStyle.Bold : FontStyle.Normal
+                }
+            };
+            button.clicked += () =>
+            {
+                if (isolated) ExitIsolation();
+                else IsolateItem(urn, base64, category, name);
+            };
+            row.Add(button);
         }
 
         // ---------------------------------------------------------------- Hide overrides (forceRender)
@@ -3642,18 +3696,24 @@ namespace OutfitStudio.Editor
 
         private void LoadOutfit(OutfitDefinition loaded)
         {
+            // Nothing loadable carries isolation — presets go through CloneForPreset (solo fields
+            // defaulted) and a share code can't express it at all — so the load silently drops it. That
+            // means ReconcileSoloSelection never sees anything to reconcile, and the camera FrameItem
+            // parked on the item would stay parked while a full avatar loaded into it. Hand it back here.
+            var wasIsolated = outfit.soloItem;
+
             outfit = loaded;
+
+            if (wasIsolated && !outfit.soloItem) StudioItemCamera.Release();
 
             // Face features live in outfit.urns now, so the grid reflects whatever was just loaded.
             // Off-chain URNs in slots not browsed this session resolve asynchronously via
             // HydrateKnownItems below, which refreshes the grid again once they land.
             RefreshFaceGrid();
 
-            // Still called even though nothing loadable carries a subject any more — presets are saved
-            // through CloneForPreset (solo fields defaulted) and a share code can't express Single-Item at
-            // all — because `loaded` replaces `outfit` wholesale, so the sections have to be re-shown
-            // against the new instance's soloItem regardless of where it came from.
-            RefreshSubject();
+            // `loaded` replaces `outfit` wholesale, so the framing section's visibility and its build-once
+            // controls both have to be re-synced against the new instance.
+            RefreshIsolation();
 
             _bodyShapePopup.SetValueWithoutNotify(
                 outfit.bodyShape == WearablesConstants.BODY_SHAPE_FEMALE ? "Female" : "Male");
@@ -3693,8 +3753,9 @@ namespace OutfitStudio.Editor
         /// </summary>
         private void HydrateKnownItems()
         {
-            // soloUrn too, so the Item row can show a name/thumbnail/slot for a preset-loaded item
-            var unknown = outfit.urns.Append(outfit.emote).Append(outfit.soloUrn)
+            // soloUrn is always one of outfit.urns now (see ReconcileSoloSelection), so it needs no entry
+            // of its own — its row is what carries the name/thumbnail/slot.
+            var unknown = outfit.urns.Append(outfit.emote)
                 .Where(urn => !string.IsNullOrEmpty(urn)
                               && urn.StartsWith("urn:", StringComparison.OrdinalIgnoreCase)
                               && !_knownItems.ContainsKey(urn))
@@ -3714,8 +3775,10 @@ namespace OutfitStudio.Editor
                 {
                     foreach (var item in page.data)
                         _knownItems[item.urn] = item;
-                    RefreshSlots();
-                    RefreshItemRow(); // the Item row's name/thumbnail/slot came from this lookup
+
+                    // RefreshIsolation, not just RefreshSlots: the Framing header names the isolated item,
+                    // and this lookup is where a preset-loaded URN's name and slot come from.
+                    RefreshIsolation();
                 },
                 error => Debug.LogWarning($"[OutfitStudio] Failed to resolve URNs: {error}"));
         }
@@ -3741,8 +3804,7 @@ namespace OutfitStudio.Editor
             }
 
             RegisterCatalystEntities(entities);
-            RefreshSlots();
-            RefreshItemRow();
+            RefreshIsolation(); // rebuilds the slot list too; the Framing header names the isolated item
             RefreshFaceGrid(); // the selected-tile highlight depends on the slot we just resolved
         }
 

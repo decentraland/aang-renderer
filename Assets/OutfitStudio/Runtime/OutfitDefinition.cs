@@ -49,21 +49,29 @@ namespace OutfitStudio
         public bool ignoreAllHides;
 
         /// <summary>
-        /// Single-Item mode: render one isolated wearable with the body suppressed, for item-card
-        /// beauty shots. The item still loads onto the live avatar skeleton (so it poses, skins and
-        /// spring-bones normally) — only the body geometry is hidden. Studio-only, like
-        /// <see cref="forceRender"/>: the renderer's query string has no hide-body parameter, so this
-        /// survives in a preset but not in a share code (see <see cref="ToShareCode"/>).
+        /// Render one isolated wearable with the body suppressed, for item-card beauty shots. The item
+        /// still loads onto the live avatar skeleton (so it poses, skins and spring-bones normally) — only
+        /// the body geometry is hidden. Studio-only: the renderer's query string has no hide-body
+        /// parameter, so nothing about this travels in a share code.
+        ///
+        /// A **view over this outfit**, not a second subject: the artist isolates a wearable he has already
+        /// equipped, by pressing ◉ on its row in the outfit list, and the list stays on screen while he
+        /// does. That's enforced as an invariant — whenever this is true, <see cref="soloUrn"/> is an entry
+        /// of <see cref="urns"/> or <see cref="soloBase64"/> is an entry of <see cref="base64Items"/> —
+        /// by <c>OutfitStudioWindow.ReconcileSoloSelection</c>.
         /// </summary>
         public bool soloItem;
 
         /// <summary>
-        /// The isolated item's URN. Deliberately separate from <see cref="urns"/> so switching back to
-        /// avatar mode leaves the outfit that was being authored untouched.
+        /// Which equipped URN is isolated. A pointer into <see cref="urns"/>, held **by value** rather than
+        /// as an index: an index would force <see cref="EffectiveUrns"/> to change (the one substitution
+        /// point worth leaving alone), would need a discriminator to address the second list
+        /// (<see cref="base64Items"/>) as well, and would silently address a different item after any
+        /// removal.
         /// </summary>
         public string soloUrn;
 
-        /// <summary>A builder draft as the isolated item, base64-encoded like <see cref="base64Items"/>.</summary>
+        /// <summary>An equipped builder draft as the isolated item, the <see cref="base64Items"/> entry itself.</summary>
         public string soloBase64;
 
         /// <summary>
@@ -114,9 +122,9 @@ namespace OutfitStudio
         /// </summary>
         public bool soloFitGarmentOnly;
 
-        /// <summary>Whether Single-Item mode has an item to render.</summary>
-        public bool HasSoloItem =>
-            soloItem && (!string.IsNullOrEmpty(soloUrn) || !string.IsNullOrEmpty(soloBase64));
+        // A HasSoloItem property used to live here, for the state where the mode was on but nothing had
+        // been picked yet. That state is unreachable now: isolation can only be entered from an equipped
+        // row, so it always carries a target, and the property was just soloItem with extra words.
 
         /// <summary>
         /// The force-render list to hand to the avatar loader: every known category when
@@ -126,9 +134,10 @@ namespace OutfitStudio
         /// <c>WearableUtils.ResolveHidingConflicts</c>, and empty is what the runtime passes for a
         /// profile with no force-render set, which is the behaviour the studio should match.
         ///
-        /// Single-Item mode also force-renders everything: only one wearable is equipped, so there is
-        /// nothing legitimate for a hide to suppress, and an item whose own category is implicitly
-        /// hidden (a skin, a helmet hiding hair) would otherwise render as nothing at all.
+        /// Isolation also force-renders everything: only one wearable is *loaded* (the rest of the outfit
+        /// is filtered out by <see cref="EffectiveUrns"/>, not hidden), so there is nothing legitimate for
+        /// a hide to suppress, and an item whose own category is implicitly hidden — a skin, a helmet
+        /// hiding hair — would otherwise render as nothing at all.
         /// </summary>
         public string[] EffectiveForceRender() =>
             ignoreAllHides || soloItem
@@ -141,7 +150,8 @@ namespace OutfitStudio
                 .ToArray();
 
         /// <summary>
-        /// The URNs to load: just the isolated item in Single-Item mode, the whole outfit otherwise.
+        /// The URNs to load: just the isolated row while one is isolated, the whole outfit otherwise. The
+        /// one substitution point for isolation, which is why <see cref="soloUrn"/> is a plain string.
         /// </summary>
         public List<string> EffectiveUrns() =>
             soloItem
@@ -183,13 +193,11 @@ namespace OutfitStudio
         }
 
         /// <summary>
-        /// A copy for saving into an <see cref="OutfitPreset"/>, with **every Single-Item field left at its
-        /// default**. A preset is an avatar look; a solo item shot is temporary working state on the way to
-        /// a PNG, which is why the Presets and Share code sections are hidden in that mode at all
-        /// (<c>OutfitStudioWindow.RefreshSubject</c>). Without this, a preset saved from the avatar tab
-        /// would still carry whichever item happened to be in the solo slot plus its framing, and loading
-        /// it would overwrite someone else's scratch work — invisibly, since nothing in the avatar tab
-        /// shows those values.
+        /// A copy for saving into an <see cref="OutfitPreset"/>, with **every isolation field left at its
+        /// default**. A preset is an avatar look, and isolation is a way of looking at one wearable in it —
+        /// not outfit state — so a preset saves the list the artist can see and loads as a full avatar.
+        /// Without this it would carry whichever row happened to be isolated plus its framing, and loading
+        /// it would isolate a wearable out from under whoever loaded it.
         ///
         /// Deliberately a separate method rather than making <see cref="Clone"/> lossy: cloning should mean
         /// cloning, even though presets are currently its only caller. The defaults come from a fresh
@@ -233,10 +241,11 @@ namespace OutfitStudio
 
             sb.AppendFormat("&bodyShape={0}", bodyShape);
 
-            // The subject, not necessarily the whole outfit: in Single-Item mode this is the one item,
-            // so a shared code shows the same wearable the studio is framing (worn on a visible body —
-            // see the soloItem note below).
-            foreach (var urn in EffectiveUrns())
+            // The whole outfit, deliberately NOT EffectiveUrns(): isolation is a view over this list, and
+            // the list is on screen right above the Copy button. Emitting the one isolated item there would
+            // silently publish a one-item outfit. Nothing is lost either — FromShareCode has no way to
+            // express isolation, so no round trip ever existed.
+            foreach (var urn in urns)
                 sb.AppendFormat("&urn={0}", urn);
 
             sb.AppendFormat("&skinColor={0}", ColorUtility.ToHtmlStringRGB(skinColor));
@@ -248,24 +257,22 @@ namespace OutfitStudio
 
             // Escaped because base64 may contain '+', which HttpUtility.UrlDecode
             // (used by AangConfiguration.RecreateFrom) would turn into a space
-            foreach (var base64 in EffectiveBase64Items())
+            foreach (var base64 in base64Items)
                 sb.AppendFormat("&base64={0}", Uri.EscapeDataString(base64));
 
             // forceRender/ignoreAllHides are deliberately NOT emitted: AangConfiguration.RecreateFrom
             // has no parameter for them, so a code carrying one would load with the hides back on and
             // silently differ from the studio. The window warns while an override is active.
             //
-            // soloItem and the framing fields likewise have no query parameter — a shared code loads the item on a
-            // fully visible avatar, framed by the renderer's normal camera. Same trade-off, same warning.
+            // soloItem and the framing fields aren't emitted either, and don't need a warning: a code always
+            // means "this outfit", which is what the visible list says, and isolation is a way of looking at
+            // that outfit rather than part of it.
 
             return sb.ToString();
         }
 
         /// <summary>Whether any hide override is active (so the UI can warn that share codes drop it).</summary>
         public bool HasForceRenderOverrides => ignoreAllHides || forceRender.Count > 0;
-
-        /// <summary>Whether anything studio-only is active, so the UI can warn share codes drop it.</summary>
-        public bool HasStudioOnlyState => HasForceRenderOverrides || soloItem;
 
         /// <summary>
         /// Parses a share code (or any renderer URL containing one). Unknown parameters are

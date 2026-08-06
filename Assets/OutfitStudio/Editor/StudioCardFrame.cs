@@ -11,18 +11,22 @@ namespace OutfitStudio.Editor
     /// the studio scene and captured for free (it's camera geometry, not a UI overlay — runtime UI
     /// overlays don't render through the capture camera; see IMPLEMENTATION.md §8/§18).
     ///
-    /// Four camera-parented quads, ordered purely by render queue so no per-avatar depth math is
-    /// needed. There is deliberately NO background layer (2026-07-30): outside the card you see
+    /// Four camera-parented quads, ordered by render queue — no per-avatar depth *math* is needed, though
+    /// two layers do depth-**test** so the avatar occludes them. There is deliberately NO background
+    /// layer (2026-07-30): outside the card you see
     /// whatever the camera clears to — which this drives to transparent black — so a still exports
     /// with only the card and the avatar opaque.
     ///   • Card panel (queue 1500, ZWrite On) — rounded rect behind the avatar, painted with the
     ///     Decentraland vignette/pattern. The avatar (opaque, queue 2000) draws over it, so the head
     ///     overflowing the top edge is free. It's the only depth-writing layer, standing in for the
     ///     old background quad so a Skybox clear can't paint over the card.
-    ///   • Side mask (queue 3200, ZTest Always) — optional; ERASES to transparent outside the card.
-    ///   • Bottom fade (queue 3500, ZTest Always) — drawn after the avatar; fades the legs into the
-    ///     card's own paint, clipped to the same rounded rect so its bottom corners match.
-    ///   • Border (queue 4000, ZTest Always) — the ring, over everything.
+    ///   • Side mask (queue 3200, ZTest Always, ZWrite On) — optional; ERASES to transparent outside the
+    ///     card, and resets depth there so what it erased stops occluding the border.
+    ///   • Bottom fade (queue 3500, ZTest Always, ZWrite On) — drawn after the avatar; fades the legs into
+    ///     the card's own paint, clipped to the same rounded rect so its bottom corners match. Resets
+    ///     depth over what it repaints, for the same reason as the mask.
+    ///   • Border (queue 4000, ZTest LessEqual) — the ring. Last in the queue, so it wins over the fade
+    ///     and the side mask, but depth-tested like the card, so the avatar occludes it (2026-08-06).
     ///
     /// Poll-based and studio-scene-gated like StudioAvatarShaderSwitcher / the pipeline switcher.
     /// The quads are HideFlags.DontSave (never serialized into the scene) and recreated after a
@@ -522,8 +526,13 @@ namespace OutfitStudio.Editor
             _card = MakeQuad("Card", shader, mode: 0, queue: 1500,
                 zTest: (int)CompareFunction.LessEqual, zWrite: 1,
                 src: (int)BlendMode.SrcAlpha, dst: (int)BlendMode.OneMinusSrcAlpha);
+            // Fade and Mask both ZWrite On (2026-08-06), which reads oddly for two layers drawn after the
+            // avatar — the point is not occlusion but **depth honesty for the border below**. Each repaints
+            // or erases avatar pixels without clearing the depth those pixels wrote, and the border is now
+            // depth-tested, so stale depth punched gaps in the ring. Both shader paths clip the fragments
+            // they don't actually cover, so the depth reset lands exactly on the region they do.
             _fade = MakeQuad("Fade", shader, mode: 1, queue: 3500,
-                zTest: (int)CompareFunction.Always, zWrite: 0,
+                zTest: (int)CompareFunction.Always, zWrite: 1,
                 src: (int)BlendMode.SrcAlpha, dst: (int)BlendMode.OneMinusSrcAlpha);
             // Side mask sits in front of the avatar (queue 3200, after opaque + transparent wearables)
             // but before the bottom fade and border, so it can't erase either of those. Zero /
@@ -531,13 +540,17 @@ namespace OutfitStudio.Editor
             // alpha both go to 0 outside the card instead of being repainted (there's no background
             // to repaint with any more). Only enabled when SideMask is on.
             _mask = MakeQuad("Mask", shader, mode: 2, queue: 3200,
-                zTest: (int)CompareFunction.Always, zWrite: 0,
+                zTest: (int)CompareFunction.Always, zWrite: 1,
                 src: (int)BlendMode.Zero, dst: (int)BlendMode.OneMinusSrcAlpha,
                 srcA: (int)BlendMode.Zero, dstA: (int)BlendMode.OneMinusSrcAlpha);
-            // Border is drawn LAST (queue 4000) so the card outline sits on top of the avatar,
-            // the bottom fade, and the side mask.
+            // Border keeps the LAST queue (4000) so it still wins over the bottom fade and the side mask —
+            // but ZTest LessEqual, not Always, so the **avatar occludes it** like it occludes the card
+            // (Mauricio, 2026-08-06: "card outline is rendering over the wearables, should be behind like
+            // the card background"). The quad already sits at PLANE_Z, far behind a ~2 m avatar; Always was
+            // the only reason it floated on top. Queue and depth are independent here, which is what lets
+            // the border go behind the avatar without also falling behind the fade drawn at 3500.
             _border = MakeQuad("Border", shader, mode: 3, queue: 4000,
-                zTest: (int)CompareFunction.Always, zWrite: 0,
+                zTest: (int)CompareFunction.LessEqual, zWrite: 0,
                 src: (int)BlendMode.SrcAlpha, dst: (int)BlendMode.OneMinusSrcAlpha);
             return true;
         }

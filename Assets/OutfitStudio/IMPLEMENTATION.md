@@ -1116,7 +1116,8 @@ for any existing non-URN caller). Touch point in `Assets/Scripts/Preview/Preview
 ## 18. Card frame — Fortnite-style item cards (2026-07-17)
 
 A "Card frame (beauty shot)" section (collapsible Foldout at the top of the outfit pane) composites
-a Fortnite item-card look around the avatar: **rounded card panel → avatar → bottom fade → border**,
+a Fortnite item-card look around the avatar: **rounded card panel → avatar → bottom fade → border**
+*(the border is behind the avatar as of 2026-08-06 — it's last in the queue but depth-tested)*,
 with **nothing behind it** (see the 2026-07-30 background-removal entry below — the original design
 had a fullscreen gradient backdrop, and the sections here describe the current, backdrop-less state).
 The reference targets are the marketplace/Fortnite item cards (head overflowing the top edge, legs
@@ -1157,13 +1158,46 @@ separate `_SrcBlendA`/`_DstBlendA` pair for alpha) covers all four:
   (priming would force ZTest Equal and skip a quad with no DepthOnly pass) and Forward+
   (`m_RenderingMode: 2`) is fine for unlit quads. **ZTest LessEqual, not Always**, so the avatar
   outline's near depth (written BeforeRenderingOpaques) isn't painted over by the card.
-- **Bottom fade** (`_Mode 1`) — queue 3500, ZTest Always, alpha blend. Drawn **after** the avatar;
-  same rounded rect as the card (so its bottom corners match) × a vertical fade to transparent. It
-  samples **the card's own paint at the same UV** (the two quads share a transform), so it's a pure
-  alpha ramp over an identical colour — seamless by construction, with no fade colour to keep in sync.
-- **Border** (`_Mode 3`) — queue 4000, ZTest Always, alpha blend. Drawn **last, on top of
-  everything** (avatar, fade, side-mask) so the card outline is never occluded — this is why the
-  border is a separate quad and not baked into the card panel. Two rings straddle the card edge
+- **Bottom fade** (`_Mode 1`) — queue 3500, ZTest Always, **ZWrite On (2026-08-06)**, alpha blend. Drawn
+  **after** the avatar; same rounded rect as the card (so its bottom corners match) × a vertical fade to
+  transparent. It samples **the card's own paint at the same UV** (the two quads share a transform), so
+  it's a pure alpha ramp over an identical colour — seamless by construction, with no fade colour to keep
+  in sync. The ZWrite is not for occlusion — see "Depth honesty" under Border below.
+- **Border** (`_Mode 3`) — queue 4000, ~~ZTest Always~~ **ZTest LessEqual (2026-08-06)**, alpha blend.
+  ~~Drawn **last, on top of everything** (avatar, fade, side-mask) so the card outline is never
+  occluded~~ — Mauricio: *"card outline is rendering over the wearables, should be behind like the card
+  background."* It is still **last in the queue**, so it still wins over the bottom fade and the side
+  mask; only the depth test changed, so **the avatar occludes it** exactly like it occludes the card
+  panel. The two are independent axes, which is the whole reason this was a one-line fix: dropping the
+  border to a pre-avatar queue instead would also have put it behind the fade, and the fade paints the
+  card's own colour over the card's lower region — it would have eaten the bottom edge of the ring.
+  Why it works with no new depth math: the border quad already sits at `PLANE_Z = 50`, far behind a ~2 m
+  avatar, so `Always` was the *only* thing keeping it on top. At queue 4000 the depth buffer already
+  holds `min(card 50, avatar ~2)` per pixel, so the ring passes inside the card rect (equal), passes
+  outside it (the card clips there, leaving the far clear value), and fails wherever the avatar is. It
+  also now respects the avatar **outline** ring, which writes near depth in `BeforeRenderingOpaques` —
+  the same reason the card panel uses LessEqual rather than Always (see the `MakeQuad` comments).
+  **Depth honesty, the follow-up the same day.** Mauricio: *"mask avatar below card mask the outline which
+  shouldn't happen."* Making the border depth-tested exposed a second-order problem: **erasing or
+  repainting colour does not clear depth.** The side mask wipes the avatar to transparent and the bottom
+  fade paints the card's own colour over the legs, but both left the avatar's near depth in the buffer — so
+  geometry that was no longer visible kept occluding the ring, punching gaps in it wherever a leg crossed
+  the card's bottom edge. Fix: **Fade and SideMask now run ZWrite On**, and each shader path `clip()`s the
+  fragments it doesn't actually cover (mode 2 discards its keep-region, mode 1 its fully-transparent
+  pixels — both no-op blends, so nothing changes visually), which lands the depth reset on exactly the
+  region each layer repaints, at `PLANE_Z`, the same plane the border sits on. ZWrite on a post-avatar
+  transparent layer reads oddly, which is why both call sites say why. The rule it enforces: *the avatar
+  occludes the border wherever the avatar is still visible* — not wherever it happened to be drawn. One
+  deliberate consequence: inside the fade's **gradient** the leg is still partly visible and the border now
+  draws in front of it, because a continuous ring reads better than a stroke dipping behind a half-faded
+  shin (and it matches the pre-2026-08-06 look at the bottom).
+
+  Consequences worth knowing: a border crossing a **transparent** wearable can still show through it
+  (transparent geometry doesn't write depth — the card panel has always had this property too), and
+  `_BorderTopFade` / **Closed border** are unaffected, since they're about the ring's own shape rather
+  than its layering. The border remains a separate quad rather than being baked into the card panel,
+  now for a different reason: the outer ring extends past the card rect, where the panel has no paint.
+  Two rings straddle the card edge
   (`dist == 0`): an **inner** ring in the band `dist ∈ (-_InnerBorderWidth, 0)` and an **outer** ring
   in `dist ∈ (0, _OuterBorderWidth)` that extends past the card into the avatar/fade/side-mask layers
   beneath. Each is built as `saturate(sInner - sInnerCutoff)` / `saturate(sOuterCutoff - sOuter)`
@@ -1192,7 +1226,10 @@ separate `_SrcBlendA`/`_DstBlendA` pair for alpha) covers all four:
 
 The card, fade, and border quads share the same rect; only the side mask is fullscreen. Placement Z
 is a fixed `PLANE_Z = 50` (behind a ~2 m avatar, inside the far plane); ordering is queue-only so the
-exact Z doesn't matter except for the card's depth write.
+exact Z doesn't matter except for the depth writes. *(2026-08-06: it matters slightly more now — card,
+fade and mask all write depth at `PLANE_Z` and the border depth-tests against it, so the fact that
+**all four quads sit at exactly the same Z** is what makes the border's `LessEqual` pass on equality
+inside those regions. Moving one layer's Z independently would silently break the ring.)*
 
 ### Optional avatar clipping — `SideMask` / `BottomMask` toggles
 Drawing the card behind the avatar gives top-overflow for free but no clip anywhere else.
@@ -1728,6 +1765,11 @@ Smaller consequences:
 
 ## 22. Single-Item mode — one isolated wearable (2026-08-03)
 
+> **The Subject switch described in this section is gone as of 2026-08-06.** Isolation is now a per-row
+> action on the outfit list — read "Isolate from the outfit row" below first; it supersedes the opening
+> paragraphs here, "Data model"'s separation rationale, and all of "Single-Item mode persists nothing".
+> Everything about *why the item loads onto the skeleton* and how `StudioItemCamera` frames it is unchanged.
+
 A **Subject** switch at the top of the outfit pane: **Avatar** or **Single Item**. Single Item shoots one
 wearable with no body around it, for item-shop card sheets composed later in Photoshop (Mauricio's
 reference: a Fortnite shop row, four items each centred in its own rounded card).
@@ -1735,6 +1777,102 @@ reference: a Fortnite shop row, four items each centred in its own rounded card)
 Everything else in the pane is **shared, not duplicated** — shader, card frame, pose, presets, capture,
 px workflow, share code. Only the Outfit section swaps for an Item section. That's the whole reason the
 switch lives in the right pane instead of being a fifth browser tab or a second window.
+
+### Isolate from the outfit row — the Subject switch is gone (2026-08-06)
+
+An artist using the tool asked for this directly: he didn't want Single Item to be a separate thing from
+the Avatar part. He wants to **press a button on a wearable in the outfit list** to isolate it for a
+screenshot, keep the Framing options while it's isolated, and have Framing go away when he's back on the
+full avatar — "maybe its easier if everything its in the same page".
+
+**The reframe that made it cheap.** `soloItem` stops being *a mode with its own subject* and becomes *a
+view flag over the one outfit*, with an invariant:
+
+> whenever `outfit.soloItem` is true, `soloUrn` is an entry of `urns`, or `soloBase64` is an entry of
+> `base64Items`.
+
+Because `soloUrn`/`soloBase64` keep their type and their meaning-as-a-pointer, **the entire render path is
+untouched**: `EffectiveUrns()`/`EffectiveBase64Items()`/`EffectiveForceRender()`, `Apply()`'s
+`config.HideBodyShape`, `EditModeAvatarPreview`'s body hide, `OutfitEntityResolver`, `StudioItemCamera`,
+renderer touch point #8. All of the work is in the window, plus one honesty fix in `ToShareCode()`.
+
+**The pointer stays a string, deliberately.** An index into `urns` would force an edit to `EffectiveUrns()`
+— the one substitution point worth leaving alone — would need a discriminator to address `base64Items` as
+well, and would silently point at a different item after any removal.
+
+**What the list looks like.** `RefreshSlots` gained three marks, all reusing the vocabulary already on the
+row: the ◉ button goes green + bold exactly like the `F` force-render toggle beside it, the isolated row
+gets a 2px green left accent, and **every other item row drops to 45% opacity** — those rows genuinely
+aren't rendering, and saying so on the row is what keeps "where did my outfit go" from being a support
+question. Above the list, an isolation banner names the item (`Isolating [upper_body] Cyber Jacket — only
+this item renders; the rest of the outfit is kept but hidden.`) and carries a **Show full avatar** button,
+styled like the hide-override warning below it for the same reason. So there are two ways back: the banner,
+or clicking the same row's ◉ again.
+
+**Deleted, not moved:** `BuildSubjectSwitch`, the `Subject` header, `SetSubject`, the `_outfitSection`
+wrapper (nothing hides it now), and — the one worth arguing — the whole **Item** header + `_itemRow` +
+`RefreshItemRow`. That row duplicated a row an inch above it with a *worse* identity display (no hiding
+badge, no force toggle), and its `✕` meant "clear the pointer, keep the item equipped" while the row's `✕`
+meant "unequip": two identical glyphs, two semantics, adjacent on screen. That divergence is the confusion
+this merge existed to remove. `OutfitDefinition.HasSoloItem` went too — the state it described (mode on,
+nothing picked) is now unreachable, since isolation can only be entered from a row that already exists.
+
+**Presets and Share code are visible again.** The 2026-08-04 rationale below was sound *while solo replaced
+the outfit list*; once the list is on screen and isolation is a view of it, two sections vanishing because
+you pressed a row button is just jarring. They act on the whole outfit, always:
+
+- **Preset — no code change.** `CloneForPreset()` already defaults every solo field, so a preset saves the
+  list you can see and loads as a full avatar. Under the new model that reads *better* than before.
+- **Share code — a required fix.** `ToShareCode()` emitted `EffectiveUrns()`, i.e. **one urn** while
+  isolated. Defensible when the box was hidden; with Copy sitting two sections under a visible six-row
+  outfit, it would silently publish a one-item outfit. Both loops now read the raw `urns`/`base64Items`.
+  Nothing is lost — `FromShareCode` can't express isolation, so no round trip ever existed.
+  `HasStudioOnlyState` dropped its `|| soloItem` term (it had zero callers either way).
+
+**Browser picks now follow one rule, with no hidden modality.** The three equip sites (`OnItemClicked`,
+`OnFaceFeatureClicked`, `EquipDraft`) each had an `if (outfit.soloItem) { SetSoloItem(...); return; }` branch
+that replaced the isolated item *without equipping it*. All three now equip exactly as normal and then, if
+a row is isolated, **re-point isolation at the item just equipped**. Reasons: the isolated item has to *be*
+a row for the button to live on it; a pick that means two different things depending on hidden state is the
+modality being removed; and without the re-point, clicking a hat while isolating a jacket equips something
+that doesn't render and the browser looks broken.
+
+The accepted cost, stated plainly: **shooting a sheet of items accumulates a row per slot.** It's bounded by
+the existing one-per-slot displacement, fully visible, one `✕` to undo, and nothing auto-persists. The real
+answer for a 20-item sheet is open thread 3 (batch export), which wants the items enumerable from a list —
+i.e. exactly this model.
+
+**One funnel, and a re-entrancy trap.** `ReconcileSoloSelection()` drops isolation when the isolated entry
+is no longer equipped, and is called from **exactly one place**: the top of `RefreshSlots`. Every mutation of
+`urns`/`base64Items` already funnels through there (both `✕` handlers, all three equip sites, `LoadOutfit`,
+both hydration callbacks, `OnHidingReportChanged`), and each already schedules an apply. It deliberately does
+**not** call `RefreshIsolation` — that calls `RefreshSlots`, and a nested `_slotsContainer.Clear()` mid-loop
+would garble the list; on a true return `RefreshSlots` hides the framing section directly and says so in the
+status line. This is also what handles stale serialized state from before the change: a `soloUrn` that isn't
+equipped drops on the first list rebuild rather than needing serialization work.
+
+**Two bugs this newly exposed, both fixed:**
+
+1. **The camera stayed parked after loading a preset while isolated.** Presets are reachable in this state
+   now, and `CloneForPreset` guarantees the loaded instance has `soloItem = false` — so the reconcile sees
+   nothing to reconcile and never releases the brain. That's §22's original "the camera is all off", by a new
+   route. `LoadOutfit` captures `wasIsolated` before the swap and calls `StudioItemCamera.Release()`.
+2. **The framing sliders went stale.** Exactly the bug documented under "Single-Item mode persists nothing"
+   below — it was closed by *hiding* the section on load, and hiding is what this change removes. Now
+   `_syncFramingFields` (assigned at the end of `BuildFramingSection`, invoked from `RefreshIsolation`)
+   pushes `outfit.solo*` back onto the five controls with `SetValueWithoutNotify`, and retitles the header
+   `Framing — [slot] Name` so the section identifies its subject once the list has scrolled off.
+
+**Verified by compiling, unusually for this file.** Unity ships a runnable Roslyn (`Editor/Data/
+NetCoreRuntime/dotnet.exe` + `DotNetSdkRoslyn/csc.dll`), and with no `.asmdef` anywhere the two assemblies
+are just "everything under an `Editor/` folder" and "everything else". Compiling both from source against
+`Library/ScriptAssemblies/*.dll` + `Editor/Data/Managed/UnityEngine/*.dll` gives **zero errors** in
+`OutfitDefinition.cs` and `OutfitStudioWindow.cs`. Two gotchas if repeating it: quote every `-r:` path (the
+Unity install lives under `Program Files`), and reference the **module** DLLs only — adding
+`Managed/UnityEngine.dll`/`UnityEditor.dll` alongside them produces hundreds of CS0433 duplicate-type
+errors, and adding an `mscorlib.dll` on top of `netstandard.dll` produces thousands. The 24 residual CS0012
+`mscorlib` errors in `OutfitCapture.cs` are a facade artifact of that ad-hoc reference set, not real. **This
+still isn't an editor pass** — it proves the code compiles, not that the UI behaves.
 
 ### Why it loads onto the skeleton instead of standing alone
 
@@ -1794,7 +1932,10 @@ play-mode only, same constraint avatar mode already has.
 
 `OutfitDefinition` gains `soloItem` / `soloUrn` / `soloBase64` / `soloPadding`. `soloUrn` is kept
 **separate from `urns`** so flipping subject is lossless — the outfit being authored survives a detour
-into item shots. `soloPadding` lives on the outfit rather than in EditorPrefs because it's genuinely
+into item shots. *(2026-08-06: this rationale is superseded. `soloUrn` is still a separate field, but it now
+**points at an entry of `urns`** rather than holding a pick the outfit never saw — see "Isolate from the
+outfit row". Nothing is lossless-vs-lossy about it any more: the outfit is never substituted, only viewed.)*
+`soloPadding` lives on the outfit rather than in EditorPrefs because it's genuinely
 per-item (a long staff and an earring want different margins), so a preset carries it. *(The framing field
 is `soloZoomPct` now, and no preset carries any of it — see "Single-Item mode persists nothing" below. It
 still lives on the outfit rather than in EditorPrefs, which is now just where the window keeps it.)*
@@ -1805,13 +1946,21 @@ Routing `OutfitEntityResolver` through them is what makes the edit-mode preview 
 report follow the mode without either knowing it exists. `EffectiveForceRender()` also returns every
 category in Single-Item mode: with one wearable equipped there's nothing legitimate for a hide to
 suppress, and an item whose own category is implicitly hidden (a skin, a helmet that hides hair) would
-otherwise render as nothing at all.
+otherwise render as nothing at all. *(2026-08-06: "with one wearable equipped" is now "with one wearable
+**loaded**" — the rest of the outfit stays equipped and is filtered out by `EffectiveUrns`, not hidden. The
+force-everything conclusion is unchanged.)*
 
 `ToShareCode()` emits `EffectiveUrns()`, so a shared code shows the same wearable — but there is no
 hide-body parameter, so it loads on a full avatar. *(2026-08-04: this is no longer reachable — the Share
-code section is hidden in Single-Item mode, see below.)*
+code section is hidden in Single-Item mode, see below.)* *(2026-08-06: reversed again, and this time fixed
+properly — the section is visible and `ToShareCode` emits the raw `urns`/`base64Items`, so a code always
+means "this outfit". See "Isolate from the outfit row".)*
 
 ### Switching subject hands the camera back (2026-08-04)
+
+*(2026-08-06: retitled in spirit — it's entering/leaving **isolation** now, and `ClearIsolation` is where the
+`Release()` call lives. Every word of the reasoning below still holds, and the failure it describes reappeared
+by a second route — loading a preset while isolated — which is fixed in "Isolate from the outfit row".)*
 
 Mauricio: *"when i go from single item to avatar, the camera is all off."* Cause: `FrameItem` disables
 `CinemachineBrain` and writes `camera.transform` directly, and nothing re-enabled it on a subject switch —
@@ -1841,6 +1990,12 @@ If a hand-flown avatar angle ever needs to survive a round trip, the upgrade is 
 `StudioFlyCamera` — i.e. when the artist actually flew somewhere deliberately. Deferred as unneeded.
 
 ### Single-Item mode persists nothing (2026-08-04)
+
+> **Half of this is superseded (2026-08-06).** The *hiding* is gone — Presets and Share code are visible while
+> a wearable is isolated, because the outfit list is visible too. What survives, and is still the reason
+> things are shaped this way: `CloneForPreset()` (still defaults every solo field, so presets carry no
+> isolation), and the stale-framing-slider bug below — which was closed by hiding the section and is now
+> closed properly by `_syncFramingFields`. See "Isolate from the outfit row".
 
 **`RefreshSubject` hides the Presets and Share code sections outright while Single-Item is the subject**,
 alongside the Outfit/Item swap it already did. Mauricio: *"thats all for the avatar outfits which [are] the
@@ -2066,6 +2221,20 @@ all-materials-are-skin fallback path); the `BakeMesh` submesh path, which only r
 `soloFitGarmentOnly` **on** — that default flipped off before it was ever tried, so its output-space guard
 has never actually been observed to pass or fail.
 
+**Added 2026-08-06 (the row-isolation change), all code-complete and compiled but NOT editor-verified.** The
+three paths most worth an editor pass, because they're new logic rather than moved UI:
+
+1. `ReconcileSoloSelection` — `✕` the isolated row, and a hand-edited dangling `soloUrn` after a domain
+   reload. Watch specifically for a garbled slot list, which is what the re-entrancy guard exists to prevent.
+2. `LoadOutfit`'s camera release — save a preset while isolated, reload it, confirm the camera is **not**
+   still parked at the item's framing.
+3. `_syncFramingFields` — after that same reload, the five framing controls should read defaults
+   (zoom 100 / offsets 70 and 0), and the header should be plain `Framing`.
+
+Also new and unexercised: isolating a **draft** (builder-collection) row, which is now the only route to a
+solo draft since `EquipDraft`'s branch is gone; and a browser pick landing while a row is isolated, both
+same-slot (displacement) and different-slot.
+
 **Open threads for next session:**
 
 1. **The `soloOffsetYPx = 70` default is tuned, not derived.** It corrects a real, systematic upward bias
@@ -2078,6 +2247,9 @@ has never actually been observed to pass or fail.
    saved before a rename loads with the new default (zoom 100 / offsets 70 and 0) rather than its authored
    framing. Harmless so far — the `Assets/*OutfitPreset*.asset` files never had solo fields written into
    them — but the next rename of a field an artist has actually tuned should carry the attribute.
+   *(2026-08-06 variant of the same hazard: `soloUrn` kept its name but changed **meaning** — it must now be
+   an entry of `urns`. Serialization can't express that, so `ReconcileSoloSelection` handles it at runtime
+   instead. Worth remembering as the pattern for a semantic change that no attribute can migrate.)*
 3. **Batch export** is the deliberate v2: queue N items, loop `set item -> await load -> frame -> capture
    still` for a whole card sheet in one click. All the pieces exist; it reuses `ScheduleFrameItem`'s
    wait-then-measure shape.
@@ -2088,6 +2260,10 @@ has never actually been observed to pass or fail.
 5. **Nothing was compiled by me** — the sessions that wrote this had no C# toolchain, so every claim about
    the code is inspection plus arithmetic. The arithmetic was checked against measured screenshot pixels at
    each step (that's how three separate framing bugs were found), but treat unexercised paths with suspicion.
+   *(2026-08-06: no longer true, and this caveat should stop being copied forward. Unity's own Roslyn is
+   runnable from WSL — recipe and its two gotchas are in "Isolate from the outfit row" above. Compile before
+   claiming a change is code-complete; it costs one command and it catches the class of error that
+   inspection reliably misses.)*
 
 ## 23. Stress Mode — MANA/USD in the toolbar (2026-08-04)
 

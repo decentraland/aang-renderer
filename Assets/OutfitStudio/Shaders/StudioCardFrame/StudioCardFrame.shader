@@ -4,7 +4,10 @@ Shader "Custom/StudioCardFrame"
     //   _Mode 0 = Card panel  (rounded-rect, painted with the Decentraland vignette+pattern, ZWrite On)
     //   _Mode 1 = Bottom fade (the SAME paint at the same UV → seamless, × a vertical fade to clear)
     //   _Mode 2 = Side mask   (ERASES whatever is outside the card rect; the top stays open)
-    //   _Mode 3 = Border      (rounded-rect ring, drawn last, over avatar/fade/mask)
+    // Modes 1 and 2 both clip the fragments they don't cover and run with ZWrite On, so each resets depth
+    // over exactly the pixels it repaints/erases — that's what keeps the depth-tested border honest.
+    //   _Mode 3 = Border      (rounded-rect ring, last in the queue so it beats fade/mask, but
+    //                          depth-tested so the avatar occludes it — 2026-08-06)
     // There is deliberately NO background layer (2026-07-30): whatever the camera clears to shows
     // outside the card, so a still exports with only the card + avatar opaque and everything else
     // transparent. Render state (ZTest/ZWrite/Blend) and the queue are driven from the material by
@@ -244,6 +247,18 @@ Shader "Custom/StudioCardFrame"
                     // (they're complementary in y), so the seam disappears; saturate caps it and they
                     // never both fully overlap elsewhere (aboveTop is 0 below the top).
                     float inside = saturate(cardMask + withinX * aboveTop);
+
+                    // Discard the keep-region so ONLY the erasing fragments survive — visually identical
+                    // (they wrote alpha 0, i.e. a no-op blend) but it makes this layer's ZWrite On
+                    // meaningful: the erased region resets depth to the card plane, while the kept region
+                    // leaves the avatar's depth intact.
+                    //
+                    // Why that matters (2026-08-06): erasing colour does NOT erase depth, so avatar
+                    // geometry this mask has just wiped out was still occluding the depth-tested border
+                    // drawn afterwards — "mask avatar below card" punched gaps in the card's own ring
+                    // wherever a leg crossed it. Resetting depth here is what keeps "the avatar occludes
+                    // the border" true for the avatar you can SEE rather than the avatar that was drawn.
+                    clip((1.0 - inside) - 1e-3);
                     return float4(0.0, 0.0, 0.0, 1.0 - inside);                  // erase only outside
                 }
 
@@ -276,7 +291,18 @@ Shader "Custom/StudioCardFrame"
                 if (_Mode < 1.5)
                 {
                     float fade = 1.0 - smoothstep(_FadeStart, _FadeEnd, uv.y);   // opaque at bottom
-                    return float4(DclCardPaint(uv), mask * fade);
+                    float a = mask * fade;
+
+                    // Same depth-honesty fix as the side mask above, for the same reason: the fade paints
+                    // the card's own colour over the legs without clearing the depth they wrote, so the
+                    // depth-tested border's bottom stroke came out with gaps wherever a leg crossed it.
+                    // Clipping the fully-transparent pixels (a no-op blend anyway) leaves this layer's
+                    // ZWrite On resetting depth to the card plane exactly across the region it has
+                    // repainted. Inside the gradient the leg is still partly visible and the border now
+                    // draws in front of it — deliberate: a continuous ring reads better than a stroke that
+                    // dips behind a half-faded shin, and it matches the pre-2026-08-06 look at the bottom.
+                    clip(a - 1e-3);
+                    return float4(DclCardPaint(uv), a);
                 }
 
                 // --- Border (mode 3) — drawn LAST, on top of the avatar / fade / side-mask ------
