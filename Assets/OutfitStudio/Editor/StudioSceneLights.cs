@@ -32,24 +32,27 @@ namespace OutfitStudio.Editor
 
         // --- Scene-authored defaults -------------------------------------------------------------
         //
-        // Read out of OutfitStudio.unity on 2026-08-04, which is what makes "Reset" mean "back to how the
+        // Kept in lockstep with OutfitStudio.unity, which is what makes "Reset" mean "back to how the
         // scene ships" rather than "back to something plausible". If the scene's lighting is ever
         // re-authored, these have to be re-read — there is no way to recover them once an override is
-        // applied, since the override IS what the light now holds.
-        public static readonly Color DefDirColor = new(1f, 0.85882354f, 0.40392157f); // warm gold key
-        public const float DEF_DIR_INTENSITY = 2f;
-        public const float DEF_DIR_YAW = 95f;
+        // applied, since the override IS what the light now holds. Re-authored together on 2026-08-06 to
+        // the tuning Mauricio settled on: a much softer key (2 -> 0.6) with the gold pulled back to a pale
+        // warm neutral, and the cyan rim dropped from a blown-out 31.7 to 15, leaving the front spot as
+        // the dominant light. The spot colours are unchanged.
+        public static readonly Color DefDirColor = new(0.8784314f, 0.85490197f, 0.7372549f); // pale warm key
+        public const float DEF_DIR_INTENSITY = 0.6f;
+        public const float DEF_DIR_YAW = 100f;
 
         public static readonly Color DefFrontColor = new(1f, 0.80784315f, 0.5803922f); // warm fill
-        public const float DEF_FRONT_INTENSITY = 6f;
+        public const float DEF_FRONT_INTENSITY = 8f;
 
         public static readonly Color DefBackColor = new(0f, 0.7305918f, 1f); // cyan rim
-        public const float DEF_BACK_INTENSITY = 31.7f;
+        public const float DEF_BACK_INTENSITY = 15f;
 
         /// <summary>
         /// The directional light's X and Z euler, held constant so the exposed Y stays a pure yaw. Taken
-        /// from the scene's <c>m_LocalEulerAnglesHint</c> (-205, 95, -37) rather than from
-        /// <c>eulerAngles</c>, which would report the normalised (155, 95, 323) — the same rotation, since
+        /// from the scene's <c>m_LocalEulerAnglesHint</c> (-205, 100, -37) rather than from
+        /// <c>eulerAngles</c>, which would report the normalised (155, 100, 323) — the same rotation, since
         /// adding 360° to a euler component is the identity, but not the numbers in the inspector.
         /// </summary>
         private const float DIR_EULER_X = -205f;

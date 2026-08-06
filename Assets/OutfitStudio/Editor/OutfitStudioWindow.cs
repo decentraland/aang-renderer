@@ -2860,8 +2860,8 @@ namespace OutfitStudio.Editor
             backColor.RegisterValueChangedCallback(evt => StudioSceneLights.BackColor = evt.newValue);
             fold.Add(backColor);
 
-            // 0..100 on both spots even though the front's default is 6 and the back's is 31.7: one shared
-            // range makes the two readable against each other, and the input field covers precise values.
+            // 0..100 on both spots even though the defaults sit low (8 front, 15 back): one shared range
+            // makes the two readable against each other, and the input field covers precise values.
             var backIntensity = new Slider("Intensity", 0f, 100f)
             {
                 value = StudioSceneLights.BackIntensity,
