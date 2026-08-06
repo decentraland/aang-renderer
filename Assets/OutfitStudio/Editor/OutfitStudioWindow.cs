@@ -214,9 +214,18 @@ namespace OutfitStudio.Editor
             ["Name"] = "name"
         };
 
+        // Every .glb sitting at the root of StreamingAssets/, which is exactly the set the embedded-emote
+        // path can resolve (Representation.ForEmbeddedEmote → StreamingAssets/<name>.glb). Locomotion
+        // first, then the gesture emotes. walk/run/jump/wave shipped all along but were never listed, so
+        // the only way to reach them was to hand-edit the emote field.
+        //
+        // Deliberately NOT here: the character/ subfolder (Wave_Male, Wave_Female, Outfit_*, Particles_*).
+        // Those are the configurator's own clips — body-shape-specific or tied to a wearable category —
+        // so they'd need a body-shape match to be correct, unlike these which are shared by both shapes.
         private static readonly List<string> EMBEDDED_EMOTES = new()
         {
-            "idle", "clap", "dab", "dance", "fashion", "fashion-2", "fashion-3", "fashion-4",
+            "idle", "walk", "run", "jump",
+            "clap", "dab", "dance", "wave", "fashion", "fashion-2", "fashion-3", "fashion-4",
             "love", "money", "fist-pump", "head-explode"
         };
 
