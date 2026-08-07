@@ -238,8 +238,14 @@ namespace OutfitStudio.Editor
         // a genuine value change.
         private const string EMBEDDED_EMOTE_NONE = "— pose/other selected —";
 
+        // Top of the popup: no animation at all, just the neutral bind pose (see
+        // OutfitDefinition.NEUTRAL_POSE_EMOTE). It's a bundled clip in Neutral/ rather than Poses/
+        // so it doesn't also turn up as a pose button — the popup is where it belongs.
+        private const string TPOSE_LABEL = "None (T-pose)";
+        private const string TPOSE_EMOTE = OutfitDefinition.NEUTRAL_POSE_EMOTE;
+
         private static readonly List<string> EMBEDDED_EMOTE_CHOICES =
-            new[] { EMBEDDED_EMOTE_NONE }.Concat(EMBEDDED_EMOTES).ToList();
+            new[] { TPOSE_LABEL, EMBEDDED_EMOTE_NONE }.Concat(EMBEDDED_EMOTES).ToList();
 
         // Single-frame screenshot poses, kept fully inside the tool folder (Assets/OutfitStudio/Poses/)
         // so nothing spills into the rest of the repo. They still ride the stock embedded-emote path
@@ -2000,7 +2006,7 @@ namespace OutfitStudio.Editor
             // --- Pose
             pane.Add(Header("Pose"));
 
-            _poseLabel = new Label($"Pose: {outfit.emote}");
+            _poseLabel = new Label($"Pose: {PoseDisplayName(outfit.emote)}");
             pane.Add(_poseLabel);
 
             // Quick-pose buttons — one per single-frame GLB in StreamingAssets/poses/, auto-discovered.
@@ -2017,9 +2023,14 @@ namespace OutfitStudio.Editor
             {
                 // Selecting the sentinel isn't a real emote choice; only "idle" would land back
                 // here anyway, so just treat it the same way.
-                outfit.emote = _emotePopup.value == EMBEDDED_EMOTE_NONE ? "idle" : _emotePopup.value;
+                outfit.emote = _emotePopup.value switch
+                {
+                    EMBEDDED_EMOTE_NONE => "idle",
+                    TPOSE_LABEL => TPOSE_EMOTE,
+                    _ => _emotePopup.value
+                };
                 RemoveDraftEmote(); // an equipped draft emote would override the pose
-                _poseLabel.text = $"Pose: {outfit.emote}";
+                _poseLabel.text = $"Pose: {PoseDisplayName(outfit.emote)}";
                 RememberItemPose(); // becomes the default for this item's category
                 RefreshShareCode();
 
@@ -2348,7 +2359,7 @@ namespace OutfitStudio.Editor
             {
                 outfit.emote = pose;
                 RemoveDraftEmote();
-                if (_poseLabel != null) _poseLabel.text = $"Pose: {outfit.emote}";
+                if (_poseLabel != null) _poseLabel.text = $"Pose: {PoseDisplayName(outfit.emote)}";
                 SyncEmotePopup();
             }
 
@@ -3720,7 +3731,7 @@ namespace OutfitStudio.Editor
             _skinField.SetValueWithoutNotify(outfit.skinColor);
             _hairField.SetValueWithoutNotify(outfit.hairColor);
             _eyeField.SetValueWithoutNotify(outfit.eyeColor);
-            _poseLabel.text = $"Pose: {outfit.emote}";
+            _poseLabel.text = $"Pose: {PoseDisplayName(outfit.emote)}";
             SyncEmotePopup();
 
             HydrateKnownItems();
@@ -3743,7 +3754,12 @@ namespace OutfitStudio.Editor
         /// </summary>
         private void SyncEmotePopup() =>
             _emotePopup?.SetValueWithoutNotify(
+                outfit.emote == TPOSE_EMOTE ? TPOSE_LABEL :
                 EMBEDDED_EMOTES.Contains(outfit.emote) ? outfit.emote : EMBEDDED_EMOTE_NONE);
+
+        /// <summary>What the "Pose:" line calls the current emote. Everything reads as itself except
+        /// the neutral T-pose, whose emote value is a relative file path nobody wants to read.</summary>
+        private static string PoseDisplayName(string emote) => emote == TPOSE_EMOTE ? TPOSE_LABEL : emote;
 
         /// <summary>
         /// Resolves names/thumbnails for URNs we don't have catalog info for

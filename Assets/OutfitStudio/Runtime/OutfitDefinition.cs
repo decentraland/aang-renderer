@@ -28,6 +28,22 @@ namespace OutfitStudio
         public string emote = "idle";
 
         /// <summary>
+        /// The "no animation" pose, offered as "None" in the studio's Embedded popup: a bundled
+        /// single-frame clip that keys every bone to the rig's rest transforms — which for this
+        /// skeleton is a straight-armed T, and is also the pose every mesh is skinned in, so the
+        /// avatar and its wearables all land on it. It rides the same relative-path embedded-emote
+        /// trick as the studio's Poses/ folder (see <c>OutfitStudioWindow.POSES_EMBEDDED_PREFIX</c>),
+        /// so the renderer needs no special case: it just loads and holds one frame like any pose.
+        ///
+        /// The clip is baked from Assets/Models/Avatar_Model_Idle.glb by Tools/make_tpose_glb.py —
+        /// re-run that if the rig is ever re-exported.
+        /// </summary>
+        public const string NEUTRAL_POSE_EMOTE = "../OutfitStudio/Neutral/T-Pose";
+
+        /// <summary>True when the pose is <see cref="NEUTRAL_POSE_EMOTE"/> rather than an animation.</summary>
+        public bool IsNeutralPose => emote == NEUTRAL_POSE_EMOTE;
+
+        /// <summary>
         /// Draft (unpublished Builder) items as base64-encoded RawActiveEntity JSONs — the same
         /// format as the renderer's base64 query param, so share codes stay compatible.
         /// May include one emote, which takes pose priority in builder mode.

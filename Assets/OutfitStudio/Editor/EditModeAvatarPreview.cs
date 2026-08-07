@@ -223,17 +223,24 @@ namespace OutfitStudio.Editor
                     }
                 }
 
-                SampleIdlePose(avatarAnimation);
+                // "None" is the one pose edit mode can honour: it IS the rest pose, so it's a matter
+                // of not sampling Idle (and undoing an Idle sampled by an earlier apply).
+                if (outfit.IsNeutralPose)
+                    RestoreRestPose(avatarBones);
+                else
+                    SampleIdlePose(avatarAnimation);
+
                 RepaintViews(bodyGO);
 
                 var wearableCount = definitions.Count - 1; // definitions[0] is the body entity
 
                 // Edit mode samples Idle at t=0 and has no emote playback, so say so in Single-Item
                 // mode — an upper_body previewed here is in the idle pose, not the pose the artist
-                // picked, and that only resolves in play mode.
+                // picked, and that only resolves in play mode. "None" is exempt: that pose is the
+                // rest pose, which is exactly what edit mode is showing.
                 status(unresolved.Count > 0
                         ? $"Preview updated — {wearableCount} wearables, {unresolved.Count} unresolved (see console)"
-                        : outfit.soloItem
+                        : outfit.soloItem && !outfit.IsNeutralPose
                             ? "Item preview updated (edit mode) — idle pose; enter play mode to pose it"
                             : $"Preview updated (edit mode) — {wearableCount} wearables",
                     unresolved.Count > 0);
@@ -372,6 +379,27 @@ namespace OutfitStudio.Editor
             if (idleClip == null) return;
 
             idleClip.SampleAnimation(avatarAnimation.gameObject, 0f);
+        }
+
+        /// <summary>
+        /// Puts the skeleton back in the rest pose the rig GLB was authored in — the T-pose the
+        /// meshes are skinned in. Read off the imported model asset rather than reconstructed,
+        /// since the importer never animates the asset itself, so those local transforms are the
+        /// rest pose by definition. Same scene-dirtying caveat as <see cref="SampleIdlePose"/>.
+        /// </summary>
+        private static void RestoreRestPose(IEnumerable<Transform> bones)
+        {
+            foreach (var bone in bones)
+            {
+                if (bone == null) continue;
+
+                var source = PrefabUtility.GetCorrespondingObjectFromOriginalSource(bone);
+                if (source == null) continue; // not a model-prefab instance — leave it alone
+
+                bone.localPosition = source.localPosition;
+                bone.localRotation = source.localRotation;
+                bone.localScale = source.localScale;
+            }
         }
 
         private static void SetDontSaveRecursive(GameObject root)
