@@ -665,6 +665,20 @@ namespace OutfitStudio.Editor
             PushCardPaint(card, cardAspect, cardHFrac);
             card.SetFloat(CornerRadiusId, cornerSdf);
 
+            // DCL_Emotes' "Outline As Mask" inverts the depth relationship set up in MakeQuad, and it
+            // is the only thing that can: the outline ring is a DEPTH stamp laid down before the
+            // opaque queue, so the only way the card appears inside it is to stop respecting depth.
+            // That is precisely the ZTest Always behaviour MakeQuad's comment records as a bug —
+            // "the outline showed the card colour" — which is the whole point here.
+            //
+            // ZWrite has to go off with it, or the card's own depth would overwrite the stamp and the
+            // avatar would paint back over the ring, leaving only the outer silhouette cut. Dropping
+            // it is safe exactly when it matters: the anti-skybox reason for ZWrite On doesn't apply
+            // while the frame is on, since that's when we drive the camera to a SolidColor clear.
+            var outlineMask = StudioAvatarShaderSwitcher.EmotesOutlineMask;
+            card.SetFloat(ZTestId, (float)(int)(outlineMask ? CompareFunction.Always : CompareFunction.LessEqual));
+            card.SetFloat(ZWriteId, outlineMask ? 0f : 1f);
+
             // Border is its own top-most quad (drawn over the avatar/fade/mask), not baked into the card.
             _border.enabled = !DisableMiddleCard;
             var border = _border.sharedMaterial;

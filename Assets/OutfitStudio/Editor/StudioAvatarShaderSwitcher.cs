@@ -2,6 +2,7 @@ using System;
 using DCL.Rendering.DCL_Toon;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 
 namespace OutfitStudio.Editor
@@ -10,10 +11,15 @@ namespace OutfitStudio.Editor
     {
         DclToon = 0,
         DclToonStudio = 1,
-        DclStylizedPbr = 2
+        DclStylizedPbr = 2,
+        DclEmotes = 3
     }
 
-    public enum StudioKnobKind { Float, Color }
+    /// <summary>
+    /// How the window renders a knob. Toggle is stored and pushed exactly like a Float (0 or 1) —
+    /// it only changes the control, so presets and the material push need no special case.
+    /// </summary>
+    public enum StudioKnobKind { Float, Color, Toggle }
 
     /// <summary>
     /// A single art-direction control exposed in the window's shader tuning panel and pushed onto
@@ -42,6 +48,18 @@ namespace OutfitStudio.Editor
             Tooltip = tooltip;
         }
 
+        public StudioShaderKnob(string label, string property, bool def, string tooltip = null)
+        {
+            Label = label;
+            Property = property;
+            PropId = Shader.PropertyToID(property);
+            Kind = StudioKnobKind.Toggle;
+            Min = 0f;
+            Max = 1f;
+            Default = def ? 1f : 0f;
+            Tooltip = tooltip;
+        }
+
         public StudioShaderKnob(string label, string property, Color def, string tooltip = null)
         {
             Label = label;
@@ -63,7 +81,9 @@ namespace OutfitStudio.Editor
     /// Swap notes: named properties survive material.shader reassignment, but renderQueue resets
     /// to the new shader's default (the generator sets it explicitly for cutout/transparent
     /// wearables) and keywords are restored defensively — both are saved around the swap.
-    /// Facial features (DCL/DCL_Avatar_Facial_Features) are excluded by the shader-name filter.
+    /// Facial features (DCL/DCL_Avatar_Facial_Features) are excluded by the shader-name filter —
+    /// their shader is never swapped. DCL_Emotes is the one mode that still has an opinion about
+    /// them: it hides those renderers outright (see IsFacialFeature) so the white body stays blank.
     ///
     /// Also bootstraps CommonAssets.MatcapPresets (the metallic branch wires this in Bootstrap;
     /// the studio does it here to keep Bootstrap/Main.unity untouched).
@@ -73,12 +93,34 @@ namespace OutfitStudio.Editor
     {
         private const string EDITOR_PREFS_KEY = "OutfitStudio.Shader";
         private const string MATCAP_KEY = "OutfitStudio.Matcap";
+
+        /// <summary>Prefix for the per-camera stash of the authored volume mask — see ApplyPostBypass.</summary>
+        private const string VOLUME_MASK_KEY = "OutfitStudio.EmotesVolumeMask.";
         private const string MATCAP_PRESETS_PATH = "Assets/OutfitStudio/Shaders/Matcaps/MatcapPresets.asset";
         private const string DEFAULT_MATCAP_NAME = "matcap_01";
 
         private const string SHADER_TOON = "DCL/DCL_Toon";
         private const string SHADER_STUDIO = "DCL/DCL_Toon_Studio";
         private const string SHADER_PBR = "DCL/DCL_Stylized_PBR";
+        private const string SHADER_EMOTES = "DCL/DCL_Emotes";
+
+        /// <summary>
+        /// Facial features (eyes/eyebrows/mouth) are separate renderers on their own shader, which
+        /// this switcher never swaps — see the note in the class summary. DCL_Emotes hides them
+        /// instead, so the name is needed here too.
+        /// </summary>
+        private const string SHADER_FACIAL = "DCL/DCL_Avatar_Facial_Features";
+
+        /// <summary>
+        /// What emote props are built on — GLTFLoader.LoadEmote hands its importer a
+        /// DecentralandMaterialGenerator("DCL/Scene"), so a prop is scene geometry, not an avatar
+        /// material, and normally sits outside this switcher's swap set entirely.
+        /// </summary>
+        private const string SHADER_SCENE = "DCL/Scene";
+
+        /// <summary>The GameObject GLTFLoader.LoadEmote parents every prop under, by that literal
+        /// name. It is the only marker a prop instance carries — see IsEmoteProp.</summary>
+        private const string EMOTE_PROP_ROOT = "emote";
 
         private static double _nextCheck;
         private static string _warnedMissingShader;
@@ -151,10 +193,40 @@ namespace OutfitStudio.Editor
             new("Outline Color", "_Outline_Color", Color.black, "Flat color of the avatar outline.")
         };
 
+        /// <summary>
+        /// DCL_Emotes — outline only. The surface is a flat white with no lighting model, so the
+        /// contour is the entire art direction; anything else would be a knob with nothing to act on.
+        /// Wider than the other two shaders' defaults because the white body gives the stroke no
+        /// tonal contrast to lean on.
+        /// </summary>
+        public static readonly StudioShaderKnob[] EmotesKnobs =
+        {
+            new("Outline Width", "_Outline_Width", 0f, 10f, 4f, "Thickness of the avatar outline."),
+            new("Outline Color", "_Outline_Color", Color.black, "Flat color of the avatar outline."),
+            new("Outline As Mask", "_OutlineAsMask", false,
+                "Cut the outline out of the image instead of painting it, so the card shows through it " +
+                "— around the silhouette AND along the lines between wearables. Needs the Card Frame on " +
+                "to have something to reveal; with it off the cut is a plain hole, which exports " +
+                "transparent but only reads as black in the Game view.")
+        };
+
+        private static readonly StudioShaderKnob OutlineMaskKnob =
+            Array.Find(EmotesKnobs, k => k.Property == "_OutlineAsMask");
+
+        /// <summary>
+        /// True while DCL_Emotes is selected with its "Outline As Mask" knob on. Read by
+        /// StudioCardFrame, which has to drop the card panel's depth test for the card to be
+        /// visible through the cut — see the note on the card layer there.
+        /// </summary>
+        public static bool EmotesOutlineMask =>
+            Mode == StudioShaderMode.DclEmotes &&
+            GetFloat(StudioShaderMode.DclEmotes, OutlineMaskKnob) > 0.5f;
+
         public static StudioShaderKnob[] KnobsFor(StudioShaderMode mode) => mode switch
         {
             StudioShaderMode.DclToonStudio => StudioKnobs,
             StudioShaderMode.DclStylizedPbr => PbrKnobs,
+            StudioShaderMode.DclEmotes => EmotesKnobs,
             _ => Array.Empty<StudioShaderKnob>()
         };
 
@@ -242,10 +314,10 @@ namespace OutfitStudio.Editor
         {
             foreach (var knob in KnobsFor(mode))
             {
-                if (knob.Kind == StudioKnobKind.Float)
-                    preset.floats.Add(new StudioShaderPreset.FloatEntry { property = knob.Property, value = GetFloat(mode, knob) });
-                else
+                if (knob.Kind == StudioKnobKind.Color)
                     preset.colors.Add(new StudioShaderPreset.ColorEntry { property = knob.Property, value = GetColor(mode, knob) });
+                else
+                    preset.floats.Add(new StudioShaderPreset.FloatEntry { property = knob.Property, value = GetFloat(mode, knob) });
             }
         }
 
@@ -257,7 +329,7 @@ namespace OutfitStudio.Editor
 
             foreach (var entry in preset.floats)
             {
-                var knob = Array.Find(knobs, k => k.Kind == StudioKnobKind.Float && k.Property == entry.property);
+                var knob = Array.Find(knobs, k => k.Kind != StudioKnobKind.Color && k.Property == entry.property);
                 if (knob != null) EditorPrefs.SetFloat(KnobKey(mode, knob), entry.value);
             }
 
@@ -275,7 +347,14 @@ namespace OutfitStudio.Editor
             if (EditorApplication.timeSinceStartup < _nextCheck) return;
             _nextCheck = EditorApplication.timeSinceStartup + 0.5;
 
-            if (SceneManager.GetActiveScene().path != OutfitStudioWindow.STUDIO_SCENE_PATH) return;
+            // Cleared here rather than in Apply, which early-outs before it could: leaving the
+            // studio scene has to hand the renderer's production behaviour back. Same shape as
+            // StudioCardFrame's OutlineSuppressed line.
+            if (SceneManager.GetActiveScene().path != OutfitStudioWindow.STUDIO_SCENE_PATH)
+            {
+                Loading.AvatarLoader.OutlineEmoteProps = false;
+                return;
+            }
 
             EnsureMatcapPresets();
             Apply();
@@ -303,10 +382,23 @@ namespace OutfitStudio.Editor
             }
 
             var mode = Mode;
+
+            var isEmotes = mode == StudioShaderMode.DclEmotes;
+
+            // Both before the shader swap, and before the Shader.Find early-out below, so a
+            // missing shader can never strand the camera or the renderer in the mode's state.
+            ApplyPostBypass(isEmotes);
+
+            // Props are flattened to the same white as the avatar below, so they need the contour
+            // to stay separable from it. Off in every other mode (and off outside the studio scene
+            // — see Update), which is what keeps production behaviour unchanged.
+            Loading.AvatarLoader.OutlineEmoteProps = isEmotes;
+
             var targetName = mode switch
             {
                 StudioShaderMode.DclToonStudio => SHADER_STUDIO,
                 StudioShaderMode.DclStylizedPbr => SHADER_PBR,
+                StudioShaderMode.DclEmotes => SHADER_EMOTES,
                 _ => SHADER_TOON
             };
 
@@ -325,6 +417,10 @@ namespace OutfitStudio.Editor
                 return;
             }
             _warnedMissingShader = null;
+
+            // Only needed to hand emote props back when leaving DCL_Emotes. Resolved once, and
+            // tolerated as null: the swap that needs it simply doesn't happen.
+            var sceneShader = Shader.Find(SHADER_SCENE);
 
             var knobs = KnobsFor(mode);
             var activeScene = SceneManager.GetActiveScene();
@@ -349,37 +445,75 @@ namespace OutfitStudio.Editor
             {
                 if (renderer.gameObject.scene != activeScene) continue;
 
+                // DCL_Emotes wants a blank white mannequin, but facial features are their own
+                // renderers on a shader this switcher never swaps, so they'd keep drawing eyes and
+                // brows onto the white body. Hide them for the duration of the mode instead.
+                // forceRenderingOff rather than .enabled: it is never serialized (the scene stays
+                // clean, unlike every other write in this file) and it is a separate channel, so
+                // whatever else disabled the renderer stays authoritative when we release it.
+                if (IsFacialFeature(renderer))
+                {
+                    if (renderer.forceRenderingOff != isEmotes) renderer.forceRenderingOff = isEmotes;
+                    continue;
+                }
+
+                var isProp = IsEmoteProp(renderer);
+
                 // sharedMaterials (never .material — that leaks instances in edit mode)
                 foreach (var mat in renderer.sharedMaterials)
                 {
                     if (mat == null || mat.shader == null) continue;
 
                     var name = mat.shader.name;
-                    if (name != SHADER_TOON && name != SHADER_STUDIO && name != SHADER_PBR) continue;
 
-                    // Never touch persisted assets (Avatar_Toon.mat) — avatar materials are
-                    // always runtime clones, so this only skips misconfigured edge cases.
+                    // Emote props aren't avatar materials, so they're normally none of this
+                    // switcher's business. DCL_Emotes is the exception: a prop still wearing its
+                    // own textures beside a flat white avatar reads as a bug. Unlike the avatar
+                    // swap this one has to go BACK, and the rule is symmetric — DCL/Scene out,
+                    // DCL/Scene in — so it needs no saved state that a domain reload could lose.
+                    string wantName;
+                    if (isProp && (name == SHADER_SCENE || name == SHADER_EMOTES))
+                        wantName = isEmotes ? SHADER_EMOTES : SHADER_SCENE;
+                    else if (name == SHADER_TOON || name == SHADER_STUDIO || name == SHADER_PBR ||
+                             name == SHADER_EMOTES)
+                        wantName = targetName;
+                    else
+                        continue;
+
+                    // Never touch persisted assets (Avatar_Toon.mat, the preview platform's
+                    // Platform_MAT — the project's only authored DCL/Scene material). Avatar and
+                    // prop materials are always runtime clones, so this only skips misconfigured
+                    // edge cases.
                     if (EditorUtility.IsPersistent(mat)) continue;
 
                     avatarMats++;
 
-                    if (name != targetName)
+                    if (name != wantName)
                     {
-                        var queue = mat.renderQueue;
-                        var keywords = mat.shaderKeywords;
-                        mat.shader = target;
-                        mat.shaderKeywords = keywords;
-                        mat.renderQueue = queue;
-                        swapped++;
+                        var want = wantName == SHADER_SCENE ? sceneShader : target;
+                        if (want != null)
+                        {
+                            var queue = mat.renderQueue;
+                            var keywords = mat.shaderKeywords;
+                            mat.shader = want;
+                            mat.shaderKeywords = keywords;
+                            mat.renderQueue = queue;
+                            swapped++;
+                        }
                     }
+
+                    // Everything below is about the selected avatar shader. A prop on its way back
+                    // to DCL/Scene has none of these properties and wants none of this tuning.
+                    if (wantName != targetName) continue;
 
                     // Push the current art-direction values (no-op for stock toon: it has no knobs)
                     foreach (var knob in knobs)
                     {
-                        if (knob.Kind == StudioKnobKind.Float)
-                            mat.SetFloat(knob.PropId, GetFloat(mode, knob));
-                        else
+                        // Colour is the odd one out; Float and Toggle are both plain floats.
+                        if (knob.Kind == StudioKnobKind.Color)
                             mat.SetColor(knob.PropId, GetColor(mode, knob));
+                        else
+                            mat.SetFloat(knob.PropId, GetFloat(mode, knob));
                     }
 
                     // Re-assert the stylized-metal gate flag. The material is born on the stock
@@ -447,6 +581,82 @@ namespace OutfitStudio.Editor
                 SceneView.RepaintAll();
                 EditorApplication.QueuePlayerLoopUpdate();
             }
+        }
+
+        /// <summary>
+        /// Makes the studio cameras ignore the scene's volume stack while DCL_Emotes is selected,
+        /// and hands it back the moment another shader is picked.
+        ///
+        /// Why the shader can't do this on its own: a surface that writes 1.0 lands on 212/255
+        /// after the profile's ACES tonemapping, and Bloom's soft knee (threshold 1, so the curve
+        /// starts contributing at 0.5) haloes it. Both are volume overrides, so a volumeLayerMask
+        /// of 0 drops the whole stack back to defaults — Tonemapping None, Bloom intensity 0,
+        /// ShadowsMidtonesHighlights identity — and 1.0 finally reaches 255,255,255.
+        ///
+        /// Deliberately NOT renderPostProcessing=false: post has to keep running so SMAA still
+        /// resolves the outline, which is thin enough to matter (that is also why the mode's
+        /// default outline width is 4).
+        ///
+        /// The authored mask is stashed in EditorPrefs rather than a static so the restore
+        /// survives a domain reload, and keyed per camera so two cameras with different masks
+        /// each get their own back. Note this affects the whole frame, not just the avatar: the
+        /// background and card frame lose ACES too for as long as the mode is on.
+        /// </summary>
+        private static void ApplyPostBypass(bool bypass)
+        {
+            var activeScene = SceneManager.GetActiveScene();
+
+            foreach (var camera in UnityEngine.Object.FindObjectsByType<Camera>(
+                         FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (camera.gameObject.scene != activeScene) continue;
+
+                var cameraData = camera.GetComponent<UniversalAdditionalCameraData>();
+                if (cameraData == null) continue;
+
+                var key = VOLUME_MASK_KEY + camera.name;
+
+                if (bypass)
+                {
+                    // Already bypassed (or authored that way) — nothing to save, and saving a 0
+                    // here would be how we'd lose the real mask.
+                    if (cameraData.volumeLayerMask.value == 0) continue;
+
+                    EditorPrefs.SetInt(key, cameraData.volumeLayerMask.value);
+                    cameraData.volumeLayerMask = 0;
+                }
+                else
+                {
+                    // No key means the current mask is the camera's own, not ours to overwrite.
+                    if (!EditorPrefs.HasKey(key)) continue;
+
+                    cameraData.volumeLayerMask = EditorPrefs.GetInt(key);
+                    EditorPrefs.DeleteKey(key);
+                }
+            }
+        }
+
+        /// <summary>
+        /// True for renderers inside an emote's prop instance. GLTFLoader.LoadEmote parents the
+        /// whole prop under a GameObject it literally names "emote"; that name is the only marker
+        /// the prop carries, and nothing else in the studio scene sits under one.
+        /// </summary>
+        private static bool IsEmoteProp(Renderer renderer)
+        {
+            for (var t = renderer.transform; t != null; t = t.parent)
+                if (t.name == EMOTE_PROP_ROOT)
+                    return true;
+
+            return false;
+        }
+
+        private static bool IsFacialFeature(Renderer renderer)
+        {
+            foreach (var mat in renderer.sharedMaterials)
+                if (mat != null && mat.shader != null && mat.shader.name == SHADER_FACIAL)
+                    return true;
+
+            return false;
         }
 
         /// <summary>

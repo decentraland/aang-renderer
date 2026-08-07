@@ -40,11 +40,24 @@ namespace Loading
         /// </summary>
         public static bool OutlineSuppressed;
 
+        /// <summary>
+        /// When true, the loaded emote's prop renderers join the avatar's in the outline pass.
+        /// Off in production — props ship without a contour. Set by the Outfit Studio's DCL_Emotes
+        /// mode, where the prop is flattened to the same white as the avatar and would otherwise
+        /// merge into it as one blank shape. Same runtime-static, studio-driven shape as
+        /// <see cref="OutlineSuppressed"/>, which still wins over it.
+        /// </summary>
+        public static bool OutlineEmoteProps;
+
         private BodyShape? _loadedBodyShape;
 
         private readonly Dictionary<string, LoadedModel> _loadedModels = new();
         private readonly Dictionary<string, LoadedFacialFeature> _loadedFacialFeatures = new();
         private LoadedEmote? _loadedEmote;
+
+        // Cached when the emote changes so the per-frame outline fill doesn't walk the prop
+        // hierarchy. Only read while OutlineEmoteProps is on.
+        private readonly List<Renderer> _emotePropRenderers = new();
 
         // JSBridge spring-bone overrides keyed by itemId; these take precedence over the
         // params declared in the wearable definition and are re-applied after every reload.
@@ -108,6 +121,10 @@ namespace Loading
             if (emoteChanged)
             {
                 _loadedEmote = emoteLoadResult;
+
+                _emotePropRenderers.Clear();
+                var prop = _loadedEmote?.Prop;
+                if (prop != null) prop.GetComponentsInChildren(true, _emotePropRenderers);
             }
 
             var newModels = modelLoadResults.ToList();
@@ -348,6 +365,7 @@ namespace Loading
                 _loadedEmote.Value.Disposable?.Dispose();
                 Destroy(_loadedEmote.Value.Prop);
                 _loadedEmote = null;
+                _emotePropRenderers.Clear();
             }
         }
 
@@ -385,6 +403,34 @@ namespace Loading
                 if (root.activeInHierarchy)
                     list.AddRange(outlineRenderers);
             }
+
+            AddEmotePropOutlines(list);
+        }
+
+        /// <summary>
+        /// Appends the emote prop's renderers to an outline list, when the studio asked for it
+        /// (<see cref="OutlineEmoteProps"/>). Appended last on purpose: the outline pass reads the
+        /// FIRST entry's material to resolve the "Outline" pass index for the whole batch, and a
+        /// wearable is the safer thing for it to read.
+        ///
+        /// Skips props whose material has no such pass. A prop is born on the scene shader and only
+        /// becomes outline-capable once the studio's poll swaps it, so for a fraction of a second
+        /// after every emote load it isn't — and drawing it at another shader's pass 0 would put a
+        /// stray copy of the prop on screen, which a still captured in that window would keep.
+        /// </summary>
+        private void AddEmotePropOutlines(List<Renderer> list)
+        {
+            if (!OutlineEmoteProps) return;
+
+            foreach (var renderer in _emotePropRenderers)
+            {
+                if (renderer == null || !renderer.gameObject.activeInHierarchy) continue;
+
+                var material = renderer.sharedMaterial;
+                if (material == null || material.FindPass("Outline") < 0) continue;
+
+                list.Add(renderer);
+            }
         }
 
         private void Update()
@@ -403,6 +449,8 @@ namespace Loading
                         RendererFeature_AvatarOutline.m_AvatarOutlineRenderers.AddRange(outlineRenderers);
                     }
                 }
+
+                AddEmotePropOutlines(RendererFeature_AvatarOutline.m_AvatarOutlineRenderers);
             }
 
             // Update character bounds every frame for dynamic positioning

@@ -1945,14 +1945,20 @@ namespace OutfitStudio.Editor
             var pane = new ScrollView { style = { paddingLeft = 6, paddingRight = 6, paddingTop = 4 } };
 
             // --- Shader (selection persists via StudioAvatarShaderSwitcher and re-applies after
-            // every avatar reload, edit and play mode, until another shader is picked). The 3 selector
+            // every avatar reload, edit and play mode, until another shader is picked). The selector
             // buttons stay visible for quick access; only the tuning panel is tucked into a
             // collapsible "Shader Settings" foldout (matching the Card frame section below).
+            // Order matches StudioShaderMode — the buttons are indexed by the enum value.
             pane.Add(Header("Shader"));
 
-            var shaderRow = new VisualElement { style = { flexDirection = FlexDirection.Row } };
-            var shaderButtons = new Button[3];
-            var shaderLabels = new[] { "DCL_Toon", "DCL_Toon_Studio", "DCL_Stylized_PBR" };
+            // Wraps: four labels this long don't fit one row at the default pane width, and a
+            // truncated "DCL_Styliz…" is worse than a second row.
+            var shaderRow = new VisualElement
+            {
+                style = { flexDirection = FlexDirection.Row, flexWrap = Wrap.Wrap }
+            };
+            var shaderButtons = new Button[4];
+            var shaderLabels = new[] { "DCL_Toon", "DCL_Toon_Studio", "DCL_Stylized_PBR", "DCL_Emotes" };
 
             // Tuning panel (rebuilt per selected shader; empty for the stock DCL_Toon)
             var shaderTuning = new VisualElement();
@@ -1972,7 +1978,7 @@ namespace OutfitStudio.Editor
                     StudioAvatarShaderSwitcher.Mode = mode;
                     RefreshShaderButtons();
                     BuildShaderTuning(shaderTuning);
-                }) { text = shaderLabels[i], style = { flexGrow = 1 } };
+                }) { text = shaderLabels[i], style = { flexGrow = 1, minWidth = 108 } };
                 shaderRow.Add(shaderButtons[i]);
             }
 
@@ -2621,40 +2627,57 @@ namespace OutfitStudio.Editor
                 return;
             }
 
-            // Shader tuning presets — save/apply the full knob set (all sliders + colors below) as
-            // a reusable asset. One preset type per shader since their knob tables differ.
-            container.Add(new Label("Presets") { style = { unityFontStyleAndWeight = FontStyle.Bold, marginTop = 6 } });
-            if (mode == StudioShaderMode.DclToonStudio)
-                BuildShaderPresetsRow<StudioToonShaderPreset>(container, mode, TOON_SHADER_PRESETS_DIR);
-            else
-                BuildShaderPresetsRow<StudioPbrShaderPreset>(container, mode, PBR_SHADER_PRESETS_DIR);
+            // DCL_Emotes skips both of the blocks below: its two outline knobs aren't worth a
+            // preset asset type of their own, and nothing in a flat white surface reflects a
+            // matcap. Everything from the knob loop down is shared.
+            if (mode != StudioShaderMode.DclEmotes)
+            {
+                // Shader tuning presets — save/apply the full knob set (all sliders + colors below)
+                // as a reusable asset. One preset type per shader since their knob tables differ.
+                container.Add(new Label("Presets") { style = { unityFontStyleAndWeight = FontStyle.Bold, marginTop = 6 } });
+                if (mode == StudioShaderMode.DclToonStudio)
+                    BuildShaderPresetsRow<StudioToonShaderPreset>(container, mode, TOON_SHADER_PRESETS_DIR);
+                else
+                    BuildShaderPresetsRow<StudioPbrShaderPreset>(container, mode, PBR_SHADER_PRESETS_DIR);
 
-            // Matcap selector — the metal reflection texture bound to stylized-metal materials.
-            // Both studio shaders use it; the list comes from the loaded MatcapPresets library.
-            var matcapNames = StudioAvatarShaderSwitcher.GetMatcapNames();
-            if (matcapNames.Length == 0)
-            {
-                container.Add(new Label("Matcap: library not loaded yet — load an outfit first.")
+                // Matcap selector — the metal reflection texture bound to stylized-metal materials.
+                // Both studio shaders use it; the list comes from the loaded MatcapPresets library.
+                var matcapNames = StudioAvatarShaderSwitcher.GetMatcapNames();
+                if (matcapNames.Length == 0)
                 {
-                    style = { unityFontStyleAndWeight = FontStyle.Italic, marginTop = 4, opacity = 0.7f }
-                });
-            }
-            else
-            {
-                var active = StudioAvatarShaderSwitcher.ActiveMatcapName;
-                if (Array.IndexOf(matcapNames, active) < 0) active = matcapNames[0];
-                var matcapField = new PopupField<string>("Matcap", matcapNames.ToList(), active)
+                    container.Add(new Label("Matcap: library not loaded yet — load an outfit first.")
+                    {
+                        style = { unityFontStyleAndWeight = FontStyle.Italic, marginTop = 4, opacity = 0.7f }
+                    });
+                }
+                else
                 {
-                    tooltip = "Which matcap texture the stylized metal reflects (from MatcapPresets)."
-                };
-                matcapField.RegisterValueChangedCallback(evt =>
-                    StudioAvatarShaderSwitcher.ActiveMatcapName = evt.newValue);
-                container.Add(matcapField);
+                    var active = StudioAvatarShaderSwitcher.ActiveMatcapName;
+                    if (Array.IndexOf(matcapNames, active) < 0) active = matcapNames[0];
+                    var matcapField = new PopupField<string>("Matcap", matcapNames.ToList(), active)
+                    {
+                        tooltip = "Which matcap texture the stylized metal reflects (from MatcapPresets)."
+                    };
+                    matcapField.RegisterValueChangedCallback(evt =>
+                        StudioAvatarShaderSwitcher.ActiveMatcapName = evt.newValue);
+                    container.Add(matcapField);
+                }
             }
 
             foreach (var knob in knobs)
             {
-                if (knob.Kind == StudioKnobKind.Float)
+                if (knob.Kind == StudioKnobKind.Toggle)
+                {
+                    var toggle = new Toggle(knob.Label)
+                    {
+                        value = StudioAvatarShaderSwitcher.GetFloat(mode, knob) > 0.5f,
+                        tooltip = knob.Tooltip
+                    };
+                    toggle.RegisterValueChangedCallback(evt =>
+                        StudioAvatarShaderSwitcher.SetFloat(mode, knob, evt.newValue ? 1f : 0f));
+                    container.Add(toggle);
+                }
+                else if (knob.Kind == StudioKnobKind.Float)
                 {
                     var slider = new Slider(knob.Label, knob.Min, knob.Max)
                     {
