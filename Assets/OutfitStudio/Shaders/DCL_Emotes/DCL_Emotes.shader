@@ -4,7 +4,8 @@
 // other studio shaders do to shape the surface — lighting, rim, matcap, emission, base color,
 // normal maps — is deliberately absent, so the render carries silhouette and pose only. The
 // outline is the only thing left to art-direct, so width, colour and "as mask" (cut the outline
-// out of the image instead of painting it) are the mode's only knobs.
+// out of the image instead of painting it) and detail suppression (drop the line where the
+// surface creases too sharply for it to read cleanly) are the mode's only knobs.
 //
 // The one thing it still reads from the albedo is ALPHA (see EmotesAlphaClip) — cutout wearables
 // would otherwise become solid slabs.
@@ -76,6 +77,11 @@ Shader "DCL/DCL_Emotes"
         _Outline_Width ("Outline_Width", Range(0, 10)) = 4
         _Outline_Color ("Outline_Color", Color) = (0,0,0,1)
         [Toggle(_)] _OutlineAsMask ("Outline As Mask", Float) = 0
+        // 0 = off (every silhouette edge draws). Higher values drop the outline wherever the
+        // surface creases sharply enough to break the line into noise — fingers, face wrinkles —
+        // by discarding outline fragments where screen-space normal curvature exceeds a threshold
+        // that tightens as this goes up. See the crease-detection note in the Outline pass.
+        _Outline_DetailSuppress ("Outline_DetailSuppress", Range(0, 1)) = 0
 
         // --- Clipping / transparency (shared contract with DCL_Toon)
         _Clipping_Level ("Clipping_Level", Range(0, 1)) = 0
@@ -103,6 +109,13 @@ Shader "DCL/DCL_Emotes"
             Name "Outline"
             Tags { "LightMode" = "Outline" }
             Cull Front
+            // Depth-biases the shell away from the camera a touch so it reliably loses the depth
+            // test against unrelated nearby geometry it happens to sit close to in world space —
+            // shoe-vs-deck, sleeve-vs-hand contact points — instead of flickering/z-fighting with
+            // it. Distinct from the crease noise _Outline_DetailSuppress fixes: this is two separate
+            // meshes' shells colliding, not one mesh folding into itself, so it needs its own knob.
+            // Flip the sign or scale the magnitude if it undershoots/overshoots in testing.
+            Offset 2, 2
 
             HLSLPROGRAM
             #pragma target 4.5
@@ -122,6 +135,7 @@ Shader "DCL/DCL_Emotes"
             struct Varyings
             {
                 float2 uv         : TEXCOORD0;
+                float3 normalWS   : TEXCOORD1;
                 float4 positionCS : SV_POSITION;
             };
 
@@ -135,6 +149,7 @@ Shader "DCL/DCL_Emotes"
                 float width = _Outline_Width * 0.001 * smoothstep(100.0, 0.5, camDist);
                 output.positionCS = TransformObjectToHClip(input.positionOS.xyz + input.normalOS * width);
                 output.uv = input.texcoord;
+                output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 return output;
             }
 
@@ -142,6 +157,20 @@ Shader "DCL/DCL_Emotes"
             {
                 half4 texColor = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, TRANSFORM_TEX(input.uv, _MainTex));
                 EmotesAlphaClip(texColor.a);
+
+                // Detail suppression. The extruded hull pokes into neighbouring geometry wherever
+                // the surface creases sharply (fingers pressed together, face wrinkles) and z-fights
+                // with it, which reads as noise/dashes instead of a stroke. fwidth(normalWS) spikes
+                // at those hard creases (screen-space normal discontinuity between triangles) while
+                // staying near zero along the true smooth silhouette, so it doubles as a curvature
+                // detector without any extra mesh data. Cutoff tightens as the knob goes up; 0 keeps
+                // every silhouette edge exactly as before.
+                if (_Outline_DetailSuppress > 0.001)
+                {
+                    half curvature = length(fwidth(input.normalWS));
+                    half cutoff = lerp(1.0h, 0.02h, (half)_Outline_DetailSuppress);
+                    clip(cutoff - curvature);
+                }
 
                 // Mask mode. This pass is what CUTS the outline: the feature injects it at
                 // BeforeRenderingOpaques with ZWrite on, so the hull stamps near depth and

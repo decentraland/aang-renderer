@@ -51,6 +51,7 @@ float _Is_LightColor_RimLight;
 float _OutlineEnabled;
 float _OutlineAsMask;
 float _Outline_Width;
+float _Outline_DetailSuppress;
 float _Is_BlendBaseColor;
 int _MainTexArr_ID;
 int _NormalMapArr_ID;

@@ -207,7 +207,12 @@ namespace OutfitStudio.Editor
                 "Cut the outline out of the image instead of painting it, so the card shows through it " +
                 "— around the silhouette AND along the lines between wearables. Needs the Card Frame on " +
                 "to have something to reveal; with it off the cut is a plain hole, which exports " +
-                "transparent but only reads as black in the Game view.")
+                "transparent but only reads as black in the Game view."),
+            new("Outline Detail Suppress", "_Outline_DetailSuppress", 0f, 1f, 0f,
+                "Drops the outline wherever the surface creases too sharply to read as a clean line " +
+                "— fingers, face wrinkles — instead of drawing broken/noisy dashes there. 0 = off " +
+                "(every silhouette edge draws); raise it until the noise clears without eating a " +
+                "real silhouette edge.")
         };
 
         private static readonly StudioShaderKnob OutlineMaskKnob =
