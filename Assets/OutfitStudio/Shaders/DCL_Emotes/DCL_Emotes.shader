@@ -74,14 +74,14 @@ Shader "DCL/DCL_Emotes"
         // "Hide outline" (AvatarLoader.OutlineSuppressed), which drops the renderer from the
         // outline pass entirely.
         [Toggle(_)] _OutlineEnabled ("Outline Enabled", Float) = 1
-        _Outline_Width ("Outline_Width", Range(0, 10)) = 4
+        _Outline_Width ("Outline_Width", Range(0, 10)) = 5
         _Outline_Color ("Outline_Color", Color) = (0,0,0,1)
-        [Toggle(_)] _OutlineAsMask ("Outline As Mask", Float) = 0
+        [Toggle(_)] _OutlineAsMask ("Outline As Mask", Float) = 1
         // 0 = off (every silhouette edge draws). Higher values drop the outline wherever the
         // surface creases sharply enough to break the line into noise — fingers, face wrinkles —
         // by discarding outline fragments where screen-space normal curvature exceeds a threshold
         // that tightens as this goes up. See the crease-detection note in the Outline pass.
-        _Outline_DetailSuppress ("Outline_DetailSuppress", Range(0, 1)) = 0
+        _Outline_DetailSuppress ("Outline_DetailSuppress", Range(0, 1)) = 0.33
 
         // --- Clipping / transparency (shared contract with DCL_Toon)
         _Clipping_Level ("Clipping_Level", Range(0, 1)) = 0
@@ -143,9 +143,15 @@ Shader "DCL/DCL_Emotes"
             {
                 Varyings output;
                 // Inverted hull, same scale convention as DCL_Toon
-                // (width * 0.001, faded out between 0.5 and 100 units from the camera)
-                float3 objPos = TransformObjectToWorld(float3(0, 0, 0));
-                float camDist = distance(objPos, _WorldSpaceCameraPos);
+                // (width * 0.001, faded out between 0.5 and 100 units from the camera).
+                // Distance is measured per VERTEX, not from the object's pivot: a dynamic pose can
+                // put an arm or leg meaningfully closer to (or farther from) the camera than the
+                // pivot, and a single object-wide distance gave every vertex the same world-space
+                // push regardless of its own depth — parts nearer the camera then projected thicker
+                // on screen, parts farther away projected thinner (sometimes sub-pixel), instead of
+                // a uniform stroke width across the whole silhouette.
+                float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
+                float camDist = distance(positionWS, _WorldSpaceCameraPos);
                 float width = _Outline_Width * 0.001 * smoothstep(100.0, 0.5, camDist);
                 output.positionCS = TransformObjectToHClip(input.positionOS.xyz + input.normalOS * width);
                 output.uv = input.texcoord;
