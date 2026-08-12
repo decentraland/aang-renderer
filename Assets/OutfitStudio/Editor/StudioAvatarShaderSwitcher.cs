@@ -194,10 +194,12 @@ namespace OutfitStudio.Editor
         };
 
         /// <summary>
-        /// DCL_Emotes — outline only. The surface is a flat white with no lighting model, so the
-        /// contour is the entire art direction; anything else would be a knob with nothing to act on.
-        /// Wider than the other two shaders' defaults because the white body gives the stroke no
-        /// tonal contrast to lean on.
+        /// DCL_Emotes — outline, plus one behavior knob. The avatar surface is a flat white with no
+        /// lighting model, so the contour is the entire art direction there; anything else would be
+        /// a knob with nothing to act on. Wider than the other two shaders' defaults because the
+        /// white body gives the stroke no tonal contrast to lean on. "Use Emote shader on props" is
+        /// the exception — it decides whether emote props are flattened to that same white or keep
+        /// their own PBR/scene look (see Apply).
         /// </summary>
         public static readonly StudioShaderKnob[] EmotesKnobs =
         {
@@ -212,11 +214,19 @@ namespace OutfitStudio.Editor
                 "Drops the outline wherever the surface creases too sharply to read as a clean line " +
                 "— fingers, face wrinkles — instead of drawing broken/noisy dashes there. 0 = off " +
                 "(every silhouette edge draws); raise it until the noise clears without eating a " +
-                "real silhouette edge.")
+                "real silhouette edge."),
+            new("Use Emote shader on props", "_UseEmoteShaderOnProps", false,
+                "When on, emote props are flattened to the same white DCL_Emotes shader as the " +
+                "avatar. When off (default), props keep rendering with their own PBR/scene shader " +
+                "and textures — how it worked before props were flattened to white.")
         };
 
         private static readonly StudioShaderKnob OutlineMaskKnob =
             Array.Find(EmotesKnobs, k => k.Property == "_OutlineAsMask");
+
+        /// <summary>Backs the "Use Emote shader on props" knob — see <see cref="Apply"/>.</summary>
+        private static readonly StudioShaderKnob UseEmoteShaderOnPropsKnob =
+            Array.Find(EmotesKnobs, k => k.Property == "_UseEmoteShaderOnProps");
 
         /// <summary>
         /// True while DCL_Emotes is selected with its "Outline As Mask" knob on. Read by
@@ -390,14 +400,21 @@ namespace OutfitStudio.Editor
 
             var isEmotes = mode == StudioShaderMode.DclEmotes;
 
+            // Off unless DCL_Emotes is active AND the "Use Emote shader on props" knob is on —
+            // see the knob's tooltip. Off by default so props keep their own PBR/scene look, which
+            // is how the tool behaved before props were flattened to white.
+            var useEmoteShaderOnProps = isEmotes &&
+                GetFloat(StudioShaderMode.DclEmotes, UseEmoteShaderOnPropsKnob) > 0.5f;
+
             // Both before the shader swap, and before the Shader.Find early-out below, so a
             // missing shader can never strand the camera or the renderer in the mode's state.
             ApplyPostBypass(isEmotes);
 
-            // Props are flattened to the same white as the avatar below, so they need the contour
-            // to stay separable from it. Off in every other mode (and off outside the studio scene
-            // — see Update), which is what keeps production behaviour unchanged.
-            Loading.AvatarLoader.OutlineEmoteProps = isEmotes;
+            // Props are only flattened to the same white as the avatar when the knob above is on,
+            // and only then do they need the contour to stay separable from it. Off in every other
+            // mode/knob state (and off outside the studio scene — see Update), which is what keeps
+            // production behaviour unchanged.
+            Loading.AvatarLoader.OutlineEmoteProps = useEmoteShaderOnProps;
 
             var targetName = mode switch
             {
@@ -472,13 +489,14 @@ namespace OutfitStudio.Editor
                     var name = mat.shader.name;
 
                     // Emote props aren't avatar materials, so they're normally none of this
-                    // switcher's business. DCL_Emotes is the exception: a prop still wearing its
-                    // own textures beside a flat white avatar reads as a bug. Unlike the avatar
-                    // swap this one has to go BACK, and the rule is symmetric — DCL/Scene out,
-                    // DCL/Scene in — so it needs no saved state that a domain reload could lose.
+                    // switcher's business. DCL_Emotes with "Use Emote shader on props" on is the
+                    // exception: a prop still wearing its own textures beside a flat white avatar
+                    // reads as a bug. Unlike the avatar swap this one has to go BACK, and the rule
+                    // is symmetric — DCL/Scene out, DCL/Scene in — so it needs no saved state that a
+                    // domain reload could lose.
                     string wantName;
                     if (isProp && (name == SHADER_SCENE || name == SHADER_EMOTES))
-                        wantName = isEmotes ? SHADER_EMOTES : SHADER_SCENE;
+                        wantName = useEmoteShaderOnProps ? SHADER_EMOTES : SHADER_SCENE;
                     else if (name == SHADER_TOON || name == SHADER_STUDIO || name == SHADER_PBR ||
                              name == SHADER_EMOTES)
                         wantName = targetName;

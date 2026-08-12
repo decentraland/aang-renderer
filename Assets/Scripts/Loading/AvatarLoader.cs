@@ -43,8 +43,9 @@ namespace Loading
         /// <summary>
         /// When true, the loaded emote's prop renderers join the avatar's in the outline pass.
         /// Off in production — props ship without a contour. Set by the Outfit Studio's DCL_Emotes
-        /// mode, where the prop is flattened to the same white as the avatar and would otherwise
-        /// merge into it as one blank shape. Same runtime-static, studio-driven shape as
+        /// mode, and only while its "Use Emote shader on props" knob is also on — that's when the
+        /// prop is flattened to the same white as the avatar and would otherwise merge into it as
+        /// one blank shape. Same runtime-static, studio-driven shape as
         /// <see cref="OutlineSuppressed"/>, which still wins over it.
         /// </summary>
         public static bool OutlineEmoteProps;
