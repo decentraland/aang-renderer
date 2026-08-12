@@ -169,13 +169,9 @@ namespace Preview
                     switch (config.Mode)
                     {
                         case PreviewMode.Marketplace:
+                            // With no urns there is nothing to override, so the profile avatar is the
+                            // whole preview.
                             var urns = await LoadUrns(config);
-                            // A real check and not an Assert: asserts are stripped from release WebGL
-                            // builds, so anything guarded by one fails silently where it matters.
-                            if (urns is not { Count: > 0 })
-                                throw new InvalidOperationException(
-                                    "Marketplace mode requires at least one urn, or a contract with an item or token id");
-
                             var result = await LoadForMarketplace(config.Profile, urns, config.Emote);
 
                             previewUIPresenter.EnableEmoteControls(result.emoteOverride);
@@ -376,7 +372,7 @@ namespace Preview
 
                 // There is no locked item view to fall back to here, and rendering the profile avatar
                 // wearing none of the requested items would be a silent lie, so report it instead.
-                if (renderableOverrides.Count == 0 && emoteOverride == null)
+                if (wearableOverrides.Count > 0 && renderableOverrides.Count == 0 && emoteOverride == null)
                     throw new NotSupportedException(
                         $"None of the requested urns have a {avatarBodyShape} representation: {string.Join(", ", urns)}");
 
@@ -466,7 +462,7 @@ namespace Preview
                 };
             }
 
-            return null;
+            return new List<string>();
         }
 
         public void Cleanup()
