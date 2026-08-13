@@ -41,7 +41,7 @@ namespace OutfitStudio.Editor
         /// resulting PNG path, or null on failure.
         /// </summary>
         public static void CaptureStill(int width, int height, bool transparentBackground, string outputFolder,
-            Action<string> onComplete)
+            int upsampleFactor, Action<string> onComplete)
         {
             if (IsRecording || IsCapturingStill)
             {
@@ -49,6 +49,14 @@ namespace OutfitStudio.Editor
                 onComplete?.Invoke(null);
                 return;
             }
+
+            // Rendered at width*factor/height*factor and box-downsampled back down after (see
+            // DownsampleFileInPlace) — cheap supersampled AA. A direct render at `width` only ever
+            // gets one sample per exported pixel; this gives every edge factor² of them, which is
+            // what actually fixes a thin outline reading as eroded/noisy at low capture resolutions.
+            upsampleFactor = Mathf.Max(1, upsampleFactor);
+            var renderWidth = width * upsampleFactor;
+            var renderHeight = height * upsampleFactor;
 
             var camera = Camera.main;
             if (camera == null)
@@ -100,8 +108,8 @@ namespace OutfitStudio.Editor
             imageSettings.imageInputSettings = new CameraInputSettings
             {
                 Source = ImageSource.MainCamera,
-                OutputWidth = width,
-                OutputHeight = height,
+                OutputWidth = renderWidth,
+                OutputHeight = renderHeight,
                 RecordTransparency = wantsAlpha
             };
             imageSettings.OutputFile = GetOutputPath(outputFolder, null); // Recorder appends _<frame>.png
@@ -139,6 +147,12 @@ namespace OutfitStudio.Editor
                     // export even though its color is genuinely there. The Recorder writes straight
                     // to disk, so this has to run as a post-pass on the saved file.
                     if (wantsAlpha) RecoverAdditiveAlphaInFile(newFile);
+
+                    // Runs after alpha recovery, not before: it reconstructs alpha from the raw,
+                    // full-resolution bloom brightness, which the downsample would otherwise have
+                    // already blurred together with its neighbours.
+                    if (upsampleFactor > 1) DownsampleFileInPlace(newFile, width, height);
+
                     Debug.Log($"[OutfitStudio] Screenshot saved: {newFile}");
                 }
                 else
@@ -203,6 +217,75 @@ namespace OutfitStudio.Editor
             }
             tex.SetPixels32(pixels);
             tex.Apply();
+        }
+
+        /// <summary>
+        /// Box-downsamples the saved PNG from its captured (upsampled) resolution back down to
+        /// targetWidth×targetHeight in place. See CaptureStill's upsampleFactor.
+        /// </summary>
+        private static void DownsampleFileInPlace(string path, int targetWidth, int targetHeight)
+        {
+            var src = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            Texture2D downsampled = null;
+            try
+            {
+                src.LoadImage(File.ReadAllBytes(path));
+                if (src.width == targetWidth && src.height == targetHeight) return;
+
+                downsampled = BoxDownsample(src, targetWidth, targetHeight);
+                File.WriteAllBytes(path, downsampled.EncodeToPNG());
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(src);
+                if (downsampled != null) UnityEngine.Object.DestroyImmediate(downsampled);
+            }
+        }
+
+        /// <summary>
+        /// Averages factorX×factorY source texels into each destination texel. Premultiplies by
+        /// alpha before averaging and un-premultiplies after — straight averaging would blend a fully
+        /// transparent pixel's arbitrary RGB into a partially-covered edge pixel, fringing exactly the
+        /// silhouette/outline edges supersampling is meant to clean up with a dark or discoloured halo.
+        /// </summary>
+        private static Texture2D BoxDownsample(Texture2D src, int dstWidth, int dstHeight)
+        {
+            var srcWidth = src.width;
+            var factorX = srcWidth / dstWidth;
+            var factorY = src.height / dstHeight;
+            var sampleCount = factorX * factorY;
+            var srcPixels = src.GetPixels();
+            var dstPixels = new Color[dstWidth * dstHeight];
+
+            for (var y = 0; y < dstHeight; y++)
+            {
+                for (var x = 0; x < dstWidth; x++)
+                {
+                    float pmR = 0f, pmG = 0f, pmB = 0f, sumA = 0f;
+                    for (var sy = 0; sy < factorY; sy++)
+                    {
+                        var rowStart = (y * factorY + sy) * srcWidth + x * factorX;
+                        for (var sx = 0; sx < factorX; sx++)
+                        {
+                            var p = srcPixels[rowStart + sx];
+                            pmR += p.r * p.a;
+                            pmG += p.g * p.a;
+                            pmB += p.b * p.a;
+                            sumA += p.a;
+                        }
+                    }
+
+                    var avgA = sumA / sampleCount;
+                    dstPixels[y * dstWidth + x] = avgA > 0.0001f
+                        ? new Color(pmR / sampleCount / avgA, pmG / sampleCount / avgA, pmB / sampleCount / avgA, avgA)
+                        : new Color(0f, 0f, 0f, 0f);
+                }
+            }
+
+            var dst = new Texture2D(dstWidth, dstHeight, TextureFormat.RGBA32, false);
+            dst.SetPixels(dstPixels);
+            dst.Apply();
+            return dst;
         }
 
         public static string StartVideo(int width, int height, int frameRate, string outputFolder)

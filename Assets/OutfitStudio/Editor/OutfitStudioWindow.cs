@@ -285,6 +285,7 @@ namespace OutfitStudio.Editor
         [SerializeField] private int envIndex;
         [SerializeField] private int captureWidth = 2048;
         [SerializeField] private int captureHeight = 2048;
+        [SerializeField] private int captureUpsample = 1;
         [SerializeField] private int captureFrameRate = 30;
         [SerializeField] private bool transparentBackground = true;
         [SerializeField] private string outputFolder = OutfitCapture.DEFAULT_OUTPUT_FOLDER;
@@ -2153,6 +2154,23 @@ namespace OutfitStudio.Editor
             sizeRow.Add(heightField);
             pane.Add(sizeRow);
 
+            // Renders the still at this multiple of Size, then box-downsamples back to Size for the
+            // exported PNG — every edge (including the extruded-shell avatar outline, which SMAA/TAA
+            // can erode into a thin or noisy line at low native resolutions) gets factor² sub-pixel
+            // samples instead of the one a direct render at Size gets. Stills only; Video is unaffected.
+            var upsampleOptions = new List<string> { "1x (off)", "2x", "4x" };
+            var upsampleValues = new[] { 1, 2, 4 };
+            var upsampleIndex = Mathf.Max(0, Array.IndexOf(upsampleValues, captureUpsample));
+            var upsamplePopup = new PopupField<string>("Upsample", upsampleOptions, upsampleIndex)
+            {
+                tooltip = "Renders the still at this multiple of Size, then downsamples back down to " +
+                          "Size for the exported PNG — sharper edges and a cleaner outline than a " +
+                          "direct render at Size, at the cost of a slower capture. Stills only."
+            };
+            upsamplePopup.RegisterValueChangedCallback(evt =>
+                captureUpsample = upsampleValues[upsampleOptions.IndexOf(evt.newValue)]);
+            pane.Add(upsamplePopup);
+
             // WYSIWYG: the PNG is always exactly Size × Size (the Recorder renders the camera at that
             // resolution regardless of the Game view), but the *framing* only matches what's on screen
             // if the Game view renders at the same resolution too — otherwise the card is laid out for
@@ -4014,7 +4032,8 @@ namespace OutfitStudio.Editor
             if (!EnsurePlaying()) return;
 
             SetStatus("Capturing...");
-            OutfitCapture.CaptureStill(captureWidth, captureHeight, transparentBackground, outputFolder, path =>
+            OutfitCapture.CaptureStill(captureWidth, captureHeight, transparentBackground, outputFolder,
+                captureUpsample, path =>
             {
                 if (path != null)
                 {
