@@ -245,6 +245,12 @@ public class AangConfiguration
     public bool ShowFPS { get; set; }
 
     /// <summary>
+    /// The target frame rate the renderer runs at. Defaults to 60; can be lowered (e.g. to 30) by
+    /// consumers that want to trade smoothness for lower GPU/CPU cost.
+    /// </summary>
+    public int Fps { get; set; } = 60;
+
+    /// <summary>
     /// If true we load individual items for an avatar one after another, instead of concurrently.
     /// </summary>
     public bool ConcurrentLoad { get; set; } = !Application.isMobilePlatform;
@@ -346,6 +352,9 @@ public class AangConfiguration
                 case "showFPS":
                     Instance.ShowFPS = bool.Parse(value);
                     break;
+                case "fps":
+                    Instance.Fps = int.Parse(value);
+                    break;
                 case "concurrentLoad":
                     Instance.ConcurrentLoad = bool.Parse(value);
                     break;
@@ -398,6 +407,7 @@ public class AangConfiguration
         sb.AppendFormat("&useBrowserPreload={0}", UseBrowserPreload);
         sb.AppendFormat("&username={0}", Username);
         sb.AppendFormat("&showFPS={0}", ShowFPS);
+        sb.AppendFormat("&fps={0}", Fps);
         sb.AppendFormat("&sequentialLoad={0}", ConcurrentLoad);
         sb.AppendFormat("&useUninterruptedDeferAgent={0}", UninterruptedDeferAgent);
 
