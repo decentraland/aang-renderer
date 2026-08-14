@@ -9,6 +9,7 @@ namespace Preview
         [SerializeField] private float minFOV = 10f;
         [SerializeField] private float maxFOV = 30f;
         [SerializeField] private float zoomStep = 5f;
+        [SerializeField] private float wheelZoomSensitivity = 0.5f;
         [SerializeField] private float lerpSpeed = 1f;
 
         [SerializeField] private CinemachineCamera authProfileCamera;
@@ -80,6 +81,11 @@ namespace Preview
         public void ZoomOut()
         {
             _targetFOV = Mathf.Clamp(_targetFOV + zoomStep, minFOV, maxFOV);
+        }
+
+        public void ZoomByWheelDelta(float delta)
+        {
+            _targetFOV = Mathf.Clamp(_targetFOV + delta * wheelZoomSensitivity, minFOV, maxFOV);
         }
     }
 }
