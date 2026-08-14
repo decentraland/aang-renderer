@@ -47,6 +47,7 @@ namespace Preview
 
         private string _currentDebugInput = "";
         private bool _debugLoaded;
+        private bool _zoomEnabled;
         private bool _animationPlaying = true;
         private SwitcherState _switcherState = SwitcherState.Wearable;
         private float _lastPlayPauseClickTime;
@@ -76,6 +77,7 @@ namespace Preview
             _loaderIcon = _loader.Q("Icon");
 
             _controls.AddManipulator(new DragManipulator((d, dt) => ContainerDrag!(d, dt)));
+            _controls.RegisterCallback<WheelEvent>(OnWheel);
             _wearableButton.AddManipulator(new Clickable(OnWearableButtonClicked));
             _avatarButton.AddManipulator(new Clickable(OnAvatarButtonClicked));
 
@@ -102,6 +104,7 @@ namespace Preview
 
         public void EnableZoom(bool enable)
         {
+            _zoomEnabled = enable;
             _zoomControls.style.display = enable ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
@@ -182,6 +185,14 @@ namespace Preview
 
             SetAnimationPlaying(!_animationPlaying);
             EmoteToggleClicked!(_animationPlaying);
+        }
+
+        private void OnWheel(WheelEvent evt)
+        {
+            if (!_zoomEnabled) return;
+
+            previewCameraController.ZoomByWheelDelta(evt.delta.y);
+            evt.StopPropagation();
         }
 
         private void OnTextInput(char c)
