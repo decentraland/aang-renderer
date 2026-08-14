@@ -36,13 +36,9 @@ public class Bootstrap : MonoBehaviour
         // absolute shaded pixel count stays bounded (under 1600x1600 -> under 3200x3200). Both
         // dimensions must be under the threshold, not just one, so a wide-but-short viewport doesn't
         // get its large dimension doubled too.
-        if (Screen.width < 1600 && Screen.height < 1600)
         if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset urpAsset
             && Screen.width < 1600 && Screen.height < 1600)
         {
-            urpAsset.renderScale = 2f;
-        }
-            var urpAsset = (UniversalRenderPipelineAsset)GraphicsSettings.currentRenderPipeline;
             urpAsset.renderScale = 2f;
         }
 
