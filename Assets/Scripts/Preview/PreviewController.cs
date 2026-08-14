@@ -38,7 +38,7 @@ namespace Preview
         private const string PREF_AVATAR_SHOWN = "PreviewAvatarShown";
 
         // #cc9b76, the skin the JS wrapper used to send whenever a builder caller left it out.
-        private static readonly Color DEFAULT_SKIN_COLOR = new(0.8f, 0.607f, 0.462f);
+        private static readonly Color DEFAULT_SKIN_COLOR = new(204f / 255f, 155f / 255f, 118f / 255f);
 
         private bool _loading;
         private bool _shouldReload;
