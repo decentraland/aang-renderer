@@ -37,6 +37,9 @@ namespace Preview
         // survives across sessions: only ever a fallback, never an override of what was requested.
         private const string PREF_AVATAR_SHOWN = "PreviewAvatarShown";
 
+        // #cc9b76, the skin the JS wrapper used to send whenever a builder caller left it out.
+        private static readonly Color DEFAULT_SKIN_COLOR = new(204f / 255f, 155f / 255f, 118f / 255f);
+
         private bool _loading;
         private bool _shouldReload;
         private bool _shouldCleanup;
@@ -172,7 +175,7 @@ namespace Preview
                             // With no urns there is nothing to override, so the profile avatar is the
                             // whole preview.
                             var urns = await LoadUrns(config);
-                            var result = await LoadForMarketplace(config.Profile, urns, config.Emote);
+                            var result = await LoadForMarketplace(config, urns);
 
                             previewUIPresenter.EnableEmoteControls(result.emoteOverride);
 
@@ -301,7 +304,8 @@ namespace Preview
             }
             var wearableEntities = slots.Values.ToArray();
 
-            var colors = new AvatarColors(eyeColor ?? Color.black, hairColor ?? Color.black, skinColor ?? Color.black);
+            var colors = new AvatarColors(eyeColor ?? Color.black, hairColor ?? Color.black,
+                skinColor ?? DEFAULT_SKIN_COLOR);
 
             var emoteEntity = base64Emote ?? (emoteName == "idle" ? null : EntityDefinition.FromEmbeddedEmote(emoteName, true));
 
@@ -319,14 +323,20 @@ namespace Preview
 
         private async Awaitable<(bool emoteOverride, bool emoteOverrideAudio, bool validRepresentation,
                 bool showsItemAlone, BodyShape avatarBodyShape)>
-            LoadForMarketplace(string profileID, List<string> urns, string defaultEmote)
+            LoadForMarketplace(AangConfiguration config, List<string> urns)
         {
+            var profileID = config.Profile;
+            var defaultEmote = config.Emote;
+
             Assert.IsNotNull(profileID);
             Assert.IsNotNull(defaultEmote);
 
             var avatar = await APIService.GetAvatar(profileID);
             var avatarBodyShape = avatar.GetBodyShape();
-            var avatarColors = avatar.GetAvatarColors();
+            var profileColors = avatar.GetAvatarColors();
+            // A caller-supplied color wins so combinations can be tried on any profile; the rest stay the profile's.
+            var avatarColors = new AvatarColors(config.EyeColor ?? profileColors.Eyes,
+                config.HairColor ?? profileColors.Hair, config.SkinColor ?? profileColors.Skin);
             var allEntities = await EntityService.GetEntities(avatar.wearables.Concat(urns).ToArray());
 
             // Resolve in request order so that, when two urns compete for the same slot below, the last
