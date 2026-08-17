@@ -1,4 +1,5 @@
 using Configurator;
+using DCL.Rendering.DCL_Toon;
 using GLTFast;
 using Preview;
 using UnityEngine;
@@ -10,6 +11,12 @@ public class Bootstrap : MonoBehaviour
     [SerializeField] private Material baseMat;
     [SerializeField] private Material facialFeaturesMat;
 
+    [Tooltip("Shared matcap library (MatcapPresets.asset from the unity-shared-dependencies package).")]
+    [SerializeField] private MatcapPresets matcapPresets;
+
+    [Tooltip("Preset name bound by default to metallic materials. Must match an entry in matcapPresets.")]
+    [SerializeField] private string defaultMatcapName = "matcap_01";
+
     [SerializeField] private ConfiguratorController configuratorController;
     [SerializeField] private PreviewController previewController;
 
@@ -20,6 +27,8 @@ public class Bootstrap : MonoBehaviour
         // Common assets
         CommonAssets.AvatarMaterial = baseMat;
         CommonAssets.FacialFeaturesMaterial = facialFeaturesMat;
+        CommonAssets.MatcapPresets = matcapPresets;
+        CommonAssets.DefaultMatcapName = defaultMatcapName;
 
         var url = Application.isEditor ? debugUrl : Application.absoluteURL;
         AangConfiguration.RecreateFrom(url);

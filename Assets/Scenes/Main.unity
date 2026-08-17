@@ -1560,6 +1560,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   baseMat: {fileID: 2100000, guid: 406504d4e46794b17941d2039cfd49c4, type: 2}
   facialFeaturesMat: {fileID: 2100000, guid: 640484c930a9c425791b434dd2094bff, type: 2}
+  matcapPresets: {fileID: 11400000, guid: e77eccfdf49b4ea09a22904b9864a2a3, type: 2}
+  defaultMatcapName: matcap_01
   configuratorController: {fileID: 3845507387249961957}
   previewController: {fileID: 1667190199235124708}
   debugUrl: ?mode=jesus&profile=0x04E77bA608Cc78aD8aEFfBc60a2Ea47ABdaEA7BA
