@@ -124,8 +124,13 @@ namespace Loading
 
         public Material GetDefaultMaterial(bool pointsSupport = false)
         {
-            // I don't think this is ever called
-            return CommonAssets.AvatarMaterial;
+            // Called for primitives with no material. The Avatar_Toon template carries an
+            // authored HDR _Emissive_Color, so return a copy with it zeroed to match the
+            // glTF default material (and the explorer), instead of the glowing shared asset.
+            var mat = new Material(CommonAssets.AvatarMaterial) { name = "Default_MAT" };
+            mat.SetColor(EMISSIVE_COLOR_ID, Color.black);
+            mat.SetInt(CULL_MODE_ID, (int)CullMode.Back);
+            return mat;
         }
 
         public void SetLogger(ICodeLogger logger)
