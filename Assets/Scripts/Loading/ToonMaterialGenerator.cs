@@ -25,6 +25,8 @@ namespace Loading
 
         //private readonly AvatarColors _avatarColors;
 
+        private Material m_DefaultMaterial;
+
         public ToonMaterialGenerator()
         {
             
@@ -127,10 +129,15 @@ namespace Loading
             // Called for primitives with no material. The Avatar_Toon template carries an
             // authored HDR _Emissive_Color, so return a copy with it zeroed to match the
             // glTF default material (and the explorer), instead of the glowing shared asset.
-            var mat = new Material(CommonAssets.AvatarMaterial) { name = "Default_MAT" };
-            mat.SetColor(EMISSIVE_COLOR_ID, Color.black);
-            mat.SetInt(CULL_MODE_ID, (int)CullMode.Back);
-            return mat;
+            // Cached so multiple material-less primitives in the same GLB share one instance.
+            if (m_DefaultMaterial == null)
+            {
+                m_DefaultMaterial = new Material(CommonAssets.AvatarMaterial) { name = "Default_MAT" };
+                m_DefaultMaterial.SetColor(EMISSIVE_COLOR_ID, Color.black);
+                m_DefaultMaterial.SetColor(BASE_COLOR_ID, Color.white);
+                m_DefaultMaterial.SetInt(CULL_MODE_ID, (int)CullMode.Back);
+            }
+            return m_DefaultMaterial;
         }
 
         public void SetLogger(ICodeLogger logger)
