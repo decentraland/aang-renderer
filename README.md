@@ -39,6 +39,7 @@ The renderer can run in five different modes, depending on its usage: Marketplac
   * `avatar` - the item worn by the avatar
 * `disableSwitcher`: Hides the avatar / item switcher, so the view stays as it was requested. Only used in `marketplace` mode. Default is `false`.
 * `background`: The background color to use for the renderer. It must be in hex and not include the leading # (e.g. `ff00ff`). It may include alpha for a transparent background. Default is transparent.
+* `shadow`: Whether the avatar casts a shadow on the floor. The shadow is drawn into the canvas alpha, so over a transparent background it composites onto whatever sits behind the renderer. Default is `on`; pass `shadow=off` to remove it. Not used in `configurator` mode, and the item-alone view of `marketplace` mode has no shadow either way.
 * `skinColor`: The color to use for the skin of the character. It must be in hex and not include the leading # (e.g. `ff00ff`).
 * `hairColor`: The color to use for the hair of the character. It must be in hex and not include the leading # (e.g. `ff00ff`).
 * `eyeColor`: The color to use for the eyes of the character. It must be in hex and not include the leading # (e.g. `ff00ff`).
@@ -63,6 +64,7 @@ Depending on the mode, not all parameters are used. These are the valid paramete
 
 ### Marketplace
 * `background`
+* `shadow` (optional)
 * `profile`
 * `urn` or `contract` & `item` or `contract` & `token`
   * Multiple urn parameters may be used to preview several items at once (a cart, an outfit). The remaining categories are still filled from the profile, and the passed urns override by category, so the last urn wins its category. Several items can only be shown worn by the avatar, since the item-alone view renders a single item.
@@ -72,16 +74,19 @@ Depending on the mode, not all parameters are used. These are the valid paramete
 
 ### Profile
 * `background`
+* `shadow` (optional)
 * `profile`
 * `emote`
 
 ### Authentication
 * `background`
+* `shadow` (optional)
 * `profile`
 * `emote`
 
 ### Builder
 * `background`
+* `shadow` (optional)
 * `bodyShape`
 * `eyeColor`
 * `hairColor`

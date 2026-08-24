@@ -29,6 +29,7 @@ namespace Preview
 
         [SerializeField] private GameObject animationReference;
         [SerializeField] private GameObject platform;
+        [SerializeField] private GameObject shadowCatcher;
 
         [SerializeField] private float wearablePadding = 0.15f;
 
@@ -154,6 +155,7 @@ namespace Preview
 
                 animationReference.SetActive(config.ShowAnimationReference);
                 platform.SetActive(config.Mode is PreviewMode.Authentication);
+                shadowCatcher.SetActive(config.Shadow);
                 mainCamera.backgroundColor = config.Background;
                 mainCamera.orthographic = config.Projection == "orthographic";
                 previewUIPresenter.EnableLoader(!config.DisableLoader);

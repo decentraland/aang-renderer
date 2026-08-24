@@ -52,6 +52,9 @@ public class JSBridge : MonoBehaviour
     public void SetBackground(string value) => AangConfiguration.Instance.SetBackground(value);
 
     [UsedImplicitly]
+    public void SetShadow(string value) => AangConfiguration.Instance.SetShadow(value);
+
+    [UsedImplicitly]
     public void SetSkinColor(string value) => AangConfiguration.Instance.SetSkinColor(value);
 
     [UsedImplicitly]
