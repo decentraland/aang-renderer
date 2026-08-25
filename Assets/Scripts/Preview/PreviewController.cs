@@ -52,6 +52,7 @@ namespace Preview
             previewUIPresenter.EmoteToggleClicked += OnEmoteToggleClicked;
             previewUIPresenter.ContainerDrag += avatarRotator.OnDrag;
             previewUIPresenter.ContainerDrag += wearableRotator.OnDrag;
+            previewUIPresenter.ContainerPan += previewCameraController.Pan;
             emoteAnimationController.EmoteAnimationEnded += OnEmoteAnimationEnded;
 
             avatarRotator.AllowVertical = false;
@@ -258,6 +259,7 @@ namespace Preview
 
                 previewUIPresenter.EnableEmoteControls(hasEmoteOverride);
                 previewUIPresenter.EnableZoom(config.Mode is PreviewMode.Marketplace or PreviewMode.Builder);
+                previewUIPresenter.EnablePan(config.Mode is PreviewMode.Marketplace or PreviewMode.Builder);
                 previewUIPresenter.EnableSwitcher(hasWearableOverride && !config.DisableSwitcher);
                 previewUIPresenter.EnableAudioControls(hasEmoteAudio);
             } while (_shouldReload);

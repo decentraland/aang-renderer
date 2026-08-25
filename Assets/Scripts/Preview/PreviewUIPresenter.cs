@@ -27,14 +27,11 @@ namespace Preview
         public event Action ShowWearableClicked;
         public event Action<bool> EmoteToggleClicked;
         public event Action<Vector2, float> ContainerDrag;
+        public event Action<Vector2, float> ContainerPan;
 
         private VisualElement _switcher;
         private VisualElement _wearableButton;
         private VisualElement _avatarButton;
-
-        private VisualElement _zoomControls;
-        private Button _zoomInButton;
-        private Button _zoomOutButton;
 
         private VisualElement _emoteControls;
         private Button _playEmoteButton;
@@ -48,6 +45,7 @@ namespace Preview
         private string _currentDebugInput = "";
         private bool _debugLoaded;
         private bool _zoomEnabled;
+        private bool _panEnabled;
         private bool _animationPlaying = true;
         private SwitcherState _switcherState = SwitcherState.Wearable;
         private float _lastPlayPauseClickTime;
@@ -58,12 +56,6 @@ namespace Preview
             _switcher = root.Q("Switcher");
             _wearableButton = _switcher.Q("WearableButton");
             _avatarButton = _switcher.Q("AvatarButton");
-
-            _zoomControls = root.Q("ZoomControls");
-            _zoomInButton = _zoomControls.Q<Button>("ZoomInButton");
-            _zoomOutButton = _zoomControls.Q<Button>("ZoomOutButton");
-            _zoomInButton.clicked += previewCameraController.ZoomIn;
-            _zoomOutButton.clicked += previewCameraController.ZoomOut;
 
             _emoteControls = root.Q("EmoteControls");
             _playEmoteButton = _emoteControls.Q<Button>("PlayStopButton");
@@ -77,6 +69,7 @@ namespace Preview
             _loaderIcon = _loader.Q("Icon");
 
             _controls.AddManipulator(new DragManipulator((d, dt) => ContainerDrag!(d, dt)));
+            _controls.AddManipulator(new DragManipulator(OnPanDrag, MouseButton.RightMouse, accumulateDelta: true));
             _controls.RegisterCallback<WheelEvent>(OnWheel);
             _wearableButton.AddManipulator(new Clickable(OnWearableButtonClicked));
             _avatarButton.AddManipulator(new Clickable(OnAvatarButtonClicked));
@@ -105,7 +98,11 @@ namespace Preview
         public void EnableZoom(bool enable)
         {
             _zoomEnabled = enable;
-            _zoomControls.style.display = enable ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
+        public void EnablePan(bool enable)
+        {
+            _panEnabled = enable;
         }
 
         public void EnableEmoteControls(bool enable)
@@ -193,6 +190,20 @@ namespace Preview
 
             previewCameraController.ZoomByWheelDelta(evt.delta.y);
             evt.StopPropagation();
+        }
+
+        private void OnPanDrag(Vector2 delta, float deltaTime)
+        {
+            if (!_panEnabled) return;
+
+            // UI Toolkit deltas are in panel points, and PreviewPanelSettings scales with screen size
+            // (m_ScaleMode: 2), so a point is not a screen pixel. Dividing by the panel's own height
+            // cancels that scaling - and since points are square, the same divisor is right for both
+            // axes. The camera controller then only has to scale by the world height it frames.
+            var panelHeight = _controls.panel.visualTree.layout.height;
+            if (panelHeight <= 0f) return;
+
+            ContainerPan!(delta / panelHeight, deltaTime);
         }
 
         private void OnTextInput(char c)

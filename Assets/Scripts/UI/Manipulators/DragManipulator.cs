@@ -7,17 +7,24 @@ namespace UI.Manipulators
     public class DragManipulator : PointerManipulator
     {
         private readonly Action<Vector2, float> _dragged;
+        private readonly bool _accumulateDelta;
 
         private bool active;
         private Vector2 _lastDelta;
 
-        public DragManipulator(Action<Vector2, float> dragged)
+        /// <param name="accumulateDelta">
+        /// Sum every pointer move between scheduler ticks instead of keeping only the newest. Needed by
+        /// anything that has to track the cursor 1:1; rotation is tuned around the lossy default.
+        /// </param>
+        public DragManipulator(Action<Vector2, float> dragged, MouseButton activatorButton = MouseButton.LeftMouse,
+            bool accumulateDelta = false)
         {
             _dragged = dragged;
+            _accumulateDelta = accumulateDelta;
 
             activators.Add(new ManipulatorActivationFilter
             {
-                button = MouseButton.LeftMouse
+                button = activatorButton
             });
         }
 
@@ -51,7 +58,10 @@ namespace UI.Manipulators
             if (!active)
                 return;
 
-            _lastDelta = evt.deltaPosition;
+            // Pointer moves outpace the scheduler that drains this - a 1000Hz mouse fires ~16 per frame
+            // at 60fps - so overwriting throws most of the movement away.
+            var delta = (Vector2)evt.deltaPosition;
+            _lastDelta = _accumulateDelta ? _lastDelta + delta : delta;
             evt.StopPropagation();
         }
 
