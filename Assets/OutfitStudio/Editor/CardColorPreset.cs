@@ -3,8 +3,9 @@ using UnityEngine;
 namespace OutfitStudio.Editor
 {
     /// <summary>
-    /// A named Card-frame skin: the card's inner/outer vignette pair, the border colour, and the
-    /// pattern texture tiled over the card. Editor-only tooling asset: author them via
+    /// A named Card-frame skin: the card's inner/outer vignette pair, the border colour, the
+    /// pattern texture tiled over the card, and the radial glow behind the avatar. Editor-only
+    /// tooling asset: author them via
     /// <c>Assets ▸ Create ▸ Outfit Studio ▸ Card Color Preset</c> (or the "Save current…" button in
     /// the Outfit Studio's Card-frame section) and apply them with the preset buttons there.
     ///
@@ -16,6 +17,11 @@ namespace OutfitStudio.Editor
     /// back when the frame had its own gradient background and a flat card fill. The background layer
     /// is gone and the card is painted with the Decentraland vignette, so only the vignette pair and
     /// the border remain, plus <see cref="pattern"/> — see IMPLEMENTATION.md §18.
+    ///
+    /// 2026-08-25: the glow came back as <see cref="glowColor"/>/<see cref="glowRadius"/>, this time
+    /// as the card paint's own additive hotspot rather than a separate background layer. It had been
+    /// fixed at the reference material's values, which made it impossible to get a dark card — the
+    /// purple survived blacking out both vignette colours and turning the pattern off.
     /// </summary>
     [CreateAssetMenu(fileName = "CardColorPreset", menuName = "Outfit Studio/Card Color Preset")]
     public class CardColorPreset : ScriptableObject
@@ -33,5 +39,15 @@ namespace OutfitStudio.Editor
         /// <summary>Whether the pattern draws at all. Defaults true so presets authored before this
         /// field existed (2026-07-31) keep showing their pattern rather than silently going blank.</summary>
         public bool patternEnabled = true;
+
+        /// <summary>The radial hotspot behind the avatar. Added on top of the vignette rather than
+        /// blended into it, so it stays visible with <see cref="cardInner"/>/<see cref="cardOuter"/>
+        /// black and the pattern off — which is exactly why it belongs in the preset. Alpha is the
+        /// shader's strength multiplier, so alpha 0 is "no glow".</summary>
+        [ColorUsage(true)] public Color glowColor = new(0.66f, 0f, 0.745f, 1f);
+
+        /// <summary>The glow's (horizontal, vertical) radius in the card's 0..1 UV space. Stock is the
+        /// narrow, tall ellipse from the reference material.</summary>
+        public Vector2 glowRadius = new(0.05f, 0.13f);
     }
 }

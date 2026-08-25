@@ -3025,9 +3025,8 @@ namespace OutfitStudio.Editor
             Label Section(string t) => new(t) { style = { unityFontStyleAndWeight = FontStyle.Bold, marginTop = 6 } };
 
             // Colour presets — one button per CardColorPreset asset. Applies ONLY the card paint (3
-            // colours + the pattern texture),
-            // leaving the current margins/sizes/toggles intact. The whole body is rebuilt on apply so
-            // the ColorFields below reflect the new values.
+            // colours + the pattern texture + the glow), leaving the current margins/sizes/toggles
+            // intact. The whole body is rebuilt on apply so the fields below reflect the new values.
             c.Add(Section("Presets"));
             var presetRow = new VisualElement { style = { flexDirection = FlexDirection.Row, flexWrap = Wrap.Wrap } };
             foreach (var preset in LoadCardPresets())
@@ -3050,7 +3049,8 @@ namespace OutfitStudio.Editor
             {
                 EnsureFolder(CARD_PRESETS_DIR); // so the dialog opens in the intended default folder
                 var path = EditorUtility.SaveFilePanelInProject("Save Card Color Preset", "CardColorPreset",
-                    "asset", "Save the current card colours + pattern as a reusable preset.", CARD_PRESETS_DIR);
+                    "asset", "Save the current card colours, pattern and glow as a reusable preset.",
+                    CARD_PRESETS_DIR);
                 if (string.IsNullOrEmpty(path)) return;
 
                 var preset = ScriptableObject.CreateInstance<CardColorPreset>();
@@ -3059,10 +3059,12 @@ namespace OutfitStudio.Editor
                 preset.border = StudioCardFrame.Border;
                 preset.pattern = StudioCardFrame.PatternTexture;
                 preset.patternEnabled = StudioCardFrame.PatternEnabled;
+                preset.glowColor = StudioCardFrame.GlowColor;
+                preset.glowRadius = StudioCardFrame.GlowRadius;
                 AssetDatabase.CreateAsset(preset, path);
                 AssetDatabase.SaveAssets();
                 BuildCardBody(c); // show the new preset button
-            }) { text = "Save current…", tooltip = "Save the current 3 colours + pattern texture as a new preset asset", style = { marginRight = 2, marginBottom = 2 } });
+            }) { text = "Save current…", tooltip = "Save the current 3 colours + pattern texture + glow as a new preset asset", style = { marginRight = 2, marginBottom = 2 } });
 
             presetRow.Add(new Button(() => BuildCardBody(c))
             {
@@ -3071,8 +3073,8 @@ namespace OutfitStudio.Editor
             c.Add(presetRow);
 
             // The card's two vignette colours (inner = centre, outer = edges/corners) plus the pattern
-            // texture tiled over them — the rest of the Decentraland paint (glow, tiling ratio, scroll)
-            // stays fixed at the reference material's values.
+            // texture tiled over them. The glow gets its own section below; the rest of the
+            // Decentraland paint (tiling ratio, scroll speed) stays fixed at the reference values.
             c.Add(Section("Card"));
             CardColor(c, "Inner Color", () => StudioCardFrame.DclInnerColor, v => StudioCardFrame.DclInnerColor = v);
             CardColor(c, "Outer Color", () => StudioCardFrame.DclOuterColor, v => StudioCardFrame.DclOuterColor = v);
@@ -3094,6 +3096,20 @@ namespace OutfitStudio.Editor
                 else StudioCardFrame.PatternEnabled = false;
             });
             c.Add(pattern);
+
+            // The radial hotspot behind the avatar. It is ADDED on top of the vignette, so it is the
+            // one bit of paint that survives blacking out Inner/Outer and turning the pattern off —
+            // hence its own knobs rather than the fixed reference values it used to run on. The radii
+            // are in the card's own 0..1 UV space, NOT pixels like the lengths below.
+            c.Add(Section("Glow"));
+            CardColor(c, "Glow Color", () => StudioCardFrame.GlowColor,
+                v => StudioCardFrame.GlowColor = v, showAlpha: true);
+            CardSlider(c, "Glow Width", 0.001f, 0.6f,
+                () => StudioCardFrame.GlowRadius.x,
+                v => StudioCardFrame.GlowRadius = new Vector2(v, StudioCardFrame.GlowRadius.y));
+            CardSlider(c, "Glow Height", 0.001f, 0.6f,
+                () => StudioCardFrame.GlowRadius.y,
+                v => StudioCardFrame.GlowRadius = new Vector2(StudioCardFrame.GlowRadius.x, v));
 
             // Every length below is shown and entered in PIXELS of the current capture size, so an artist
             // can work straight off a Figma spec — see CardPxSlider and IMPLEMENTATION.md §20.
@@ -3260,6 +3276,8 @@ namespace OutfitStudio.Editor
             StudioCardFrame.Border = p.border;
             StudioCardFrame.PatternTexture = p.pattern; // may provisionally flip PatternEnabled if null
             StudioCardFrame.PatternEnabled = p.patternEnabled; // preset's actual on/off wins
+            StudioCardFrame.GlowColor = p.glowColor;
+            StudioCardFrame.GlowRadius = p.glowRadius;
         }
 
         // Create an "Assets/…"-relative folder (and any missing parents) if it doesn't exist yet.

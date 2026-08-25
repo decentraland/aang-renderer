@@ -60,6 +60,11 @@ namespace OutfitStudio.Editor
         private const string K_DCL_OUTER = "OutfitStudio.Card.DclOuterColor";
         private const string K_PATTERN = "OutfitStudio.Card.PatternTex"; // asset GUID, empty = bundled default
         private const string K_PATTERN_ENABLED = "OutfitStudio.Card.PatternEnabled";
+        // The radial hotspot behind the avatar. Was fixed at the reference material's values until
+        // 2026-08-25 — see GlowColor/GlowRadius.
+        private const string K_GLOW_COLOR = "OutfitStudio.Card.GlowColor";
+        private const string K_GLOW_RADIUS_X = "OutfitStudio.Card.GlowRadiusX";
+        private const string K_GLOW_RADIUS_Y = "OutfitStudio.Card.GlowRadiusY";
         private const string K_SIDEMASK = "OutfitStudio.Card.SideMask";
         private const string K_BOTTOMMASK = "OutfitStudio.Card.BottomMask";
         private const string K_CLOSED_BORDER = "OutfitStudio.Card.ClosedBorder";
@@ -97,6 +102,8 @@ namespace OutfitStudio.Editor
         private static readonly int DclInnerColorId = Shader.PropertyToID("_DclInnerColor");
         private static readonly int DclOuterColorId = Shader.PropertyToID("_DclOuterColor");
         private static readonly int DclPatternEnabledId = Shader.PropertyToID("_DclPatternEnabled");
+        private static readonly int DclGlowColorId = Shader.PropertyToID("_DclGlowColor");
+        private static readonly int DclGlowRadiusId = Shader.PropertyToID("_DclGlowRadius");
         private static readonly int ZTestId = Shader.PropertyToID("_ZTest");
         private static readonly int ZWriteId = Shader.PropertyToID("_ZWrite");
         private static readonly int SrcBlendId = Shader.PropertyToID("_SrcBlend");
@@ -109,6 +116,14 @@ namespace OutfitStudio.Editor
         // from Explorer's BackgroundLoading.mat.
         private static readonly Color DefDclInner = Hex("#BF00FF");
         private static readonly Color DefDclOuter = Hex("#4D0080");
+        // The shader's own _DclGlowColor / _DclGlowRadius defaults. The reference declares the radius
+        // as (0.05, -0.13); the sign is meaningless there (the delta is divided by it and then
+        // length()'d), so it is stored positive to keep the sliders sane.
+        private static readonly Color DefGlowColor = new(0.66f, 0f, 0.745f, 1f);
+        private static readonly Vector2 DefGlowRadius = new(0.05f, 0.13f);
+
+        // A zero radius divides by zero in the shader, so clamp rather than trusting the UI's range.
+        private const float MIN_GLOW_RADIUS = 1e-4f;
 
         private static GameObject _root;
         private static Renderer _card, _fade, _mask, _border;
@@ -210,10 +225,40 @@ namespace OutfitStudio.Editor
         }
 
         /// <summary>The two colours the card's radial vignette blends between (inner → outer). These
-        /// are the card's colours — the rest of the Decentraland paint (pattern, glow, tiling, speed)
-        /// is fixed at the values ported from the reference material.</summary>
+        /// are the card's colours — the pattern and the glow have their own knobs, and the rest of the
+        /// Decentraland paint (tiling, speed) is fixed at the values ported from the reference
+        /// material.</summary>
         public static Color DclInnerColor { get => GetColor(K_DCL_INNER, DefDclInner); set => SetColor(K_DCL_INNER, value); }
         public static Color DclOuterColor { get => GetColor(K_DCL_OUTER, DefDclOuter); set => SetColor(K_DCL_OUTER, value); }
+
+        /// <summary>
+        /// The radial hotspot the card adds behind the avatar. It is ADDED on top of the inner/outer
+        /// vignette, so it survives blacking both of those out — which is why it needed its own knob.
+        /// Alpha is a strength multiplier in the shader (<c>_DclGlowColor.a</c>), so alpha 0 turns the
+        /// glow off completely while leaving the rest of the paint alone.
+        /// </summary>
+        public static Color GlowColor
+        {
+            get => GetColor(K_GLOW_COLOR, DefGlowColor, keepAlpha: true);
+            set => SetColor(K_GLOW_COLOR, value);
+        }
+
+        /// <summary>
+        /// The glow's horizontal and vertical radius, in the CARD's 0..1 UV space (not pixels, unlike
+        /// the margins below — the shader's glow works in card UV). The stock (0.05, 0.13) is the
+        /// narrow, tall ellipse that reads as a column of light behind the avatar.
+        /// </summary>
+        public static Vector2 GlowRadius
+        {
+            get => new(EditorPrefs.GetFloat(K_GLOW_RADIUS_X, DefGlowRadius.x),
+                EditorPrefs.GetFloat(K_GLOW_RADIUS_Y, DefGlowRadius.y));
+            set
+            {
+                EditorPrefs.SetFloat(K_GLOW_RADIUS_X, Mathf.Max(MIN_GLOW_RADIUS, value.x));
+                EditorPrefs.SetFloat(K_GLOW_RADIUS_Y, Mathf.Max(MIN_GLOW_RADIUS, value.y));
+                Refresh();
+            }
+        }
 
         /// <summary>Erase the avatar where it spills past the card's left/right edges (arms/hands),
         /// leaving the top open so the head still overflows. On by default. Independent of
@@ -385,7 +430,7 @@ namespace OutfitStudio.Editor
                      {
                          K_CARD_WIDTH, K_MARGIN_TOP, K_MARGIN_BOTTOM, K_RADIUS, K_BORDER, K_INNER_BORDER_W,
                          K_OUTER_BORDER_W, K_FADE_H, K_FADE_S, K_DCL_INNER, K_DCL_OUTER, K_PATTERN,
-                         K_PATTERN_ENABLED
+                         K_PATTERN_ENABLED, K_GLOW_COLOR, K_GLOW_RADIUS_X, K_GLOW_RADIUS_Y
                      })
                 EditorPrefs.DeleteKey(k);
             Refresh();
@@ -750,6 +795,8 @@ namespace OutfitStudio.Editor
             mat.SetFloat(DclPatternEnabledId, PatternEnabled ? 1f : 0f);
             mat.SetColor(DclInnerColorId, DclInnerColor);
             mat.SetColor(DclOuterColorId, DclOuterColor);
+            mat.SetColor(DclGlowColorId, GlowColor);
+            mat.SetVector(DclGlowRadiusId, GlowRadius);
             mat.SetFloat(DclTileScaleId, tileScale);
             mat.SetFloat(CardAspectId, cardAspect);
         }
