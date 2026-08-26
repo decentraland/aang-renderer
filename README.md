@@ -1,3 +1,15 @@
+# ⚠️ This repository has moved
+
+> [!IMPORTANT]
+> **Development of this project continues in the [unity-explorer](https://github.com/decentraland/unity-explorer) monorepo**, under [`avatar-preview-renderer/`](https://github.com/decentraland/unity-explorer/tree/dev/avatar-preview-renderer) — the project was renamed from *aang-renderer* to *avatar-preview-renderer* as part of the move.
+>
+> - **Do not open PRs or issues here.** All new work happens in unity-explorer.
+> - The code was imported into the monorepo as a squashed snapshot of [`e781d10`](https://github.com/decentraland/aang-renderer/commit/e781d10); this repo remains as the historical archive.
+> - Releases are now tagged [`avatar-preview-renderer/vX.Y.Z`](https://github.com/decentraland/unity-explorer/releases?q=avatar-preview-renderer&expanded=true) in unity-explorer and are cut automatically on merges to its `dev` branch. This repo's final release is **v2.8.0**.
+> - Consumers ([wearable-preview](https://github.com/decentraland/wearable-preview)) vendor those releases via `npm run update-unity`.
+
+---
+
 # Aang Renderer
 
 This project is responsible for rendering previews of the user profile and wearables used on the Decentraland Marketplace, Authentication screen, Profile page, Builder, and Configurator.
